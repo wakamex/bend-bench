@@ -1,0 +1,35 @@
+# Paths resolve relative to this file. No downloads or system changes are made.
+schema = 1
+label = "full-validation-20260917"
+output = "runs"
+suites = ["vendor", "uts"]
+threads = [1, 2, 4, 8, 16, 32]
+cpus = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+repetitions = 10
+warmups = 1
+timeout = 180
+cuda = true
+gpu_heap = "4GB"
+gpu_arch = "sm_86"
+uts_inputs = ["test", "tiny"]
+uts_cutoffs = [4, 16, 64]
+# An existing legacy run must finish before this harness prepares or measures.
+blocked_services = ["bend2-evaluation.service"]
+
+[bend]
+path = "../bend2/upstream"
+commit = "b9d1352c9f45632447f40a2e927355c92f2be58c"
+allow_patch = false
+
+[bots]
+path = "../bend2/bots"
+commit = "2607a695128727a3f6c98754367705443663136d"
+allow_patch = false
+
+[tools]
+bun = "../bend2/tools/bun-linux-x64/bun"
+cc = "/usr/bin/clang"
+cxx = "/usr/bin/g++"
+cuda_cxx = "/usr/bin/clang++"
+cuda_path = "/usr/local/cuda-13.1"

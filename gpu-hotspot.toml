@@ -1,0 +1,38 @@
+schema = 1
+label = "rodinia-hotspot-20260917-idle-resident"
+output = "runs"
+suites = ["hotspot"]
+threads = [1, 16]
+cpus = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+repetitions = 10
+warmups = 1
+timeout = 180
+cuda = true
+gpu_heap = "4GB"
+gpu_arch = "sm_86"
+hotspot_sizes = [64, 512, 1024]
+hotspot_steps = [10, 100]
+hotspot_pyramids = [1, 2, 4]
+require_idle_gpu = true
+blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service"]
+
+[gpu_resident]
+pid = 3725664
+start_ticks = 147101678
+boot_id = "d2a1fda1-5799-454b-9d76-6643bff6dace"
+
+[bend]
+path = "../bend2/upstream"
+commit = "b9d1352c9f45632447f40a2e927355c92f2be58c"
+
+[rodinia]
+path = "../bend2/rodinia/rodinia_3.1"
+archive = "../bend2/sources/rodinia_3.1.tar.bz2"
+sha256 = "faebac7c11ed8f8fcf6bf2d7e85c3086fc2d11f72204d6dfc28dc5b2e8f2acfd"
+
+[tools]
+bun = "../bend2/tools/bun-linux-x64/bun"
+cc = "/usr/bin/clang"
+cxx = "/usr/bin/g++"
+cuda_cxx = "/usr/bin/clang++"
+cuda_path = "/usr/local/cuda-13.1"

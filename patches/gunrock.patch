@@ -1,0 +1,34 @@
+diff --git a/include/gunrock/framework/benchmark.hxx b/include/gunrock/framework/benchmark.hxx
+index 22966a5..d6dcc16 100644
+--- a/include/gunrock/framework/benchmark.hxx
++++ b/include/gunrock/framework/benchmark.hxx
+@@ -22,8 +22,13 @@ namespace benchmark {
+ class benchmark_t {
+  public:
+   benchmark_t()
++#if ESSENTIALS_COLLECT_METRICS
+       : edges_visited(1),
+         vertices_visited(1),
++#else
++      : edges_visited(),
++        vertices_visited(),
++#endif
+         search_depth(0),
+         total_runtime() {}
+ 
+@@ -50,7 +55,7 @@ struct host_benchmark_t {
+ };
+ 
+ benchmark_t ____;
+-__managed__ device_benchmark_t BXXX;
++__device__ __managed__ device_benchmark_t BXXX;
+ 
+ __device__ void LOG_EDGE_VISITED(size_t edges) {
+   math::atomic::add(BXXX.d_edges_visited, static_cast<unsigned int>(edges));
+@@ -92,4 +97,4 @@ host_benchmark_t EXTRACT() {
+ }
+ 
+ }  // namespace benchmark
+-}  // namespace gunrock
+\ No newline at end of file
++}  // namespace gunrock

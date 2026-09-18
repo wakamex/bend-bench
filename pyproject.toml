@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bend-bench"
+version = "0.1.0"
+description = "Correctness-gated, revision-pinned Bend benchmark experiments"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+license = "MIT AND Apache-2.0 AND BSD-3-Clause"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/*.txt"]
+
+[project.scripts]
+bend-bench = "bend_bench.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bend_bench"]

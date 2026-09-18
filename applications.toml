@@ -1,0 +1,50 @@
+schema = 1
+label = "applications-20260917"
+output = "runs"
+suites = ["pricing", "mnk", "bfs"]
+threads = [1, 2, 4, 8, 16, 32]
+cpus = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+repetitions = 10
+warmups = 1
+timeout = 180
+cuda = true
+gpu_heap = "4GB"
+gpu_arch = "sm_86"
+pricing_depths = [12,15,18]
+pricing_steps = [64,256]
+bfs_depths = [10,14,18]
+mnk_games = [[4,4,3,6],[4,4,3,8],[5,5,4,6],[5,5,4,8]]
+require_idle_gpu = true
+blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-gpu.service"]
+
+[gpu_resident]
+cgroup = "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service"
+
+[bend]
+path = "../bend2/upstream"
+commit = "b9d1352c9f45632447f40a2e927355c92f2be58c"
+
+[gap]
+path = "sources/gapbs"
+commit = "2972aeb2703165bafd921222f4ed7196f542d3a8"
+
+[gunrock]
+path = "sources/gunrock"
+commit = "a2e9f04aa7a14aa4d2922ffc6a5fcbba9d451df6"
+allow_patch = true
+
+[moderngpu]
+path = "sources/moderngpu"
+commit = "267cc8d02c03f00f1656f1205c61c946a1e530b0"
+
+[cccl]
+path = "../bend-bench/sources/cccl-clang"
+commit = "ecfd3adfaa7ebcb81d80d5b297ab3551619fda02"
+allow_patch = true
+
+[tools]
+bun = "../bend2/tools/bun-linux-x64/bun"
+cc = "/usr/bin/clang"
+cxx = "/usr/bin/g++"
+cuda_cxx = "/usr/bin/clang++"
+cuda_path = "/usr/local/cuda-12.4"
