@@ -27,7 +27,7 @@ This comparison models a pricing service that stays running and returns a price 
 | Bend GPU | 3.50 ms |
 | Project-written CUDA simulation with CUB reduction | 0.488 ms |
 
-The smaller request size also benefits substantially from the GPU. [Results at both sizes, correctness checks and measurement details](PRICING_SUSTAINED.md).
+Requests using 65,536 simulated paths also benefit substantially from the GPU. [Results for 65,536 and 262,144 paths, correctness checks and measurement details](PRICING_SUSTAINED.md).
 
 ### Startup costs, graph traversal and GPU primitives
 
