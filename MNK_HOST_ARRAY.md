@@ -1,6 +1,16 @@
 # Endgame search through host-array completion
 
-The comparison now asks how long each implementation takes to produce every answer in a flat CPU-memory array. Timing stops before binary evidence writes, text formatting or validation. The new measurements are pending.
+The comparison asks how long each implementation takes to produce every answer in a flat CPU-memory array. Timing stops before binary evidence writes, text formatting or validation. The first corrected run completed with all 15 processes and every host-array value passing validation.
+
+| Implementation | Median host-array completion per 524,288-position batch | Host-ready positions/second |
+|---|---:|---:|
+| Tight-bound OpenMP, 16 threads | 221.07 ms | 2,371,633 |
+| Bend GPU | 300.68 ms | 1,743,654 |
+| Bend CPU, 16 threads | 559.01 ms | 937,880 |
+| Tight-bound root-parallel CUDA, mask loop | 636.05 ms | 824,288 |
+| Tight-bound whole-position CUDA, mask loop | 811.14 ms | 646,363 |
+
+These are medians of three independent process means, excluding two warmups per process. OpenMP provides 36% more host-ready throughput than Bend GPU; Bend GPU provides 86% more than Bend CPU. [Complete corrected-boundary results](runs/mnk-sustained-20260918-160439/report.md). The conventional CUDA controls in this run used the mask loop; the faster previously tested literal-mask root variant is covered by the follow-up below.
 
 Earlier Bend timings labeled “search-to-host” ended after GPU synchronization, but before its completed answer tree had necessarily migrated to CPU memory. The generated runtime allocates CUDA managed memory with device-preferred placement. The output traversal can trigger further transfers. Those measurements establish synchronized search completion, not equivalence with the conventional CUDA control's completed device-to-host array copy. The earlier claim that Bend provides host-ready results faster than OpenMP is withdrawn pending this comparison. Existing raw timings remain unchanged.
 
@@ -21,4 +31,15 @@ Five implementations run three fresh processes each in shuffled order: Bend CPU1
 ```sh
 uv run --locked python mnk_sustained.py --depths 19 --batches 30 --repeats 3 --multicore-only --telemetry --host-array --corpus-sizes 1024
 journalctl --user -u bend-bench-mnk-host-array.service -f
+```
+
+## Literal-mask root CUDA with fresh references
+
+The follow-up compares root-parallel CUDA with mask loops versus literal mask expressions, alongside fresh OpenMP16 and Bend GPU references. Both CUDA variants use tight bounds and bulk output. All four stop timing at the same verified flat host-array endpoint. No historical timings are substituted for fresh reference measurements.
+
+The corpus, batch size, warmups, 30 measured batches and three shuffled process repetitions remain unchanged. This is 12 process runs. Combining the host-array and literal-win-variants options selects exactly these four implementations. The result remains pending; the earlier modest literal-mask improvement has not yet been measured at this endpoint.
+
+```sh
+uv run --locked python mnk_sustained.py --depths 19 --batches 30 --repeats 3 --multicore-only --telemetry --host-array --literal-win-variants --corpus-sizes 1024
+journalctl --user -u bend-bench-mnk-host-array-literal.service -f
 ```
