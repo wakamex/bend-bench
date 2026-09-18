@@ -16,7 +16,9 @@ On Bend's 16 published workloads, using 16 CPU threads gives Bend a median 13.6�
 
 ### Sustained option pricing on GPU
 
-Bend GPU prices an Asian option about 68× faster than Bend on 16 CPU threads and 40× faster than OpenMP on those threads. The project-written CUDA implementation is another 7.2× faster than Bend GPU. This workload simulates many paths independently before combining their payoffs, giving the GPU plenty of parallel work.
+Bend makes good use of the GPU for option pricing: the same program runs about 68× faster than on 16 CPU threads, beating the OpenMP implementation by 40×. Writing the simulation directly in CUDA still pays off: that implementation is another 7.2× faster than Bend GPU.
+
+This comparison models a pricing service that stays running and returns a price and its standard error for each request. It measures the wait for that answer, including getting it back from the GPU.
 
 | Implementation | Time to return a price and standard error, using 262,144 paths with 256 observations each |
 |---|---:|
@@ -25,7 +27,7 @@ Bend GPU prices an Asian option about 68× faster than Bend on 16 CPU threads an
 | Bend GPU | 3.50 ms |
 | Project-written CUDA simulation with CUB reduction | 0.488 ms |
 
-Programs stay running across requests. Timing includes simulation, aggregation and returning the price and standard error to CPU memory; startup and text formatting are outside that interval. Results are medians of the mean request times from three fresh processes, each with two warmups and 30 measured requests. Both 65,536-path and 262,144-path tests passed correctness checks and showed substantial GPU speedups. [Both sizes, correctness checks and timing methods](PRICING_SUSTAINED.md).
+The smaller request size also benefits substantially from the GPU. [Results at both sizes, correctness checks and measurement details](PRICING_SUSTAINED.md).
 
 ### Startup costs, graph traversal and GPU primitives
 
