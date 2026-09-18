@@ -1,5 +1,6 @@
 """Finite resident-process MNK throughput diagnostic, preserving all evidence."""
 import json
+import argparse
 import os
 from pathlib import Path
 import selectors
@@ -145,12 +146,15 @@ def resident(command, folder, config, expected, count, gpu):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--depths', type=int, nargs='+', choices=(4, 8, 12, 16), default=[4, 8, 12, 16])
+    args = parser.parse_args()
     config = load_config(ROOT / 'applications-mnk.toml')
     config.update(mnk_games=[[5, 5, 4, 8]], threads=[1, 16])
     config['blocked_services'].append('bend-bench-applications.service')
     out = ROOT / 'runs' / time.strftime('mnk-sustained-%Y%m%d-%H%M%S')
     out.mkdir()
-    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__)))
+    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__), depths=args.depths))
     from validate_applications import wait_idle
     wait_idle(config, out)
     report = ['# Resident-process endgame throughput', '',
@@ -158,7 +162,7 @@ def main():
               '| Positions per batch | Implementation | Mean delivered batch ms | Positions/second | Startup to READY ms |',
               '|---|---|---:|---:|---:|']
     with exclusive(config):
-        for depth in (4, 8, 12):
+        for depth in args.depths:
             count = 1 << depth
             work = out / str(count)
             work.mkdir()
