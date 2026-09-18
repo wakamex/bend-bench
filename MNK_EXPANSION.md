@@ -1,5 +1,7 @@
 # CUDA pruning and expanded endgame corpus
 
+Timing-boundary correction: earlier Bend “search-to-host” columns measure synchronized search completion, but do not force all managed-memory answers into a host array. They cannot establish the previously stated host-ready search advantage. A [fresh host-array comparison](MNK_HOST_ARRAY.md) measures the corrected boundary. Delivered-throughput measurements below retain their original meaning.
+
 The expanded comparison completed with all 42 processes passing every answer check. On 1,024 distinct positions, Bend GPU delivered 971,213 positions/second, tight-bound OpenMP16 delivered 953,808, and Bend CPU16 delivered 681,214. The strongest tested CUDA control was tight-bound root-parallel search at 545,643, ahead of whole-position CUDA at 462,763. These are medians across three process means. The [complete report](runs/mnk-sustained-20260918-112910/report.md) preserves all process measurements.
 
 Whole-position CUDA improved delivered throughput on the original 16 positions from 437,117 to 543,065 positions/second, but on the larger corpus tight-bound root splitting performed better. Tightening OpenMP bounds increased throughput from 813,692 to 953,808 positions/second on the larger corpus. Bend GPU's 1.8% delivered-throughput lead over the improved OpenMP control is smaller than observed process variability.

@@ -1,5 +1,7 @@
 # Corrected resident-process game-search comparison
 
+Timing-boundary correction: Bend's search-phase timestamp precedes guaranteed materialization of its entire managed-memory answer tree on the host. Earlier “search-to-host” labels must not be interpreted as a verified host-array endpoint. See the [host-array comparison](MNK_HOST_ARRAY.md). The delivered-throughput results below include the subsequent output work.
+
 Bend GPU delivers a median 1.20 million positions/second on the fixed repeated endgame corpus, versus 837,000 for OpenMP16, 537,000 for Bend CPU16 and 435,000 for the corrected project-written CUDA control. Each implementation ran in three fresh processes in a saved shuffled order, with two warmups and 30 measured batches of 524,288 positions per process. Every answer passed in all 12 process runs.
 
 | Implementation | Median delivered positions/s across three processes | Minimum–maximum process throughput | Median search-to-host ms per batch |
