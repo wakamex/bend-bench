@@ -5,10 +5,27 @@ import unittest
 
 from bend_bench.core import exclusive, execute, load_config
 from bend_bench.suites import plan, stage
-from mnk_sustained import ROOT, bend_resident, cpp_resident, resident
+from bend_bench.applications import mnk_corpus, mnk_oracle
+from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants
 
 
 class SustainedSearchTests(unittest.TestCase):
+    def test_expanded_corpus_preserves_prefix_and_legal_histories(self):
+        corpus = mnk_corpus(5, 5, 4, 8, 1024)
+        self.assertEqual(corpus[:16], mnk_corpus(5, 5, 4, 8))
+        self.assertEqual(len({tuple(p['board']) for p in corpus}), 1024)
+        won, _ = mnk_oracle(5, 5, 4)
+        for position in corpus:
+            board, player = [0] * 25, 1
+            for square in position['history']:
+                self.assertEqual(board[square], 0)
+                board[square] = player
+                self.assertFalse(won(board, player))
+                player = 3 - player
+            self.assertEqual(board, position['board'])
+            self.assertEqual(player, position['mover'])
+            self.assertEqual(board.count(0), 8)
+
     def test_cuda_control_has_distinct_compiler_and_binary(self):
         config = load_config(ROOT / 'applications-mnk.toml')
         with tempfile.TemporaryDirectory() as tmp:
@@ -23,18 +40,27 @@ class SustainedSearchTests(unittest.TestCase):
                 command = next(b for b in builds if '-o' in b and b[b.index('-o') + 1] == control['command'][3])
                 self.assertEqual(command[0], config['tools']['cuda_cxx'])
                 self.assertTrue(any(arg.endswith('/gpu/mnk.cpp') for arg in command))
+            control_variants(builds, cases)
+            outputs = [b[b.index('-o') + 1] for b in builds if '-o' in b]
+            self.assertEqual(len(outputs), len(set(outputs)))
+            for case in cases:
+                if 'position-tight' in case['implementation']:
+                    build = next(b for b in builds if '-o' in b and b[b.index('-o') + 1] == case['command'][3])
+                    self.assertIn('-DWHOLE_POSITION=1', build)
+                    self.assertIn('-DSEARCH_BOUND=1', build)
 
     def test_real_resident_cpu_answers(self):
         config = load_config(ROOT / 'applications-mnk.toml')
         config.update(cuda=False, threads=[1, 16], mnk_games=[[5, 5, 4, 8]])
         with exclusive(config), tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
-            stage(config, work)
+            stage(config, work, mnk_count=64)
             source = work / 'ports/mnk-5-5-4-8.bend'
-            source.write_text(bend_resident(source.read_text(), 8, 32))
+            source.write_text(bend_resident(source.read_text(), 8, 32, 64))
             cpp = work / 'gpu/mnk.cpp'
-            cpp.write_text(cpp_resident(cpp.read_text(), 256, 32))
+            cpp.write_text(cpp_resident(cpp.read_text(), 256, 32, 64))
             builds, cases = plan(config, work)
+            control_variants(builds, cases)
             for command in builds:
                 result = execute(command)
                 self.assertEqual(result['returncode'], 0, result['stderr'])

@@ -9,6 +9,7 @@ import subprocess
 import time
 import random
 import threading
+import copy
 from itertools import product
 
 from bend_bench.core import append, environment, exclusive, execute, hash_file, load_config, provenance, write_json
@@ -18,8 +19,9 @@ from bend_bench.suites import plan, stage
 ROOT = Path(__file__).resolve().parent
 
 
-def bend_resident(source, depth, total=12):
-    source = source.replace('answer(position(i))', 'answer(position(U32.and(U32.add(i, offset), 15)))')
+def bend_resident(source, depth, total=12, corpus_size=16):
+    mask = corpus_size - 1
+    source = source.replace('answer(position(i))', f'answer(position(U32.and(U32.add(i, offset), {mask})))')
     source = source.replace('def batch(+d: Nat, +i: U32)', 'def batch(+d: Nat, +i: U32, +offset: U32)')
     source = source.replace('batch(p, U32.shl(i)) batch(p, U32.inc(U32.shl(i)))',
                             'batch(p, U32.shl(i), offset) batch(p, U32.inc(U32.shl(i)), offset)')
@@ -37,7 +39,7 @@ def repeat(+n: Nat) -> IO(Unit):
     case 1n+p:
       do IO<Unit>:
         start : Nat <- IO.now()
-        Unit <- emit(batch!({depth}n, 0, U32.and(U32.add(U32.from_nat(p), {(12-total) & 15}), 15)), start)
+        Unit <- emit(batch!({depth}n, 0, U32.and(U32.add(U32.from_nat(p), {(12-total) & mask}), {mask})), start)
         repeat(p)
 
 def main() -> IO(Unit):
@@ -47,16 +49,27 @@ def main() -> IO(Unit):
 '''
 
 
-def cpp_resident(source, count, total=12):
+def cpp_resident(source, count, total=12, corpus_size=16):
+    mask = corpus_size - 1
     source = '#include <vector>\n' + source
     source = source[:source.index('int main()')]
     source = source.replace('int position = blockIdx.x, move = threadIdx.x;',
-                            'int position = blockIdx.x, move = threadIdx.x; int input = (position + offset) & 15;')
+                            f'int position = blockIdx.x, move = threadIdx.x; int input = (position + offset) & {mask};')
     source = source.replace('__global__ void children(int *out)', '__global__ void children(int *out, int offset)')
     source = source.replace('positions[position]', 'positions[input]')
     source = source.replace('int position = threadIdx.x, best = -1;',
                             f'int position = blockIdx.x * blockDim.x + threadIdx.x, best = -1; if (position >= {count}) return;')
+    source = source.replace('empty - 1, -2, 2)', 'empty - 1, -SEARCH_BOUND, SEARCH_BOUND)')
+    source = '#ifndef SEARCH_BOUND\n#define SEARCH_BOUND 2\n#endif\n' + source
     return source + f'''
+#ifdef __CUDACC__
+__global__ void whole_positions(int *out, int offset) {{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+  if (i >= {count}) return;
+  int input = (i + offset) & {mask};
+  out[i] = 1 + solve(positions[input][0], positions[input][1], empty, -SEARCH_BOUND, SEARCH_BOUND);
+}}
+#endif
 int main() {{
   constexpr int count = {count};
   std::vector<int> out(count);
@@ -64,22 +77,28 @@ int main() {{
   int *d, *scores;
   CUDA(cudaDeviceSetLimit(cudaLimitStackSize, 32768));
   CUDA(cudaMalloc(&d, count * sizeof(int)));
+#ifndef WHOLE_POSITION
   CUDA(cudaMalloc(&scores, count * 32 * sizeof(int)));
+#endif
 #endif
   puts("READY"); fflush(stdout);
   for (int rep = 0; rep < {total}; ++rep) {{
-    int offset = (11 - rep) & 15;
+    int offset = (11 - rep) & {mask};
     auto start = std::chrono::steady_clock::now();
 #ifdef __CUDACC__
+#ifdef WHOLE_POSITION
+    whole_positions<<<(count + 127) / 128, 128>>>(d, offset);
+#else
     children<<<count, 32>>>(scores, offset);
     CUDA(cudaGetLastError());
     combine<<<(count + 127) / 128, 128>>>(scores, d);
+#endif
     CUDA(cudaGetLastError());
     CUDA(cudaMemcpy(out.data(), d, count * sizeof(int), cudaMemcpyDeviceToHost));
 #else
 #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < count; ++i)
-      out[i] = 1 + solve(positions[(i + offset) & 15][0], positions[(i + offset) & 15][1], empty, -2, 2);
+      out[i] = 1 + solve(positions[(i + offset) & {mask}][0], positions[(i + offset) & {mask}][1], empty, -SEARCH_BOUND, SEARCH_BOUND);
 #endif
     auto searched = std::chrono::steady_clock::now();
     for (int value : out) printf("%d\\n", value);
@@ -91,10 +110,39 @@ int main() {{
       (long long)std::chrono::duration_cast<std::chrono::nanoseconds>(done.time_since_epoch()).count());
   }}
 #ifdef __CUDACC__
-  CUDA(cudaFree(d)); CUDA(cudaFree(scores));
+  CUDA(cudaFree(d));
+#ifndef WHOLE_POSITION
+  CUDA(cudaFree(scores));
+#endif
 #endif
 }}
 '''
+
+
+def control_variants(builds, cases):
+    """Retain the original controls and vary bounds, then GPU decomposition."""
+    for case in list(cases):
+        impl = case['implementation']
+        if impl not in ('local-alpha-beta-cuda', 'local-alpha-beta-openmp'):
+            continue
+        executable = case['command'][3]
+        build = next(b for b in builds if '-o' in b and b[b.index('-o') + 1] == executable)
+        variants = [('tight', ['-DSEARCH_BOUND=1'])]
+        if impl.endswith('cuda'):
+            variants.append(('position-tight', ['-DSEARCH_BOUND=1', '-DWHOLE_POSITION=1']))
+        for label, flags in variants:
+            target = executable + '-' + label
+            if any('-o' in b and b[b.index('-o') + 1] == target for b in builds):
+                continue  # CPU thread-count cases share one binary.
+            command = list(build)
+            command[command.index('-o') + 1] = target
+            builds.append([*command, *flags])
+        for label, _ in variants:
+            variant = copy.deepcopy(case)
+            variant['implementation'] = impl.replace('-cuda', f'-{label}-cuda') if impl.endswith('cuda') else impl + '-' + label
+            variant['id'] += '-' + label
+            variant['command'][3] = executable + '-' + label
+            cases.append(variant)
 
 
 class Telemetry:
@@ -178,7 +226,7 @@ def resident(command, folder, config, expected, count, gpu, total=12, telemetry=
                         previous, values, mismatches = now, 0, 0
                     else:
                         rep = len(result['batches'])
-                        mismatches += line != str(expected[(values + 11 - rep) & 15]).encode()
+                        mismatches += line != str(expected[(values + 11 - rep) % len(expected)]).encode()
                         values += 1
             selector.close()
             if proc.poll() is None:
@@ -234,7 +282,11 @@ def main():
     parser.add_argument('--repeats', type=int, choices=range(1, 6), default=1, help='Independent process repetitions in shuffled order')
     parser.add_argument('--telemetry', action='store_true')
     parser.add_argument('--multicore-only', action='store_true', help='Omit Bend one-thread measurements')
+    parser.add_argument('--corpus-sizes', type=int, nargs='+', choices=(16, 64, 256, 1024), default=[16])
+    parser.add_argument('--control-variants', action='store_true', help='Add tight-bound CPU/root-CUDA and whole-position CUDA controls')
     args = parser.parse_args()
+    if min(1 << d for d in args.depths) < max(args.corpus_sizes):
+        parser.error('Every batch must cover the complete corpus')
     config = load_config(ROOT / 'applications-mnk.toml')
     config.update(mnk_games=[[5, 5, 4, 8]], threads=[1, 16])
     config['blocked_services'].append('bend-bench-applications.service')
@@ -244,23 +296,32 @@ def main():
     from validate_applications import wait_idle
     wait_idle(config, out)
     report = ['# Resident-process endgame throughput', '',
-              'Repeated fixed corpus of 16 positions, two warmup batches per process. Latency includes answer formatting, pipe delivery and host observation; it is not kernel time. Full-process throughput counts all completed batches including warmups and includes startup and shutdown.', '',
-              '| Positions per batch | Measured batches | Implementation | Mean delivered batch ms | Positions/second excluding warmups | Positions/second full process | Startup to READY ms |',
-              '|---|---:|---|---:|---:|---:|---:|']
+              'Deterministic distinct legal positions, independently solved by the tuple-board oracle. Larger corpora preserve the original prefix. Two warmup batches per process. Latency includes answer formatting, pipe delivery and host observation; it is not kernel time. Full-process throughput counts all completed batches including warmups and includes startup and shutdown.', '',
+              '| Distinct positions | Positions per batch | Measured batches | Implementation | Mean delivered batch ms | Positions/second excluding warmups | Positions/second full process | Startup to READY ms |',
+              '|---:|---:|---:|---|---:|---:|---:|---:|']
     with exclusive(config):
-        for depth, measured in product(args.depths, args.batches):
+        for corpus_size, depth, measured in product(args.corpus_sizes, args.depths, args.batches):
             count = 1 << depth
             total = measured + 2
-            work = out / f'{count}-batches-{measured}'
+            work = out / f'corpus-{corpus_size}-{count}-batches-{measured}'
             work.mkdir()
             (work / 'build').mkdir()
-            stage(config, work)
+            stage(config, work, mnk_count=corpus_size)
             name = 'mnk-5-5-4-8'
             source = work / 'ports' / (name + '.bend')
-            source.write_text(bend_resident(source.read_text(), depth, total))
+            source.write_text(bend_resident(source.read_text(), depth, total, corpus_size))
             cpp = work / 'gpu/mnk.cpp'
-            cpp.write_text(cpp_resident(cpp.read_text(), count, total))
+            cpp.write_text(cpp_resident(cpp.read_text(), count, total, corpus_size))
             builds, cases = plan(config, work)
+            if args.control_variants:
+                control_variants(builds, cases)
+            for case in cases:
+                case['contract'] = {**case['contract'], 'positions': count, 'distinct_positions': corpus_size,
+                                    'measured_batches': measured, 'warmup_batches': 2,
+                                    'implementation_variant': case['implementation']}
+            write_json(work / 'experiment.json', dict(corpus_size=corpus_size, positions_per_batch=count,
+                       bounds='Original controls [-2,2]; tight controls [-1,1]; Bend [0,2]',
+                       move_order='ascending empty square index', builds=builds, cases=cases))
             for command in builds:
                 result = execute(command, timeout=180)
                 append(work / 'build.jsonl', result)
@@ -268,6 +329,9 @@ def main():
                     raise RuntimeError(f'Build failed: {work}')
             write_json(work / 'hashes.json', {str(p.relative_to(work)): hash_file(p) for p in work.rglob('*') if p.is_file()})
             expected = json.loads(source.with_suffix('.json').read_text())
+            write_json(work / 'corpus-summary.json', dict(distinct_positions=len(expected),
+                       outcomes={label: expected.count(value) for value, label in enumerate(('loss', 'draw', 'win'))},
+                       corpus_sha256=hash_file(source.with_suffix('.corpus.json'))))
             selected = []
             for case in cases:
                 if args.multicore_only and case['implementation'] == 'bend' and case['threads'] == 1:
@@ -288,7 +352,7 @@ def main():
                 if len(result['phases']) != total:
                     raise RuntimeError(f'Missing phase measurements: {folder}')
                 latency = statistics.mean(b['seconds'] for b in result['batches'][2:])
-                report.append(f"| {count} | {measured} | {folder.name} | {latency * 1000:.3f} | {count / latency:.1f} | {result['positions_per_second_including_startup']:.1f} | {result['startup_seconds'] * 1000:.3f} |")
+                report.append(f"| {corpus_size} | {count} | {measured} | {folder.name} | {latency * 1000:.3f} | {count / latency:.1f} | {result['positions_per_second_including_startup']:.1f} | {result['startup_seconds'] * 1000:.3f} |")
                 (out / 'report.md').write_text('\n'.join(report) + '\n')
                 print(report[-1], flush=True)
     write_json(out / 'completed.json', dict(report=str(out / 'report.md')))

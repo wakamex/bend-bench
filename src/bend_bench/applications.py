@@ -73,12 +73,12 @@ def mnk_oracle(m, n, k):
     return won, oracle
 
 
-def mnk_corpus(m, n, k, empty):
+def mnk_corpus(m, n, k, empty, count=16):
     won, oracle = mnk_oracle(m, n, k)
     rand = random.Random(20260917 + m * 1000 + n * 100 + k * 10 + empty)
     boards, seen = [], set()
     for attempt in range(100000):
-        if len(boards) == 16:
+        if len(boards) == count:
             break
         board, player, history = [0] * (m * n), 1, []
         for _ in range(m * n - empty):
@@ -110,8 +110,8 @@ def mnk_corpus(m, n, k, empty):
                 value=oracle(key, player),
             )
         )
-    if len(boards) != 16:
-        raise ValueError("Unable to generate 16 distinct legal nonterminal positions")
+    if len(boards) != count:
+        raise ValueError(f"Unable to generate {count} distinct legal nonterminal positions")
     return boards
 
 
@@ -141,7 +141,7 @@ def render(template, replacements):
     return template
 
 
-def stage(config, work):
+def stage(config, work, *, mnk_count=16):
     assets = Path(__file__).parent / "assets/gpu"
     ports = work / "ports"
     ports.mkdir(exist_ok=True)
@@ -180,7 +180,7 @@ def stage(config, work):
     if "mnk" in config["suites"]:
         for m, n, k, empty in config["mnk_games"]:
             name = f"mnk-{m}-{n}-{k}-{empty}"
-            corpus = mnk_corpus(m, n, k, empty)
+            corpus = mnk_corpus(m, n, k, empty, mnk_count)
             masks = [sum(1 << i for i in line) for line in lines(m, n, k)]
             (ports / (name + ".corpus.json")).write_text(json.dumps(corpus, indent=2))
             (ports / (name + ".json")).write_text(
@@ -211,7 +211,7 @@ def stage(config, work):
             (folder / "mnk-data.h").write_text(
                 f"constexpr int cells={m * n},empty={empty};\nARRAY uint32_t masks[]={{"
                 + ",".join(map(str, masks))
-                + "};\nARRAY uint32_t positions[16][2]={"
+                + f"}};\nARRAY uint32_t positions[{mnk_count}][2]={{"
                 + ",".join("{" + ",".join(map(str, p["masks"])) + "}" for p in corpus)
                 + "};\n"
             )

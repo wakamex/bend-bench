@@ -20,7 +20,7 @@ def vendor_outputs(bend):
     return expected
 
 
-def stage(config, work):
+def stage(config, work, *, mnk_count=16):
     assets = Path(__file__).parent / "assets"
     shutil.copytree(assets, work, dirs_exist_ok=True)
     for name, key in (("upstream", "bend"), ("bots", "bots")):
@@ -33,7 +33,7 @@ def stage(config, work):
             (work / "ports" / f"nqueens-{size}.bend").write_text(source)
     if set(config['suites']) & {'pricing', 'mnk', 'bfs'}:
         from .applications import stage as stage_applications
-        stage_applications(config, work)
+        stage_applications(config, work, mnk_count=mnk_count)
     if "hotspot" in config["suites"]:
         from .hotspot import stage_rodinia
         (work / "ports").mkdir(exist_ok=True)
