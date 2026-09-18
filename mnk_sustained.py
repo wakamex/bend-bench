@@ -15,6 +15,7 @@ from itertools import product
 from bend_bench.core import append, environment, exclusive, execute, hash_file, load_config, provenance, write_json
 from bend_bench.gpu_activity import Monitor, process_identity
 from bend_bench.suites import plan, stage
+from bend_bench.applications import lines
 
 ROOT = Path(__file__).resolve().parent
 
@@ -163,24 +164,38 @@ def control_variants(builds, cases):
             cases.append(variant)
 
 
-def bulk_variants(builds, cases):
-    """Change only output handling on the tight-bound controls."""
+def derived_variants(builds, cases, label, flag, required):
+    """Give a one-factor control a distinct binary and result identity."""
     for case in list(cases):
-        if 'tight' not in case['implementation']:
+        if required not in case['implementation']:
             continue
         executable = case['command'][3]
-        target = executable + '-bulk'
+        target = executable + '-' + label
         build = next(b for b in builds if '-o' in b and b[b.index('-o') + 1] == executable)
         if not any('-o' in b and b[b.index('-o') + 1] == target for b in builds):
             command = list(build)
             command[command.index('-o') + 1] = target
-            builds.append([*command, '-DBULK_OUTPUT=1'])
+            builds.append([*command, flag])
         variant = copy.deepcopy(case)
         impl = case['implementation']
-        variant['implementation'] = impl.replace('-cuda', '-bulk-cuda') if impl.endswith('cuda') else impl + '-bulk'
-        variant['id'] += '-bulk'
+        variant['implementation'] = impl.replace('-cuda', f'-{label}-cuda') if impl.endswith('cuda') else impl + '-' + label
+        variant['id'] += '-' + label
         variant['command'][3] = target
         cases.append(variant)
+
+
+def bulk_variants(builds, cases):
+    derived_variants(builds, cases, 'bulk', '-DBULK_OUTPUT=1', 'tight')
+
+
+def literal_win_check(source, m=5, n=5, k=4):
+    start = source.index('SEARCH bool won(')
+    end = source.index('SEARCH int solve(', start)
+    masks = [sum(1 << i for i in line) for line in lines(m, n, k)]
+    # The Bend generator prepends each mask to its expression.
+    expression = ' || '.join(f'((board & {mask}u) == {mask}u)' for mask in reversed(masks))
+    replacement = f'#ifdef LITERAL_WIN\nSEARCH bool won(uint32_t board) {{ return {expression}; }}\n#else\n'
+    return source[:start] + replacement + source[start:end] + '#endif\n' + source[end:]
 
 
 class Telemetry:
@@ -323,6 +338,7 @@ def main():
     parser.add_argument('--corpus-sizes', type=int, nargs='+', choices=(16, 64, 256, 1024), default=[16])
     parser.add_argument('--control-variants', action='store_true', help='Add tight-bound CPU/root-CUDA and whole-position CUDA controls')
     parser.add_argument('--bulk-variants', action='store_true', help='Compare per-answer and bulk output on tight-bound controls')
+    parser.add_argument('--literal-win-variants', action='store_true', help='Add literal-mask win checks to bulk-output controls')
     args = parser.parse_args()
     if min(1 << d for d in args.depths) < max(args.corpus_sizes):
         parser.error('Every batch must cover the complete corpus')
@@ -350,16 +366,25 @@ def main():
             source = work / 'ports' / (name + '.bend')
             source.write_text(bend_resident(source.read_text(), depth, total, corpus_size))
             cpp = work / 'gpu/mnk.cpp'
-            cpp.write_text(cpp_resident(cpp.read_text(), count, total, corpus_size))
+            cpp_source = cpp_resident(cpp.read_text(), count, total, corpus_size)
+            if args.literal_win_variants:
+                cpp_source = literal_win_check(cpp_source)
+            cpp.write_text(cpp_source)
             builds, cases = plan(config, work)
-            if args.control_variants or args.bulk_variants:
+            if args.control_variants or args.bulk_variants or args.literal_win_variants:
                 control_variants(builds, cases)
-            if args.bulk_variants:
+            if args.bulk_variants or args.literal_win_variants:
                 bulk_variants(builds, cases)
+            if args.literal_win_variants:
+                derived_variants(builds, cases, 'literal', '-DLITERAL_WIN=1', 'bulk')
             for case in cases:
                 case['contract'] = {**case['contract'], 'positions': count, 'distinct_positions': corpus_size,
                                     'measured_batches': measured, 'warmup_batches': 2,
-                                    'implementation_variant': case['implementation']}
+                                    'implementation_variant': case['implementation'],
+                                    'output_policy': 'Bend string' if case['implementation'].startswith('bend') else
+                                        ('bulk text' if 'bulk' in case['implementation'] else 'line-flushed printf'),
+                                    'win_check': 'literal expressions' if case['implementation'].startswith('bend') or
+                                        'literal' in case['implementation'] else 'mask array loop'}
             write_json(work / 'experiment.json', dict(corpus_size=corpus_size, positions_per_batch=count,
                        bounds='Original controls [-2,2]; tight controls [-1,1]; Bend [0,2]',
                        move_order='ascending empty square index', builds=builds, cases=cases))

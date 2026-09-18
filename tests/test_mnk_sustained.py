@@ -6,7 +6,7 @@ import unittest
 from bend_bench.core import exclusive, execute, load_config
 from bend_bench.suites import plan, stage
 from bend_bench.applications import mnk_corpus, mnk_oracle
-from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants, bulk_variants
+from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants, bulk_variants, derived_variants, literal_win_check
 
 
 class SustainedSearchTests(unittest.TestCase):
@@ -42,6 +42,7 @@ class SustainedSearchTests(unittest.TestCase):
                 self.assertTrue(any(arg.endswith('/gpu/mnk.cpp') for arg in command))
             control_variants(builds, cases)
             bulk_variants(builds, cases)
+            derived_variants(builds, cases, 'literal', '-DLITERAL_WIN=1', 'bulk')
             outputs = [b[b.index('-o') + 1] for b in builds if '-o' in b]
             self.assertEqual(len(outputs), len(set(outputs)))
             for case in cases:
@@ -59,10 +60,11 @@ class SustainedSearchTests(unittest.TestCase):
             source = work / 'ports/mnk-5-5-4-8.bend'
             source.write_text(bend_resident(source.read_text(), 8, 32, 64))
             cpp = work / 'gpu/mnk.cpp'
-            cpp.write_text(cpp_resident(cpp.read_text(), 256, 32, 64))
+            cpp.write_text(literal_win_check(cpp_resident(cpp.read_text(), 256, 32, 64)))
             builds, cases = plan(config, work)
             control_variants(builds, cases)
             bulk_variants(builds, cases)
+            derived_variants(builds, cases, 'literal', '-DLITERAL_WIN=1', 'bulk')
             for command in builds:
                 result = execute(command)
                 self.assertEqual(result['returncode'], 0, result['stderr'])
