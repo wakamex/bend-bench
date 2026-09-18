@@ -1,6 +1,6 @@
 # Pricing, m,n,k search and BFS
 
-This extension tests whether one Bend source can run usefully on CPU and CUDA across independent numerical paths, exact game-tree search and graph traversal. Rodinia HotSpot supplies the stencil workload in the preceding queue. No results are claimed until correctness, timing and profiling gates pass.
+This extension tests whether one Bend source can run usefully on CPU and CUDA across independent numerical paths, exact game-tree search and graph traversal. Rodinia HotSpot supplies the stencil workload. The [README](README.md) summarizes completed results; correctness, unprofiled timing and profiling are recorded as separate gates.
 
 ## Contracts
 
@@ -10,7 +10,9 @@ This extension tests whether one Bend source can run usefully on CPU and CUDA ac
 
 ## Baseline status
 
-The historical m,n,k CUDA-control results are invalid: its output filename collided with the Bend CUDA executable and the later Bend build overwrote it. The control now uses a distinct `-control-cuda` filename, and plan validation rejects duplicate compiler output paths. This affects m,n,k GPU-control measurements, including the earlier exhaustive search and subsequent resident-process experiments. It does not invalidate the separate CPU implementations or establish a failure in the pricing/BFS controls, whose executable paths are distinct. Original reports are retained as evidence; do not interpret their `local-alpha-beta-cuda` rows as conventional CUDA performance.
+The sustained game-search extension uses 1,024 distinct 5×5 connect-4 positions with eight empty squares, repeated into large batches. The [current comparison](MNK_HOST_ARRAY.md) times completion into a flat CPU-memory array, with validation and text formatting afterward. It includes the strongest measured local CUDA variant, using tight bounds, root-move parallelism and literal win checks. These results are separate from the 16-position, complete-process application contract above.
+
+The m,n,k CUDA-control results predating the executable-identity fix in commit `10da471` are invalid: its output filename collided with the Bend CUDA executable and the later Bend build overwrote it. The control now uses a distinct `-control-cuda` filename, and plan validation rejects duplicate compiler output paths. The [audit](MNK_SUSTAINED.md) identifies affected historical reports. The separate CPU implementations remain valid; pricing/BFS use distinct executable paths. Original reports are retained as evidence. The current host-array comparisons use verified distinct binaries.
 
 GAP commit `2972aeb2703165bafd921222f4ed7196f542d3a8`, Gunrock v2.0.0 commit `a2e9f04aa7a14aa4d2922ffc6a5fcbba9d451df6`, and ModernGPU commit `267cc8d02c03f00f1656f1205c61c946a1e530b0` are pinned locally. Gunrock v2.0.0 was selected for its CUDA-native API, avoiding the current main branch's additional HIP platform dependencies. Wrappers preserve the upstream BFS algorithms. CUB/Thrust use the already documented Clang compatibility patch.
 

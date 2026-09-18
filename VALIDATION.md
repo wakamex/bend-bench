@@ -1,5 +1,15 @@
 # Local validation
 
+## Completed game-search validation, September 18
+
+The host-array extension completed 48 tests with three expected skips and built both package distributions. Native CPU tests check every binary result against the independent oracle; damaged, truncated and oversized binary evidence is rejected. The final CUDA-selection change also passed all five focused tests, including the real CPU checks and compiler-flag assertions, and both package builds.
+
+The first corrected host-array comparison passed all 15 processes. The final comparison with literal-mask root CUDA and fresh OpenMP/Bend GPU references passed all 12 processes, including every binary array and text answer. See [current results and validation contract](MNK_HOST_ARRAY.md). The earlier scheduling experiment accepted 24 processes across two execution periods, retaining the GPU-contended failed attempt separately; see [optimization history](MNK_EXPANSION.md).
+
+## Earlier validation records
+
+The following records describe the validation state at each earlier development stage. Their queue and pending-stage statements are historical, rather than the current status of the completed game-search work.
+
 The application extension passes 35 tests, with three skips, including the real Bend/JavaScript comparisons against independent small-input oracles and real OpenMP/CUDA compiler source checks. The queued job explicitly enables the skipped native CPU/CUDA application smoke test before preparing the full 182-configuration sweep. The other skips are the inactive legacy-service test and the separately exercised GPU-contention probe. Both source distribution and wheel build successfully. Native application performance remains pending the queue gates.
 
 The CUB and HotSpot extension builds successfully, and 23 automated tests pass with one environment-dependent skip. Tests include the preserved `clang++` invocation, all six primitive reference outputs, float-vector rejection cases and kernel extraction from a real archived Nsight SQLite export. HotSpot CPU development checks pass across all selected sizes and timestep counts. GPU execution remains pending the idle-window queue described in [QUEUE.md](QUEUE.md); successful builds are not counted as GPU correctness or performance evidence.

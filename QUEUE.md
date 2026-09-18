@@ -1,5 +1,15 @@
 # Full packaged-suite validation
 
+## Completed game-search comparisons, September 18
+
+The final literal-mask CUDA comparison completed at 16:25:18. All 12 processes passed with the corrected host-array endpoint; [results](MNK_HOST_ARRAY.md) and [raw report](runs/mnk-sustained-20260918-161850/report.md) supersede earlier game-search headlines. The preceding five-implementation host-array comparison passed all 15 processes in `runs/mnk-sustained-20260918-160439/`.
+
+The scheduling/output comparison completed through an explicit continuation: nine passed processes were retained, 15 remaining schedule entries completed, and the rejected GPU-contended attempt stayed in place. Its [continuation report](runs/mnk-sustained-20260918-143715/continuation-20260918-152300/report.md) labels retained and new measurements. These are completed finite experiments, not completion of the broader evaluation portfolio.
+
+## Historical queue records
+
+The sections below preserve earlier requests and interruptions. References to an active queue or pending measurements describe those stages at the time they were recorded; use the completed summaries above for the current game-search status.
+
 ## Alpha-beta game-search GPU update
 
 Replacement request `runs/mnk-alpha-beta-validation-20260918-v2/request.json` uses `applications-mnk.toml` for all four endgame corpora. It waits for the current GPU workload to release the device, followed by a 120-second quiet window, with a 24-hour admission deadline. The existing transcription-worker canary exemption remains; the separate Parakeet training process is not exempt. No GPU workload is stopped.
