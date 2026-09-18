@@ -4,7 +4,7 @@ A reproducible benchmark harness comparing [Bend](https://github.com/bendlang/be
 
 Bend can use multiple CPU cores and a GPU from the same program. In these tests it scales well on its published CPU workloads, and its GPU backend speeds up sustained game search. Conventional parallel implementations usually finish sooner.
 
-For someone choosing a language, Bend looks promising for writing parallel programs conveniently, but these results do not support choosing it for a performance advantage over established parallel implementations. This evaluation has not measured whether that convenience saves enough development effort to offset the performance gap.
+This evaluation measures execution speed and correctness against conventional parallel implementations. It does not measure development effort or the benefits of Bend's proof system.
 
 ## Results
 
