@@ -1,5 +1,21 @@
 # Resident-process game-search experiment
 
+At a fixed batch size of 524,288, extending each process from ten to 100 measured batches reduces average delivered throughput by about 16%: Bend falls from 1.33 million to 1.12 million positions/second, and conventional CUDA from 1.36 million to 1.14 million. The first ten measured batches within the long runs are also around 1.33 million, followed by slower delivery. Two warmups and ten measured batches therefore overstate longer sustained performance here. All six duration configurations passed every answer check.
+
+| Measured batches after two warmups | Bend GPU, positions/s | Bend including startup/shutdown, positions/s | Conventional CUDA, positions/s | CUDA including startup/shutdown, positions/s |
+|---|---:|---:|---:|---:|
+| 10 | 1,330,308 | 1,320,528 | 1,357,472 | 1,341,959 |
+| 30 | 1,186,415 | 1,192,264 | 1,213,777 | 1,220,177 |
+| 100 | 1,122,888 | 1,125,948 | 1,135,146 | 1,138,023 |
+
+Full-process throughput counts the warmup answers too. It can therefore exceed the warmup-excluded rate when those early batches are faster, despite also including startup and shutdown. Startup amortization is already small at ten batches and does not overcome the subsequent slowdown.
+
+Within the 100-batch runs, Bend's first ten measured batches deliver 1,332,770 positions/second and its last ten deliver 1,101,152. Conventional CUDA changes from 1,332,510 to 1,063,012. These ten-batch summaries describe the temporal pattern; all individual batches remain in the evidence. NVML's recorded benchmark device allocations stayed constant, and no resident-worker compute activity was sampled. Neither observation establishes the cause of the slowdown; GPU clocks, temperatures and host-side bottlenecks were not isolated by this experiment.
+
+The [duration report](runs/mnk-sustained-20260918-104836/report.md), generated with commit `458f10e`, preserves per-batch latency and cumulative throughput for each process. The 100-batch measured intervals are about 46.7 seconds for Bend and 46.2 seconds for conventional CUDA. The shorter batch-size sweep below remains evidence about batch-size scaling, not a stable long-duration throughput estimate.
+
+## Ten-batch GPU size sweep
+
 The extended GPU sweep levels off around 524,288–1,048,576 positions per batch. Bend peaks at 1.36 million positions/second and conventional CUDA at 1.38 million. A 524,288-position batch reaches about 98% of each implementation's best observed throughput; increasing to 4,194,304 mostly increases latency, from about 0.39 seconds to 3.2 seconds. All 14 GPU configurations passed every answer check across two warmup and ten measured batches.
 
 | Positions per batch | Bend GPU, positions/s | Conventional CUDA, positions/s | Bend mean delivered batch latency |
@@ -47,4 +63,4 @@ The follow-up doubles the batch from 65,536 to 4,194,304 positions, measuring bo
 
 ## Batch-count sweep
 
-The duration check holds the batch at 524,288 positions and compares 10, 30 and 100 measured batches after two warmups, using `uv run --locked python mnk_sustained.py --gpu-only --depths 19 --batches 10 30 100`. Each configuration starts a fresh process. The input rotation starts at the same position and follows the same sequence regardless of run length. Every batch records its latency, elapsed time, cumulative measured throughput and cumulative throughput including startup. The full-process rate counts all completed positions, including the warmups, and includes startup and shutdown; steady-state rates exclude both warmups. GPU-monitor setup and its post-process sampling drain are excluded from process timing. No sustained-performance change is claimed until the new run completes.
+The duration check holds the batch at 524,288 positions and compares 10, 30 and 100 measured batches after two warmups, using `uv run --locked python mnk_sustained.py --gpu-only --depths 19 --batches 10 30 100`. Each configuration starts a fresh process, in increasing duration order, with Bend followed by conventional CUDA. The input rotation starts at the same position and follows the same sequence regardless of run length. Every batch records its latency, elapsed time, cumulative measured throughput and cumulative throughput including startup. The full-process rate counts all completed positions, including the warmups, and includes startup and shutdown; warmup-excluded rates omit both warmups. GPU-monitor setup and its post-process sampling drain are excluded from process timing. Each duration was tested once per implementation, so the within-run trajectories are stronger evidence of slowdown than the ordered between-run comparison alone.
