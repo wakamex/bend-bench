@@ -6,7 +6,7 @@ import unittest
 from bend_bench.core import exclusive, execute, load_config
 from bend_bench.suites import plan, stage
 from bend_bench.applications import mnk_corpus, mnk_oracle
-from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants
+from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants, bulk_variants
 
 
 class SustainedSearchTests(unittest.TestCase):
@@ -41,6 +41,7 @@ class SustainedSearchTests(unittest.TestCase):
                 self.assertEqual(command[0], config['tools']['cuda_cxx'])
                 self.assertTrue(any(arg.endswith('/gpu/mnk.cpp') for arg in command))
             control_variants(builds, cases)
+            bulk_variants(builds, cases)
             outputs = [b[b.index('-o') + 1] for b in builds if '-o' in b]
             self.assertEqual(len(outputs), len(set(outputs)))
             for case in cases:
@@ -61,6 +62,7 @@ class SustainedSearchTests(unittest.TestCase):
             cpp.write_text(cpp_resident(cpp.read_text(), 256, 32, 64))
             builds, cases = plan(config, work)
             control_variants(builds, cases)
+            bulk_variants(builds, cases)
             for command in builds:
                 result = execute(command)
                 self.assertEqual(result['returncode'], 0, result['stderr'])

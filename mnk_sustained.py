@@ -51,7 +51,7 @@ def main() -> IO(Unit):
 
 def cpp_resident(source, count, total=12, corpus_size=16):
     mask = corpus_size - 1
-    source = '#include <vector>\n' + source
+    source = '#include <vector>\n#include <string>\n' + source
     source = source[:source.index('int main()')]
     source = source.replace('int position = blockIdx.x, move = threadIdx.x;',
                             f'int position = blockIdx.x, move = threadIdx.x; int input = (position + offset) & {mask};')
@@ -73,6 +73,12 @@ __global__ void whole_positions(int *out, int offset) {{
 int main() {{
   constexpr int count = {count};
   std::vector<int> out(count);
+#ifdef BULK_OUTPUT
+  // Override the observer's legacy line buffering before any stdout operation.
+  if (setvbuf(stdout, nullptr, _IOFBF, 65536)) return 3;
+  std::string text;
+  text.reserve(count * 2 + 4);
+#endif
 #ifdef __CUDACC__
   int *d, *scores;
   CUDA(cudaDeviceSetLimit(cudaLimitStackSize, 32768));
@@ -101,8 +107,20 @@ int main() {{
       out[i] = 1 + solve(positions[(i + offset) & {mask}][0], positions[(i + offset) & {mask}][1], empty, -SEARCH_BOUND, SEARCH_BOUND);
 #endif
     auto searched = std::chrono::steady_clock::now();
+#ifdef BULK_OUTPUT
+    text.clear();
+    for (int value : out) {{
+      if (value < 0 || value > 2) return 4;
+      text.push_back('0' + value);
+      text.push_back('\\n');
+    }}
+    text += "END\\n";
+    if (fwrite(text.data(), 1, text.size(), stdout) != text.size()) return 5;
+    if (fflush(stdout)) return 5;
+#else
     for (int value : out) printf("%d\\n", value);
     puts("END"); fflush(stdout);
+#endif
     auto done = std::chrono::steady_clock::now();
     fprintf(stderr, "PHASE_NS %lld %lld %lld\\n",
       (long long)std::chrono::duration_cast<std::chrono::nanoseconds>(start.time_since_epoch()).count(),
@@ -143,6 +161,26 @@ def control_variants(builds, cases):
             variant['id'] += '-' + label
             variant['command'][3] = executable + '-' + label
             cases.append(variant)
+
+
+def bulk_variants(builds, cases):
+    """Change only output handling on the tight-bound controls."""
+    for case in list(cases):
+        if 'tight' not in case['implementation']:
+            continue
+        executable = case['command'][3]
+        target = executable + '-bulk'
+        build = next(b for b in builds if '-o' in b and b[b.index('-o') + 1] == executable)
+        if not any('-o' in b and b[b.index('-o') + 1] == target for b in builds):
+            command = list(build)
+            command[command.index('-o') + 1] = target
+            builds.append([*command, '-DBULK_OUTPUT=1'])
+        variant = copy.deepcopy(case)
+        impl = case['implementation']
+        variant['implementation'] = impl.replace('-cuda', '-bulk-cuda') if impl.endswith('cuda') else impl + '-bulk'
+        variant['id'] += '-bulk'
+        variant['command'][3] = target
+        cases.append(variant)
 
 
 class Telemetry:
@@ -284,6 +322,7 @@ def main():
     parser.add_argument('--multicore-only', action='store_true', help='Omit Bend one-thread measurements')
     parser.add_argument('--corpus-sizes', type=int, nargs='+', choices=(16, 64, 256, 1024), default=[16])
     parser.add_argument('--control-variants', action='store_true', help='Add tight-bound CPU/root-CUDA and whole-position CUDA controls')
+    parser.add_argument('--bulk-variants', action='store_true', help='Compare per-answer and bulk output on tight-bound controls')
     args = parser.parse_args()
     if min(1 << d for d in args.depths) < max(args.corpus_sizes):
         parser.error('Every batch must cover the complete corpus')
@@ -297,8 +336,8 @@ def main():
     wait_idle(config, out)
     report = ['# Resident-process endgame throughput', '',
               'Deterministic distinct legal positions, independently solved by the tuple-board oracle. Larger corpora preserve the original prefix. Two warmup batches per process. Latency includes answer formatting, pipe delivery and host observation; it is not kernel time. Full-process throughput counts all completed batches including warmups and includes startup and shutdown.', '',
-              '| Distinct positions | Positions per batch | Measured batches | Implementation | Mean delivered batch ms | Positions/second excluding warmups | Positions/second full process | Startup to READY ms |',
-              '|---:|---:|---:|---|---:|---:|---:|---:|']
+              '| Distinct positions | Positions per batch | Measured batches | Implementation | Mean delivered batch ms | Positions/second excluding warmups | Positions/second full process | Startup to READY ms | Mean search-to-host ms | Mean output ms |',
+              '|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|']
     with exclusive(config):
         for corpus_size, depth, measured in product(args.corpus_sizes, args.depths, args.batches):
             count = 1 << depth
@@ -313,8 +352,10 @@ def main():
             cpp = work / 'gpu/mnk.cpp'
             cpp.write_text(cpp_resident(cpp.read_text(), count, total, corpus_size))
             builds, cases = plan(config, work)
-            if args.control_variants:
+            if args.control_variants or args.bulk_variants:
                 control_variants(builds, cases)
+            if args.bulk_variants:
+                bulk_variants(builds, cases)
             for case in cases:
                 case['contract'] = {**case['contract'], 'positions': count, 'distinct_positions': corpus_size,
                                     'measured_batches': measured, 'warmup_batches': 2,
@@ -352,7 +393,9 @@ def main():
                 if len(result['phases']) != total:
                     raise RuntimeError(f'Missing phase measurements: {folder}')
                 latency = statistics.mean(b['seconds'] for b in result['batches'][2:])
-                report.append(f"| {corpus_size} | {count} | {measured} | {folder.name} | {latency * 1000:.3f} | {count / latency:.1f} | {result['positions_per_second_including_startup']:.1f} | {result['startup_seconds'] * 1000:.3f} |")
+                search_ms = statistics.mean(p['search_seconds'] for p in result['phases'][2:]) * 1000
+                output_ms = statistics.mean(p['output_seconds'] for p in result['phases'][2:]) * 1000
+                report.append(f"| {corpus_size} | {count} | {measured} | {folder.name} | {latency * 1000:.3f} | {count / latency:.1f} | {result['positions_per_second_including_startup']:.1f} | {result['startup_seconds'] * 1000:.3f} | {search_ms:.3f} | {output_ms:.3f} |")
                 (out / 'report.md').write_text('\n'.join(report) + '\n')
                 print(report[-1], flush=True)
     write_json(out / 'completed.json', dict(report=str(out / 'report.md')))
