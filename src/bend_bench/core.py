@@ -287,7 +287,8 @@ def provenance(config):
 @contextmanager
 def exclusive(config):
     for service in config.get("blocked_services", []):
-        if service_state(service) in {"active", "activating", "reloading", "deactivating"}:
+        if (service_state(service) in {"active", "activating", "reloading", "deactivating"}
+                and not service_contains_current_process(service)):
             raise ValueError(f"Wait for {service} to finish; no overlapping preparation or measurement")
     lock = Path(tempfile.gettempdir()) / f"bend-bench-{os.getuid()}.lock"
     with lock.open("a") as stream:
@@ -296,6 +297,21 @@ def exclusive(config):
         except BlockingIOError as error:
             raise ValueError("Another bend-bench process is preparing or measuring") from error
         yield
+
+
+def service_contains_current_process(service):
+    # A queue's own preflight is part of that job, not a competing service.
+    # Use systemd's actual cgroup rather than an inherited environment claim.
+    env = {**environment(), **{k: os.environ[k] for k in ("XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS") if k in os.environ}}
+    result = execute(["systemctl", "--user", "show", service, "-p", "ControlGroup", "--value"], env=env)
+    group = result["stdout"].strip()
+    if result["returncode"] or not group.startswith("/") or group == "/":
+        return False
+    for line in Path("/proc/self/cgroup").read_text().splitlines():
+        if line.startswith("0::"):
+            current = line[3:]
+            return current == group or current.startswith(group + "/")
+    return False
 
 
 def service_state(service):

@@ -2,7 +2,9 @@
 
 ## Alpha-beta game-search GPU update
 
-Request `runs/mnk-alpha-beta-validation-20260918/request.json` uses `applications-mnk.toml` for all four endgame corpora. It waits for the current GPU workload to release the device, followed by a 120-second quiet window, with a 24-hour admission deadline. The existing transcription-worker canary exemption remains; the separate Parakeet training process is not exempt. No GPU workload is stopped.
+Replacement request `runs/mnk-alpha-beta-validation-20260918-v2/request.json` uses `applications-mnk.toml` for all four endgame corpora. It waits for the current GPU workload to release the device, followed by a 120-second quiet window, with a 24-hour admission deadline. The existing transcription-worker canary exemption remains; the separate Parakeet training process is not exempt. No GPU workload is stopped.
+
+The first request stopped in preflight after all 30 native application checks passed: the N-Queens test treated its owning application service as a competing benchmark. The gate now recognizes actual membership in the service's systemd cgroup, while retaining the shared execution lock and blocking other services. Regression tests cover both protections, and a real transient systemd service verifies owning-service admission. The failed request and its logs remain in `runs/mnk-alpha-beta-validation-20260918/`. No new game-search GPU timings were completed by that request.
 
 The queued comparison covers 16 configurations: Bend and conventional CPU controls at 16 threads, plus both CUDA implementations. Each receives a correctness check, one warmup and ten measurements, followed by one warmup and ten separate profiles for each of eight GPU configurations. Completion writes `MNK_GPU_RESULTS.md` without replacing historical application summaries and emails the result; failure emails an inspection notice. This is a pending update, not a measured GPU improvement. Follow `journalctl --user -u bend-bench-applications.service -f`.
 
