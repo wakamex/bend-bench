@@ -2,7 +2,7 @@
 
 A reproducible benchmark harness comparing [Bend](https://github.com/bendlang/bend)'s automatic parallel execution with OpenMP on CPU and CUDA on GPU. It checks answers, sweeps thread counts and input sizes, and records exact source revisions, build commands and individual measurements.
 
-Bend can use multiple CPU cores and a GPU from the same program. In these tests it scales well on its published CPU workloads, and its GPU backend speeds up sustained game search. Conventional parallel implementations usually finish sooner.
+Bend can use multiple CPU cores and a GPU from the same program. In these tests it scales well on its published CPU workloads and delivers substantial GPU speedups for repeated option pricing. Conventional parallel implementations usually finish sooner.
 
 This evaluation measures execution speed and correctness against conventional parallel implementations. It does not measure development effort or the benefits of Bend's proof system.
 
@@ -14,21 +14,22 @@ These September 17–18, 2026 measurements use a Ryzen 9 3950X with 16 physical 
 
 On Bend's 16 published workloads, using 16 CPU threads gives Bend a median 13.6× speedup over its own one-thread execution; OpenMP gains 14.2× over its own. Similar scaling does not mean equal running time: at 16 threads, Bend takes 32% longer than OpenMP at the median and wins 2 of 16 comparisons. The added irregular-tree search from BOTS shows a different pattern: Bend gains no speedup on either tested tree, while OpenMP finishes about 3.0× and 3.4× sooner at 16 threads. [CPU results and thread-count sweeps](PERFORMANCE.md).
 
-### Game search on CPU and GPU
+### Sustained option pricing on GPU
 
-The GPU makes Bend's exact game search faster: a matched comparison measured 86% more answers per second than Bend CPU16. OpenMP on 16 CPU threads provides 35% more answers per second than Bend GPU, while Bend beats the strongest CUDA implementation written for this project.
+Bend GPU prices an Asian option about 68× faster than Bend on 16 CPU threads and 40× faster than OpenMP on those threads. The project-written CUDA implementation is another 7.2× faster than Bend GPU. This workload simulates many paths independently before combining their payoffs, giving the GPU plenty of parallel work.
 
-| Implementation | Exact endgame positions solved per second |
+| Implementation | Time to return a price and standard error, using 262,144 paths with 256 observations each |
 |---|---:|
-| OpenMP, 16 CPU threads | 2.32 million |
-| Bend GPU | 1.72 million |
-| Project-written CUDA, root-parallel search with literal win checks | 872,000 |
+| Bend, 16 CPU threads | 239.7 ms |
+| OpenMP, 16 CPU threads | 139.5 ms |
+| Bend GPU | 3.50 ms |
+| Project-written CUDA simulation with CUB reduction | 0.488 ms |
 
-Each batch repeats 1,024 distinct 5×5 connect-4 endgames, each with eight empty squares, to 524,288 positions. Timing includes solving them and making every answer available in a CPU-memory array; formatting and validation happen afterward. Results are medians across three fresh processes, each with two warmups and 30 measured batches. [Full comparison, CPU-to-GPU scaling and methods](MNK_HOST_ARRAY.md).
+Programs stay running across requests. Timing includes simulation, aggregation and returning the price and standard error to CPU memory; startup and text formatting are outside that interval. Results are medians of the mean request times from three fresh processes, each with two warmups and 30 measured requests. Both 65,536-path and 262,144-path tests passed correctness checks and showed substantial GPU speedups. [Both sizes, correctness checks and timing methods](PRICING_SUSTAINED.md).
 
-### Pricing, graph traversal and GPU primitives
+### Startup costs, graph traversal and GPU primitives
 
-Moving a Bend program to the GPU does not always help. Pricing and shared-graph BFS finish sooner on Bend CPU16 at every tested input size. Conventional parallel implementations also finish sooner in the examples below.
+Starting a program to price one option and print every simulated payoff gives a different result: CPU execution finishes sooner than GPU execution for both Bend and the conventional implementations. Shared-graph BFS also finishes sooner on CPU at every tested input size.
 
 Complete-run time to price an option or find distances through a graph, including startup, input preparation, transfers and output:
 
@@ -40,6 +41,10 @@ Complete-run time to price an option or find distances through a graph, includin
 These complete-run times are medians of ten measured executions after warmups. For the graph shown, Bend GPU takes about 4× its own CPU time and 13.8× Gunrock's total time. Bend uses immutable trees where the conventional baselines use graph arrays. See the [pricing measurements](runs/486e78825d4fa285adcc/report.md) and [BFS results](BFS_RESULTS.md) for size sweeps and implementation details.
 
 Mature GPU primitives provide a stronger baseline than serial C: NVIDIA CUB sorts 8,388,608 keys in 0.192 seconds end-to-end versus Bend's 0.937 seconds. CUB also sums numbers much faster during computation; Bend's shorter startup can make it finish a short reduction job sooner. [Sorting and reduction measurements](runs/e930e5a1b9c488a9f8ba/report.md). The suite also includes [Rodinia HotSpot thermal simulation](runs/c058f6b3293bda1d65dd/report.md), whose correctness and unprofiled measurements passed; GPU profiling remains incomplete.
+
+### Exact game search
+
+The tested alpha-beta game search favors CPU execution: OpenMP on 16 threads solves 2.32 million endgame positions per second, versus 1.72 million for Bend GPU and 872,000 for the strongest CUDA implementation written for this project. Bend itself benefits from the GPU, producing 86% more answers per second than its CPU backend in a separate matched comparison. Alpha-beta's branching and pruning make it a less straightforward GPU workload than independent pricing paths. These measurements include making every answer available in CPU memory. [Game positions, implementation comparisons and timing methods](MNK_HOST_ARRAY.md).
 
 ## Workloads and comparison strength
 

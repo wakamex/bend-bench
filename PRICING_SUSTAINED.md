@@ -1,6 +1,13 @@
 # Sustained Asian-option pricing
 
-This extension tests repeated pricing in a resident process. Each batch returns an arithmetic Asian call's price, nominal Monte Carlo standard error and completed path count. It reuses the financial model and path simulation already tested in the one-shot application benchmark. Results are pending.
+Bend GPU returns a price and standard error about 68× faster than Bend CPU16 and 40× faster than OpenMP16 at 262,144 paths. The project-written CUDA simulation with CUB reduction is another 7.2× faster than Bend GPU. Each program stays running across requests, which simulate an arithmetic Asian call using 256 observations per path and return the price, nominal Monte Carlo standard error and completed path count.
+
+| Paths per request | Bend, 16 CPU threads | OpenMP, 16 CPU threads | Bend GPU | Project-written CUDA with CUB reduction |
+|---:|---:|---:|---:|---:|
+| 65,536 | 66.593 ms | 35.321 ms | 2.420 ms | 0.180 ms |
+| 262,144 | 239.666 ms | 139.491 ms | 3.501 ms | 0.488 ms |
+
+Times include simulation, aggregation and returning the quote to CPU memory. Each cell is the median of three fresh processes' mean request times, with two warmups and 30 measured requests per process. All four backends passed the per-path audit and all full-size quote checks. Separate conventional GPU qualification runs passed at both sizes. [Individual process results](runs/pricing-sustained-20260918-165158/report.md) and [preserved run evidence](runs/pricing-sustained-20260918-165158/) contain the measurements and source provenance.
 
 The earlier one-shot result remains valid: for 262,144 paths and 256 observations, OpenMP16 finished the complete process in 0.122 seconds, versus 0.206 seconds for conventional CUDA and 0.262 seconds for Bend GPU. That endpoint included startup and printing every payoff. The new endpoint includes simulation, aggregation and bringing the three quote fields to the host; setup and text formatting are reported separately through process wall time rather than charged to every repeated quote.
 
