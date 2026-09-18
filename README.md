@@ -14,6 +14,7 @@ These September 17–18, 2026 measurements use a Ryzen 9 3950X with 16 physical 
 
 - CPU scaling: on Bend's 16 published workloads, Bend achieves 13.6× median speedup at 16 CPU threads relative to its own one-thread execution; OpenMP achieves 14.2× relative to its own. At 16 threads, Bend takes 32% longer than OpenMP at the median and wins 2 of 16 comparisons.
 - Irregular recursive work: the Bend port of BOTS Unbalanced Tree Search gains no speedup on either tested tree. The canonical OpenMP implementations finish about 3.0× and 3.4× sooner at 16 threads.
+- N-Queens: giving both languages bit-mask search reverses the earlier Bend win against BOTS. Enumerating all 365,596 solutions for 14 queens takes 224 ms in Bend versus 14 ms in OpenMP at 16 threads. [Results and implementation details](NQUEENS.md).
 - CPU-to-GPU portability: the pricing, exact game-search and shared-graph BFS ports run correctly on both backends. Using the GPU does not shorten the complete run for any tested size of these three tasks.
 - GPU baselines: Bend beats the CUDA Game of Life implementation written for this project end-to-end, 0.135 versus 0.201 seconds. For 8,388,608-key sorting, NVIDIA CUB finishes in 0.192 seconds versus Bend's 0.937 seconds. CUB is much faster at summing the numbers. Bend starts up faster, which lets it finish this short test sooner.
 
