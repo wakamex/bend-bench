@@ -16,9 +16,9 @@ class SustainedSearchTests(unittest.TestCase):
             work = Path(tmp)
             stage(config, work)
             source = work / 'ports/mnk-5-5-4-8.bend'
-            source.write_text(bend_resident(source.read_text(), 8))
+            source.write_text(bend_resident(source.read_text(), 8, 32))
             cpp = work / 'gpu/mnk.cpp'
-            cpp.write_text(cpp_resident(cpp.read_text(), 256))
+            cpp.write_text(cpp_resident(cpp.read_text(), 256, 32))
             builds, cases = plan(config, work)
             for command in builds:
                 result = execute(command)
@@ -27,9 +27,13 @@ class SustainedSearchTests(unittest.TestCase):
             for index, case in enumerate(cases):
                 folder = work / str(index)
                 folder.mkdir()
-                result = resident(case['command'], folder, config, expected, 256, False)
+                result = resident(case['command'], folder, config, expected, 256, False, 32)
                 self.assertTrue(result['correct'])
-                self.assertEqual(len(result['batches']), 12)
+                self.assertEqual(len(result['batches']), 32)
+                self.assertAlmostEqual(result['batches'][-1]['cumulative_measured_positions_per_second'],
+                                       30 * 256 / sum(b['seconds'] for b in result['batches'][2:]))
+                self.assertAlmostEqual(result['positions_per_second_including_startup'],
+                                       32 * 256 / result['process_seconds'])
 
     def test_wrong_answers_are_retained_and_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

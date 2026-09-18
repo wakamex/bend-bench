@@ -7,6 +7,7 @@ import selectors
 import statistics
 import subprocess
 import time
+from itertools import product
 
 from bend_bench.core import append, environment, exclusive, execute, hash_file, load_config, provenance, write_json
 from bend_bench.gpu_activity import Monitor, process_identity
@@ -15,7 +16,7 @@ from bend_bench.suites import plan, stage
 ROOT = Path(__file__).resolve().parent
 
 
-def bend_resident(source, depth):
+def bend_resident(source, depth, total=12):
     source = source.replace('answer(position(i))', 'answer(position(U32.and(U32.add(i, offset), 15)))')
     source = source.replace('def batch(+d: Nat, +i: U32)', 'def batch(+d: Nat, +i: U32, +offset: U32)')
     source = source.replace('batch(p, U32.shl(i)) batch(p, U32.inc(U32.shl(i)))',
@@ -26,17 +27,17 @@ def bend_resident(source, depth):
     case 0n: IO.pure(Unit, Unit{{}})
     case 1n+p:
       do IO<Unit>:
-        Unit <- IO.print(output(batch!({depth}n, 0, U32.from_nat(p)), "END"))
+        Unit <- IO.print(output(batch!({depth}n, 0, U32.and(U32.add(U32.from_nat(p), {(12-total) & 15}), 15)), "END"))
         repeat(p)
 
 def main() -> IO(Unit):
   do IO<Unit>:
     Unit <- IO.print("READY")
-    repeat(12n)
+    repeat({total}n)
 '''
 
 
-def cpp_resident(source, count):
+def cpp_resident(source, count, total=12):
     source = '#include <vector>\n' + source
     source = source[:source.index('int main()')]
     source = source.replace('int position = blockIdx.x, move = threadIdx.x;',
@@ -56,7 +57,8 @@ int main() {{
   CUDA(cudaMalloc(&scores, count * 32 * sizeof(int)));
 #endif
   puts("READY"); fflush(stdout);
-  for (int offset = 11; offset >= 0; --offset) {{
+  for (int rep = 0; rep < {total}; ++rep) {{
+    int offset = (11 - rep) & 15;
 #ifdef __CUDACC__
     children<<<count, 32>>>(scores, offset);
     CUDA(cudaGetLastError());
@@ -78,7 +80,7 @@ int main() {{
 '''
 
 
-def resident(command, folder, config, expected, count, gpu):
+def resident(command, folder, config, expected, count, gpu, total=12):
     """Timestamp batch boundaries before parsing; retain complete output and activity."""
     started = time.monotonic()
     result = dict(command=list(map(str, command)), batches=[], correct=False)
@@ -86,6 +88,7 @@ def resident(command, folder, config, expected, count, gpu):
     proc = None
     try:
         with (folder / 'stderr.txt').open('w') as err, (folder / 'stdout.txt').open('wb') as raw:
+            started = time.monotonic()
             proc = subprocess.Popen(['stdbuf', '-oL', *map(str, command)], stdout=subprocess.PIPE,
                                     stderr=err, env={**environment(), 'OMP_NUM_THREADS': '16',
                                     'OMP_PROC_BIND': 'true', 'OMP_PLACES': 'threads'}, start_new_session=True)
@@ -117,7 +120,7 @@ def resident(command, folder, config, expected, count, gpu):
                         now = time.monotonic()
                         if previous is None:
                             raise ValueError('Missing READY')
-                        result['batches'].append(dict(seconds=now - previous, answers=values,
+                        result['batches'].append(dict(seconds=now - previous, elapsed_seconds=now - started, answers=values,
                                                       mismatches=mismatches, correct=values == count and mismatches == 0))
                         previous, values, mismatches = now, 0, 0
                     else:
@@ -128,7 +131,7 @@ def resident(command, folder, config, expected, count, gpu):
             if proc.poll() is None:
                 proc.wait(timeout=max(0.1, deadline - time.monotonic()))
             result['returncode'] = proc.returncode
-            result['correct'] = proc.returncode == 0 and len(result['batches']) == 12 and not pending and not values
+            result['correct'] = proc.returncode == 0 and len(result['batches']) == total and not pending and not values
             for batch in result['batches']:
                 result['correct'] &= batch['correct']
     except Exception as error:
@@ -139,6 +142,14 @@ def resident(command, folder, config, expected, count, gpu):
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()
         result['process_seconds'] = time.monotonic() - started
+        elapsed = 0
+        for index, batch in enumerate(result['batches']):
+            batch['cumulative_positions_per_second_including_startup'] = (index + 1) * count / batch['elapsed_seconds']
+            if index >= 2:
+                elapsed += batch['seconds']
+                batch['cumulative_measured_positions_per_second'] = (index - 1) * count / elapsed
+        result['total_batches'] = total
+        result['positions_per_second_including_startup'] = total * count / result['process_seconds']
         if proc and proc.stdout:
             proc.stdout.close()
         if monitor:
@@ -154,31 +165,33 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--depths', type=int, nargs='+', choices=range(4, 23), default=[4, 8, 12, 16])
     parser.add_argument('--gpu-only', action='store_true', help='Measure only the two GPU implementations')
+    parser.add_argument('--batches', type=int, nargs='+', choices=(10, 30, 100), default=[10], help='Measured batches after two warmups')
     args = parser.parse_args()
     config = load_config(ROOT / 'applications-mnk.toml')
     config.update(mnk_games=[[5, 5, 4, 8]], threads=[1, 16])
     config['blocked_services'].append('bend-bench-applications.service')
     out = ROOT / 'runs' / time.strftime('mnk-sustained-%Y%m%d-%H%M%S')
     out.mkdir()
-    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__), depths=args.depths, gpu_only=args.gpu_only))
+    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__), depths=args.depths, gpu_only=args.gpu_only, measured_batches=args.batches))
     from validate_applications import wait_idle
     wait_idle(config, out)
     report = ['# Resident-process endgame throughput', '',
-              'Repeated fixed corpus of 16 positions, two warmup batches and ten measured batches per process. Latency includes answer formatting, pipe delivery and host observation; it is not kernel time. Startup-to-READY is separate; first-use lazy setup is covered by warmups.', '',
-              '| Positions per batch | Implementation | Mean delivered batch ms | Positions/second | Startup to READY ms |',
-              '|---|---|---:|---:|---:|']
+              'Repeated fixed corpus of 16 positions, two warmup batches per process. Latency includes answer formatting, pipe delivery and host observation; it is not kernel time. Full-process throughput counts all completed batches including warmups and includes startup and shutdown.', '',
+              '| Positions per batch | Measured batches | Implementation | Mean delivered batch ms | Positions/second excluding warmups | Positions/second full process | Startup to READY ms |',
+              '|---|---:|---|---:|---:|---:|---:|']
     with exclusive(config):
-        for depth in args.depths:
+        for depth, measured in product(args.depths, args.batches):
             count = 1 << depth
-            work = out / str(count)
+            total = measured + 2
+            work = out / f'{count}-batches-{measured}'
             work.mkdir()
             (work / 'build').mkdir()
             stage(config, work)
             name = 'mnk-5-5-4-8'
             source = work / 'ports' / (name + '.bend')
-            source.write_text(bend_resident(source.read_text(), depth))
+            source.write_text(bend_resident(source.read_text(), depth, total))
             cpp = work / 'gpu/mnk.cpp'
-            cpp.write_text(cpp_resident(cpp.read_text(), count))
+            cpp.write_text(cpp_resident(cpp.read_text(), count, total))
             builds, cases = plan(config, work)
             for command in builds:
                 result = execute(command, timeout=180)
@@ -194,9 +207,9 @@ def main():
                     continue
                 folder = work / f"{case['implementation']}-{case['threads']}"
                 folder.mkdir()
-                result = resident(case['command'], folder, config, expected, count, case['implementation'].endswith('cuda'))
+                result = resident(case['command'], folder, config, expected, count, case['implementation'].endswith('cuda'), total)
                 latency = statistics.mean(b['seconds'] for b in result['batches'][2:])
-                report.append(f"| {count} | {folder.name} | {latency * 1000:.3f} | {count / latency:.1f} | {result['startup_seconds'] * 1000:.3f} |")
+                report.append(f"| {count} | {measured} | {folder.name} | {latency * 1000:.3f} | {count / latency:.1f} | {result['positions_per_second_including_startup']:.1f} | {result['startup_seconds'] * 1000:.3f} |")
                 (out / 'report.md').write_text('\n'.join(report) + '\n')
                 print(report[-1], flush=True)
     write_json(out / 'completed.json', dict(report=str(out / 'report.md')))
