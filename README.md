@@ -14,7 +14,7 @@ These September 17–18, 2026 measurements use a Ryzen 9 3950X with 16 physical 
 
 On Bend's 16 published workloads, using 16 CPU threads gives Bend a median 13.6× speedup over its own one-thread execution; OpenMP gains 14.2× over its own. Similar scaling does not mean equal running time: at 16 threads, Bend takes 32% longer than OpenMP at the median and wins 2 of 16 comparisons. The added irregular-tree search from BOTS shows a different pattern: Bend gains no speedup on either tested tree, while OpenMP finishes about 3.0× and 3.4× sooner at 16 threads. [CPU results and thread-count sweeps](PERFORMANCE.md).
 
-### Sustained option pricing on GPU
+### GPU scaling
 
 Bend makes good use of the GPU for option pricing: the same program runs about 68× faster than on 16 CPU threads, beating the OpenMP implementation by 40×. Writing the simulation directly in CUDA still pays off: that implementation is another 7.2× faster than Bend GPU.
 
