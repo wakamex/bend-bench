@@ -22,9 +22,30 @@ GPU admission requires the existing 120-second quiet window, with a 24-hour dead
 
 The follow-up retains all seven existing implementations and adds two successive controls for each of the three tight-bound conventional implementations. First, bulk output constructs the same newline-delimited answer vector in memory and writes it as a buffer, with an explicit batch flush. Every answer is still checked; no checksum replaces validation. Second, a separately compiled variant keeps bulk output and substitutes literal winning-mask expressions for the mask-array loop. Both variants retain bounds, move order, inputs and parallel work assignment. Bend is unchanged. The report now shows search-to-host and output phases alongside delivered throughput.
 
-This comparison covers the expanded 1,024-position corpus at 524,288 positions per batch, with two warmups, 30 measured batches and three shuffled process repetitions. Thirteen implementations produce 39 process runs. These new variants have passed real compiled CPU oracle checks; their performance and CUDA correctness remain pending the finite run. GPU profiling, packed root moves and additional search depths are deferred until these two changes have measured results.
+This comparison completed with all 39 processes passing on the expanded 1,024-position corpus at 524,288 positions per batch, with two warmups, 30 measured batches and three shuffled process repetitions. [Full measurements](runs/mnk-sustained-20260918-133838/report.md).
+
+| Tight-bound control | Original output, positions/s | Bulk output, positions/s | Bulk output and literal win checks, positions/s |
+|---|---:|---:|---:|
+| OpenMP, 16 threads | 942,836 | 1,458,105 | 1,177,883 |
+| Root-parallel CUDA | 546,857 | 676,951 | 707,748 |
+| Whole-position CUDA | 462,086 | 551,501 | 566,336 |
+
+Bulk output improves OpenMP delivered throughput by 55% while its median search phase stays at 219–220 ms. Literal win checks slow its search to 307 ms, so the array loop remains the stronger measured CPU control. Bend GPU delivers 980,290 positions/s, with 180 ms search-to-host and 355 ms output phases. Its search completes sooner than OpenMP's, but bulk-output OpenMP delivers 49% more positions per second. These values are medians of process means, and separately summarized phases need not sum exactly to the median delivered latency.
 
 ```sh
 uv run --locked python mnk_sustained.py --depths 19 --batches 30 --repeats 3 --multicore-only --telemetry --literal-win-variants --corpus-sizes 1024
 journalctl --user -u bend-bench-mnk-io-win.service -f
+```
+
+## OpenMP scheduling and Bend output chunks
+
+The next finite experiment changes OpenMP scheduling and Bend output independently. OpenMP retains tight bounds, the mask-array win check and bulk output, comparing dynamic chunks of 1, 16, 64 and 256 positions. Bend retains its search and compares the original single-string output against sequential subtree strings. Splitting the answer tree seven levels yields 128 chunks of 4,096 answers each at the configured batch size. Each chunk uses the existing IO.print; its added newline replaces the final answer's newline, preserving the exact byte stream and full answer validation.
+
+The archived generated Bend C implementation's `io_print_run` calls `io_cstr` to materialize the string in a C buffer, prints it, then frees that buffer. Chunking tests whether smaller strings reduce output costs; no allocation or copying bottleneck has yet been demonstrated by profiling.
+
+Eight configurations run three fresh processes each, on the same 1,024 positions and 524,288-position batches, with two warmups and 30 measurements per process. Both Bend CPU16 and GPU are included. Tests exercise the original and chunked output, all OpenMP chunk sizes and the complete oracle vector on real CPU executables. Performance and new GPU correctness are pending. Existing idle admission, execution locking, time limits and fail-closed evidence retention apply. Packed CUDA root moves, GPU stack profiling and additional search depths remain separate follow-ups.
+
+```sh
+uv run --locked python mnk_sustained.py --depths 19 --batches 30 --repeats 3 --multicore-only --telemetry --scheduling-output-variants --corpus-sizes 1024
+journalctl --user -u bend-bench-mnk-scheduling-output.service -f
 ```
