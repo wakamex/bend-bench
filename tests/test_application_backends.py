@@ -23,7 +23,7 @@ class ApplicationBackends(unittest.TestCase):
             pricing_depths=[8],
             pricing_steps=[16],
             bfs_depths=[6],
-            mnk_games=[[3, 3, 3, 4]],
+            mnk_games=[[3, 3, 3, 2], [3, 3, 3, 4], [3, 3, 3, 6]],
             threads=[1, 16],
         )
         return config

@@ -449,7 +449,7 @@ def plan(config, work, build, case, cases, bend_build, gpu_reason):
                     vector_kind="u32",
                     output="mover loss=0/draw=1/win=2",
                     rules="alternating, no gravity, at least k, terminal wins stop play",
-                    algorithms="Bend exhaustive terminal-pruned negamax; OpenMP/CUDA alpha-beta",
+                    algorithms="Bend/OpenMP/CUDA alpha-beta; Bend/OpenMP parallel positions, CUDA parallel root moves",
                 ),
                 ("local-alpha-beta-openmp", cpu),
                 ("local-alpha-beta-cuda", gpu, []),
