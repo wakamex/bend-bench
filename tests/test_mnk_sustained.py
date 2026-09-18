@@ -9,6 +9,21 @@ from mnk_sustained import ROOT, bend_resident, cpp_resident, resident
 
 
 class SustainedSearchTests(unittest.TestCase):
+    def test_cuda_control_has_distinct_compiler_and_binary(self):
+        config = load_config(ROOT / 'applications-mnk.toml')
+        with tempfile.TemporaryDirectory() as tmp:
+            stage(config, Path(tmp))
+            builds, cases = plan(config, Path(tmp))
+            for game in config['mnk_games']:
+                name = 'mnk-' + '-'.join(map(str, game))
+                pair = [c for c in cases if c['workload'] == name and c['implementation'].endswith('cuda')]
+                self.assertEqual(len(pair), 2)
+                self.assertNotEqual(pair[0]['command'][3], pair[1]['command'][3])
+                control = next(c for c in pair if c['implementation'] == 'local-alpha-beta-cuda')
+                command = next(b for b in builds if '-o' in b and b[b.index('-o') + 1] == control['command'][3])
+                self.assertEqual(command[0], config['tools']['cuda_cxx'])
+                self.assertTrue(any(arg.endswith('/gpu/mnk.cpp') for arg in command))
+
     def test_real_resident_cpu_answers(self):
         config = load_config(ROOT / 'applications-mnk.toml')
         config.update(cuda=False, threads=[1, 16], mnk_games=[[5, 5, 4, 8]])

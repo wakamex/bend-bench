@@ -414,7 +414,7 @@ def plan(config, work, build, case, cases, bend_build, gpu_reason):
                     cpu,
                 ]
             )
-            gpu = work / "build" / f"{name}-cuda"
+            gpu = work / "build" / f"{name}-control-cuda"
             if config["cuda"] and not gpu_reason:
                 build(
                     [

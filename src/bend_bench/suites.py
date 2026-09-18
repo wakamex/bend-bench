@@ -248,4 +248,11 @@ def plan(config, work):
                 case("uts", dataset, "openmp", n, work / "build/uts-omp-tasks", ["-f", data, "-c"], verified, contract=contract)
                 for cutoff in config["uts_cutoffs"]:
                     case("uts", dataset, f"openmp-cutoff-{cutoff}", n, optimized, [data, cutoff], nodes, contract=contract)
+    outputs = set()
+    for command in builds:
+        if "-o" in command:
+            output = str(Path(command[command.index("-o") + 1]).resolve())
+            if output in outputs:
+                raise ValueError(f"Multiple builds would overwrite {output}")
+            outputs.add(output)
     return builds, cases
