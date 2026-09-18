@@ -256,10 +256,17 @@ def application_summary(run_dir):
         "",
     ]
     bfs_only = all(r["case"].startswith("bfs/") for r in rows)
+    mnk_only = all(r["case"].startswith("mnk/") for r in rows)
+    destination = "APPLICATION_RESULTS.md"
     if bfs_only:
+        destination = "BFS_RESULTS.md"
         lines[0] = "# BFS comparison results"
         lines[2] = lines[2].replace("across pricing, exact game search and graph traversal", "for graph traversal")
-    (ROOT / ("BFS_RESULTS.md" if bfs_only else "APPLICATION_RESULTS.md")).write_text("\n".join(lines))
+    elif mnk_only:
+        destination = "MNK_GPU_RESULTS.md"
+        lines[0] = "# Alpha-beta game-search CPU and GPU results"
+        lines[2] = lines[2].replace("across pricing, exact game search and graph traversal", "for exact game search")
+    (ROOT / destination).write_text("\n".join(lines))
 
 
 def notify(request):

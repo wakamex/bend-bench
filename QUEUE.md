@@ -1,5 +1,11 @@
 # Full packaged-suite validation
 
+## Alpha-beta game-search GPU update
+
+Request `runs/mnk-alpha-beta-validation-20260918/request.json` uses `applications-mnk.toml` for all four endgame corpora. It waits for the current GPU workload to release the device, followed by a 120-second quiet window, with a 24-hour admission deadline. The existing transcription-worker canary exemption remains; the separate Parakeet training process is not exempt. No GPU workload is stopped.
+
+The queued comparison covers 16 configurations: Bend and conventional CPU controls at 16 threads, plus both CUDA implementations. Each receives a correctness check, one warmup and ten measurements, followed by one warmup and ten separate profiles for each of eight GPU configurations. Completion writes `MNK_GPU_RESULTS.md` without replacing historical application summaries and emails the result; failure emails an inspection notice. This is a pending update, not a measured GPU improvement. Follow `journalctl --user -u bend-bench-applications.service -f`.
+
 ## Application queue
 
 The active replacement request is `runs/applications-bfs-validation-20260918/request.json`, using `applications-bfs.toml`. It remeasures only the corrected BFS port and its GAP/Gunrock controls: 42 configurations and 66 profiling executions. The completed pricing and m,n,k measurements and profiles remain in `runs/486e78825d4fa285adcc/report.md`. The earlier Bend BFS timings in that report did not execute GPU kernels and must not be interpreted as GPU performance. Successful completion of the replacement writes `BFS_RESULTS.md`.
