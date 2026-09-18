@@ -1,0 +1,11 @@
+# Resident-process game-search experiment
+
+This experiment asks whether keeping the runtime alive and supplying larger batches makes GPU search useful. It uses the 5×5 connect-4 corpus with eight empty squares, repeating its 16 independently checked positions to form batches of 16, 256 and 4,096. This increases the amount of independent work without changing search difficulty or claiming additional distinct positions.
+
+Each executable initializes once and emits 12 successive batches. The first two batches are warmups; the remaining ten determine throughput. Batch order rotates the corpus so every emitted answer can be checked against the reference in its expected position. Bend retains its source-level alpha-beta algorithm and parallel batch tree. OpenMP distributes positions and the conventional CUDA control distributes root moves, as in the preceding experiment. CUDA allocations in the conventional control are reused across batches.
+
+The host records output-delivery boundaries and checks every answer. Reported mean batch latency is the total time between delivery of the second and twelfth batches divided by ten; throughput is the corresponding number of answers divided by that time. This includes computation, output formatting, pipe delivery and host observation. It is not a kernel-only measurement, and per-batch boundary intervals may reflect pipe buffering. Complete output, individual intervals, initialization-to-READY time, process wall time, compiler commands, generated source and binary hashes are retained. Lazy first-use initialization is covered by the warmups.
+
+The finite diagnostic runs Bend at one and 16 CPU threads, OpenMP at 16 threads, and both GPU implementations. Each process has a 300-second limit. An invalid output or unapproved GPU activity stops the experiment and preserves its evidence. The shared benchmark lock and existing idle GPU gate apply. The approved transcription-worker canary exemption remains unchanged.
+
+Run with `uv run --locked python mnk_sustained.py`. Results are written to a new timestamped `runs/mnk-sustained-*` directory. This is a focused experiment; its ten within-process batches are repeated measurements from one initialized process, not ten independent process launches.
