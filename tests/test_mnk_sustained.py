@@ -45,6 +45,8 @@ class SustainedSearchTests(unittest.TestCase):
                 result = resident(case['command'], folder, config, expected, 256, False, 32)
                 self.assertTrue(result['correct'])
                 self.assertEqual(len(result['batches']), 32)
+                self.assertEqual(len(result['phases']), 32)
+                self.assertGreater(sum(p['search_seconds'] for p in result['phases']), 0)
                 self.assertAlmostEqual(result['batches'][-1]['cumulative_measured_positions_per_second'],
                                        30 * 256 / sum(b['seconds'] for b in result['batches'][2:]))
                 self.assertAlmostEqual(result['positions_per_second_including_startup'],
