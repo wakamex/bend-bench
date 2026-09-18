@@ -24,3 +24,7 @@ The host records output-delivery boundaries and checks every answer. Reported me
 The finite diagnostic runs Bend at one and 16 CPU threads, OpenMP at 16 threads, and both GPU implementations. Each process has a 300-second limit. An invalid output or unapproved GPU activity stops the experiment and preserves its evidence. The shared benchmark lock and existing idle GPU gate apply. The approved transcription-worker canary exemption remains unchanged.
 
 Run with `uv run --locked python mnk_sustained.py`. Results are written to a new timestamped `runs/mnk-sustained-*` directory. This is a focused experiment; its ten within-process batches are repeated measurements from one initialized process, not ten independent process launches.
+
+## Extended logarithmic sweep
+
+The follow-up doubles the batch from 65,536 to 4,194,304 positions, measuring both GPU implementations with `uv run --locked python mnk_sustained.py --gpu-only --depths 16 17 18 19 20 21 22`. It repeats the 65,536-position point because the reader now validates incrementally and the conventional driver's output vector uses heap allocation. Full raw output is still retained. This prevents stack overflow and unnecessary observer memory growth at larger sizes. A plateau in delivered throughput may include formatting and host-observation limits; it does not alone establish GPU compute saturation. The same 300-second per-process limit and 4 GB Bend GPU heap apply. Results from the extension remain separate from the original runs.

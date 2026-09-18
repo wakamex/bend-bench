@@ -37,6 +37,7 @@ def main() -> IO(Unit):
 
 
 def cpp_resident(source, count):
+    source = '#include <vector>\n' + source
     source = source[:source.index('int main()')]
     source = source.replace('int position = blockIdx.x, move = threadIdx.x;',
                             'int position = blockIdx.x, move = threadIdx.x; int input = (position + offset) & 15;')
@@ -47,11 +48,11 @@ def cpp_resident(source, count):
     return source + f'''
 int main() {{
   constexpr int count = {count};
-  int out[count];
+  std::vector<int> out(count);
 #ifdef __CUDACC__
   int *d, *scores;
   CUDA(cudaDeviceSetLimit(cudaLimitStackSize, 32768));
-  CUDA(cudaMalloc(&d, sizeof(out)));
+  CUDA(cudaMalloc(&d, count * sizeof(int)));
   CUDA(cudaMalloc(&scores, count * 32 * sizeof(int)));
 #endif
   puts("READY"); fflush(stdout);
@@ -61,7 +62,7 @@ int main() {{
     CUDA(cudaGetLastError());
     combine<<<(count + 127) / 128, 128>>>(scores, d);
     CUDA(cudaGetLastError());
-    CUDA(cudaMemcpy(out, d, sizeof(out), cudaMemcpyDeviceToHost));
+    CUDA(cudaMemcpy(out.data(), d, count * sizeof(int), cudaMemcpyDeviceToHost));
 #else
 #pragma omp parallel for schedule(dynamic, 1)
     for (int i = 0; i < count; ++i)
@@ -94,7 +95,8 @@ def resident(command, folder, config, expected, count, gpu):
             selector = selectors.DefaultSelector()
             selector.register(proc.stdout, selectors.EVENT_READ)
             pending = b''
-            values = []
+            values = 0
+            mismatches = 0
             previous = None
             deadline = started + 300
             while time.monotonic() < deadline:
@@ -105,8 +107,9 @@ def resident(command, folder, config, expected, count, gpu):
                     break
                 raw.write(chunk)
                 pending += chunk
-                while b'\n' in pending:
-                    line, pending = pending.split(b'\n', 1)
+                lines = pending.split(b'\n')
+                pending = lines.pop()
+                for line in lines:
                     if line == b'READY':
                         previous = time.monotonic()
                         result['startup_seconds'] = previous - started
@@ -114,17 +117,19 @@ def resident(command, folder, config, expected, count, gpu):
                         now = time.monotonic()
                         if previous is None:
                             raise ValueError('Missing READY')
-                        result['batches'].append(dict(seconds=now - previous, output=values))
-                        previous, values = now, []
+                        result['batches'].append(dict(seconds=now - previous, answers=values,
+                                                      mismatches=mismatches, correct=values == count and mismatches == 0))
+                        previous, values, mismatches = now, 0, 0
                     else:
-                        values.append(line.decode())
+                        rep = len(result['batches'])
+                        mismatches += line != str(expected[(values + 11 - rep) & 15]).encode()
+                        values += 1
             selector.close()
             if proc.poll() is None:
                 proc.wait(timeout=max(0.1, deadline - time.monotonic()))
             result['returncode'] = proc.returncode
             result['correct'] = proc.returncode == 0 and len(result['batches']) == 12 and not pending and not values
-            for rep, batch in enumerate(result['batches']):
-                batch['correct'] = batch['output'] == [str(expected[(i + 11 - rep) & 15]) for i in range(count)]
+            for batch in result['batches']:
                 result['correct'] &= batch['correct']
     except Exception as error:
         result['error'] = repr(error)
@@ -147,14 +152,15 @@ def resident(command, folder, config, expected, count, gpu):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--depths', type=int, nargs='+', choices=(4, 8, 12, 16), default=[4, 8, 12, 16])
+    parser.add_argument('--depths', type=int, nargs='+', choices=range(4, 23), default=[4, 8, 12, 16])
+    parser.add_argument('--gpu-only', action='store_true', help='Measure only the two GPU implementations')
     args = parser.parse_args()
     config = load_config(ROOT / 'applications-mnk.toml')
     config.update(mnk_games=[[5, 5, 4, 8]], threads=[1, 16])
     config['blocked_services'].append('bend-bench-applications.service')
     out = ROOT / 'runs' / time.strftime('mnk-sustained-%Y%m%d-%H%M%S')
     out.mkdir()
-    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__), depths=args.depths))
+    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__), depths=args.depths, gpu_only=args.gpu_only))
     from validate_applications import wait_idle
     wait_idle(config, out)
     report = ['# Resident-process endgame throughput', '',
@@ -182,6 +188,8 @@ def main():
             write_json(work / 'hashes.json', {str(p.relative_to(work)): hash_file(p) for p in work.rglob('*') if p.is_file()})
             expected = json.loads(source.with_suffix('.json').read_text())
             for case in cases:
+                if args.gpu_only and not case['implementation'].endswith('cuda'):
+                    continue
                 if case['implementation'] != 'bend' and case['threads'] == 1 and not case['implementation'].endswith('cuda'):
                     continue
                 folder = work / f"{case['implementation']}-{case['threads']}"
