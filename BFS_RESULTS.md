@@ -10,3 +10,9 @@ These results compare time to checked answers for graph traversal. Each cell use
 
 [Full thread-scaling, memory and timing report](runs/6f09d7ec9215cbadd596/report.md).
 [Input contracts, baseline maturity and algorithm differences](APPLICATIONS.md). Pricing and m,n,k baselines are local controls; BFS uses GAP and Gunrock.
+
+## Parallel convergence-check experiment
+
+Explicitly forking the two recursive tree comparisons did not improve the tested 16-thread CPU execution. On the 16,384-vertex graph, median end-to-end time increased from 142.516 ms to 149.165 ms, about 4.7%. One-thread time changed from 262.858 ms to 257.351 ms. Each version passed full-distance correctness checks and ten measured repetitions after one warmup. These sequential before-and-after runs do not establish statistical significance, but provide no reason to adopt the candidate as a multicore optimization. The original implementation is retained; GPU behavior of this candidate was not measured.
+
+The only source change was replacing `Bool.and(same(a, c), same(b, d))` with parallel bindings `x y = same(a, c) same(b, d)` followed by `Bool.and(x, y)`. Graph generation, traversal and output were unchanged. GAP controls were rerun under the same configuration: 16-thread times were 18.541 ms before and 18.780 ms after. Preserved generated sources, build commands and individual samples are in the [original report](runs/8a466d1294a9f6950d1e/report.md) and [candidate report](runs/ef3b1e9efad72ad7d264/report.md).
