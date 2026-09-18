@@ -15,6 +15,8 @@ def verify(root):
     script = Path(__file__).with_name('mnk_sustained.py')
     if hash_file(script) != saved['script_sha256']:
         raise ValueError('Original measurement script changed')
+    if saved.get('host_array_adapter_sha256') and hash_file(script.with_name('mnk_host_array.py')) != saved['host_array_adapter_sha256']:
+        raise ValueError('Original host-array adapter changed')
     current = provenance(saved['harness']['config'])
     if current != saved['harness']:
         changed = [key for key in current if current[key] != saved['harness'].get(key)]
@@ -70,12 +72,16 @@ def main():
                     print('RUN', name, flush=True)
                     result = resident(case['command'], folder, config, expected,
                                       experiment['positions_per_batch'], case['implementation'].endswith('cuda'),
-                                      total, saved['arguments']['telemetry'])
+                                      total, saved['arguments']['telemetry'], saved['arguments'].get('host_array', False))
                     path = folder / 'result.json'
                 if len(result['phases']) != total:
                     raise ValueError(f'Missing phase timings: {path}')
                 latency = statistics.mean(b['seconds'] for b in result['batches'][2:])
                 search = statistics.mean(p['search_seconds'] for p in result['phases'][2:]) * 1000
+                if saved['arguments'].get('host_array'):
+                    if not result.get('host_array_correct'):
+                        raise ValueError(f'Missing host array validation: {path}')
+                    search = statistics.mean(result['host_ready_seconds'][2:]) * 1000
                 output = statistics.mean(p['output_seconds'] for p in result['phases'][2:]) * 1000
                 origin = 'retained original' if reused else 'continuation'
                 report.append(f"| {case['implementation']} | {repetition} | {origin} | {experiment['positions_per_batch']/latency:.1f} | {search:.3f} | {output:.3f} |")

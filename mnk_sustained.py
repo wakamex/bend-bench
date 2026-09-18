@@ -50,9 +50,11 @@ def main() -> IO(Unit):
 '''
 
 
-def cpp_resident(source, count, total=12, corpus_size=16):
+def cpp_resident(source, count, total=12, corpus_size=16, host_array=False):
     mask = corpus_size - 1
-    source = '#include <vector>\n#include <string>\n' + source
+    source = '#include <vector>\n#include <string>\n#include <cstdlib>\n' + source
+    if host_array:
+        source = '#define HOST_ARRAY 1\n' + source
     source = source[:source.index('int main()')]
     source = source.replace('int position = blockIdx.x, move = threadIdx.x;',
                             f'int position = blockIdx.x, move = threadIdx.x; int input = (position + offset) & {mask};')
@@ -74,6 +76,12 @@ __global__ void whole_positions(int *out, int offset) {{
 int main() {{
   constexpr int count = {count};
   std::vector<int> out(count);
+#ifdef HOST_ARRAY
+  static_assert(sizeof(int) == 4);
+  const char *path = getenv("BEND_BENCH_HOST_ARRAY");
+  FILE *host_file = path ? fopen(path, "wb") : nullptr;
+  if (!host_file) return 6;
+#endif
 #ifdef BULK_OUTPUT
   // Override the observer's legacy line buffering before any stdout operation.
   if (setvbuf(stdout, nullptr, _IOFBF, 65536)) return 3;
@@ -108,6 +116,9 @@ int main() {{
       out[i] = 1 + solve(positions[(i + offset) & {mask}][0], positions[(i + offset) & {mask}][1], empty, -SEARCH_BOUND, SEARCH_BOUND);
 #endif
     auto searched = std::chrono::steady_clock::now();
+#ifdef HOST_ARRAY
+    if (fwrite(out.data(), sizeof(int), count, host_file) != count || fflush(host_file)) return 7;
+#endif
 #ifdef BULK_OUTPUT
     text.clear();
     for (int value : out) {{
@@ -274,7 +285,7 @@ class Telemetry:
         self.gpu_file.close()
 
 
-def resident(command, folder, config, expected, count, gpu, total=12, telemetry=False):
+def resident(command, folder, config, expected, count, gpu, total=12, telemetry=False, host_array=False):
     """Timestamp batch boundaries before parsing; retain complete output and activity."""
     started = time.monotonic()
     result = dict(command=list(map(str, command)), batches=[], correct=False)
@@ -286,7 +297,8 @@ def resident(command, folder, config, expected, count, gpu, total=12, telemetry=
             started = time.monotonic()
             proc = subprocess.Popen(['stdbuf', '-oL', *map(str, command)], stdout=subprocess.PIPE,
                                     stderr=err, env={**environment(), 'OMP_NUM_THREADS': '16',
-                                    'OMP_PROC_BIND': 'true', 'OMP_PLACES': 'threads'}, start_new_session=True)
+                                    'OMP_PROC_BIND': 'true', 'OMP_PLACES': 'threads',
+                                    **({'BEND_BENCH_HOST_ARRAY': str(folder.resolve() / 'host-array.bin')} if host_array else {})}, start_new_session=True)
             if hardware:
                 hardware.pid = proc.pid
             if monitor:
@@ -364,6 +376,23 @@ def resident(command, folder, config, expected, count, gpu, total=12, telemetry=
         result['phases'] = phases
         if phases:
             result['correct'] &= len(phases) == total and all(p['search_seconds'] >= 0 and p['output_seconds'] >= 0 for p in phases)
+        if host_array:
+            try:
+                from mnk_host_array import validate
+                validate(folder / 'host-array.bin', expected, count, total)
+                ready = [line.split() for line in (folder / 'stderr.txt').read_text().splitlines() if line.startswith('HOST_READY_NS ')]
+                if '--gpu' in command and not ready:
+                    raise ValueError('Missing instrumented Bend host-ready timestamps')
+                result['host_ready_seconds'] = [(int(end)-int(start))/1e9 for _, start, end in ready] if ready else [p['search_seconds'] for p in phases]
+                if len(result['host_ready_seconds']) != total or any(t < 0 for t in result['host_ready_seconds']):
+                    raise ValueError('Missing or invalid host-ready timings')
+                result['host_array_correct'] = True
+                result['host_array_sha256'] = hash_file(folder / 'host-array.bin')
+                result['host_ready_positions_per_second'] = count / statistics.mean(result['host_ready_seconds'][2:])
+            except Exception as error:
+                result['host_array_correct'] = False
+                result['correct'] = False
+                result['host_array_error'] = repr(error)
         write_json(folder / 'result.json', result)
     if not result['correct']:
         raise RuntimeError(f'Resident correctness/activity gate failed: {folder}')
@@ -383,6 +412,7 @@ def main():
     parser.add_argument('--bulk-variants', action='store_true', help='Compare per-answer and bulk output on tight-bound controls')
     parser.add_argument('--literal-win-variants', action='store_true', help='Add literal-mask win checks to bulk-output controls')
     parser.add_argument('--scheduling-output-variants', action='store_true', help='Compare OpenMP chunks 1/16/64/256 and chunked Bend output')
+    parser.add_argument('--host-array', action='store_true', help='Time complete host-array materialization and validate binary results outside that interval')
     args = parser.parse_args()
     if min(1 << d for d in args.depths) < max(args.corpus_sizes):
         parser.error('Every batch must cover the complete corpus')
@@ -391,13 +421,19 @@ def main():
     config['blocked_services'].append('bend-bench-applications.service')
     out = ROOT / 'runs' / time.strftime('mnk-sustained-%Y%m%d-%H%M%S')
     out.mkdir()
-    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__), arguments=vars(args), shuffle_seed=20260918))
+    write_json(out / 'provenance.json', dict(harness=provenance(config), script_sha256=hash_file(__file__), arguments=vars(args), shuffle_seed=20260918,
+               host_array_adapter_sha256=hash_file(ROOT / 'mnk_host_array.py') if args.host_array else None))
+    if args.host_array:
+        adapter = ROOT / 'mnk_host_array.py'
+        (out / adapter.name).write_text(adapter.read_text())
     from validate_applications import wait_idle
     wait_idle(config, out)
     report = ['# Resident-process endgame throughput', '',
               'Deterministic distinct legal positions, independently solved by the tuple-board oracle. Larger corpora preserve the original prefix. Two warmup batches per process. Latency includes answer formatting, pipe delivery and host observation; it is not kernel time. Full-process throughput counts all completed batches including warmups and includes startup and shutdown.', '',
               '| Distinct positions | Positions per batch | Measured batches | Implementation | Mean delivered batch ms | Positions/second excluding warmups | Positions/second full process | Startup to READY ms | Mean search-to-host ms | Mean output ms |',
               '|---:|---:|---:|---|---:|---:|---:|---:|---:|---:|']
+    if args.host_array:
+        report[2] = 'Primary measurement: computation through materialization of every result in a preallocated flat host uint32 array. Every binary result is checked against the independent oracle after execution. Binary evidence writes, text formatting and delivery are outside the timed host-ready interval. Delivered timings include those diagnostic writes and must not be pooled with earlier delivery benchmarks. Search-to-host columns below use this new host-array boundary. Two warmups are excluded.'
     with exclusive(config):
         for corpus_size, depth, measured in product(args.corpus_sizes, args.depths, args.batches):
             count = 1 << depth
@@ -410,14 +446,14 @@ def main():
             source = work / 'ports' / (name + '.bend')
             source.write_text(bend_resident(source.read_text(), depth, total, corpus_size))
             cpp = work / 'gpu/mnk.cpp'
-            cpp_source = cpp_resident(cpp.read_text(), count, total, corpus_size)
+            cpp_source = cpp_resident(cpp.read_text(), count, total, corpus_size, args.host_array)
             if args.literal_win_variants:
                 cpp_source = literal_win_check(cpp_source)
             cpp.write_text(cpp_source)
             builds, cases = plan(config, work)
-            if args.control_variants or args.bulk_variants or args.literal_win_variants or args.scheduling_output_variants:
+            if args.control_variants or args.bulk_variants or args.literal_win_variants or args.scheduling_output_variants or args.host_array:
                 control_variants(builds, cases)
-            if args.bulk_variants or args.literal_win_variants or args.scheduling_output_variants:
+            if args.bulk_variants or args.literal_win_variants or args.scheduling_output_variants or args.host_array:
                 bulk_variants(builds, cases)
             if args.literal_win_variants:
                 derived_variants(builds, cases, 'literal', '-DLITERAL_WIN=1', 'bulk')
@@ -432,6 +468,7 @@ def main():
                 case['contract'] = {**case['contract'], 'positions': count, 'distinct_positions': corpus_size,
                                     'measured_batches': measured, 'warmup_batches': 2,
                                     'implementation_variant': case['implementation'],
+                                    'host_array_boundary': args.host_array,
                                     'output_policy': 'Bend subtree chunks, split depth 7' if 'bend-chunks' in case['implementation'] else
                                         'Bend string' if case['implementation'].startswith('bend') else
                                         ('bulk text' if 'bulk' in case['implementation'] else 'line-flushed printf'),
@@ -445,6 +482,12 @@ def main():
                 append(work / 'build.jsonl', result)
                 if result['returncode']:
                     raise RuntimeError(f'Build failed: {work}')
+                if args.host_array and '-o' in command and command[0] == config['tools']['bun']:
+                    from mnk_host_array import instrument
+                    generated = Path(command[command.index('-o') + 1])
+                    original = generated.read_text()
+                    generated.with_suffix('.original.c').write_text(original)
+                    generated.write_text(instrument(original, count))
             write_json(work / 'hashes.json', {str(p.relative_to(work)): hash_file(p) for p in work.rglob('*') if p.is_file()})
             expected = json.loads(source.with_suffix('.json').read_text())
             write_json(work / 'corpus-summary.json', dict(distinct_positions=len(expected),
@@ -452,6 +495,11 @@ def main():
                        corpus_sha256=hash_file(source.with_suffix('.corpus.json'))))
             selected = []
             for case in cases:
+                if args.host_array and case['implementation'] not in (
+                    'bend', 'bend-cuda', 'local-alpha-beta-openmp-tight-bulk',
+                    'local-alpha-beta-tight-bulk-cuda', 'local-alpha-beta-position-tight-bulk-cuda'
+                ):
+                    continue
                 if args.scheduling_output_variants and not (
                     case['implementation'].startswith('bend') or
                     case['implementation'] == 'local-alpha-beta-openmp-tight-bulk' or
@@ -472,11 +520,13 @@ def main():
             for case, repetition in schedule:
                 folder = work / f"{case['implementation']}-{case['threads']}-run{repetition}"
                 folder.mkdir()
-                result = resident(case['command'], folder, config, expected, count, case['implementation'].endswith('cuda'), total, args.telemetry)
+                result = resident(case['command'], folder, config, expected, count, case['implementation'].endswith('cuda'), total, args.telemetry, args.host_array)
                 if len(result['phases']) != total:
                     raise RuntimeError(f'Missing phase measurements: {folder}')
                 latency = statistics.mean(b['seconds'] for b in result['batches'][2:])
                 search_ms = statistics.mean(p['search_seconds'] for p in result['phases'][2:]) * 1000
+                if args.host_array:
+                    search_ms = statistics.mean(result['host_ready_seconds'][2:]) * 1000
                 output_ms = statistics.mean(p['output_seconds'] for p in result['phases'][2:]) * 1000
                 report.append(f"| {corpus_size} | {count} | {measured} | {folder.name} | {latency * 1000:.3f} | {count / latency:.1f} | {result['positions_per_second_including_startup']:.1f} | {result['startup_seconds'] * 1000:.3f} | {search_ms:.3f} | {output_ms:.3f} |")
                 (out / 'report.md').write_text('\n'.join(report) + '\n')

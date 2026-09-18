@@ -6,6 +6,7 @@ import unittest
 from bend_bench.core import exclusive, execute, load_config
 from bend_bench.suites import plan, stage
 from bend_bench.applications import mnk_corpus, mnk_oracle
+from mnk_host_array import instrument, validate
 from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants, bulk_variants, derived_variants, literal_win_check, bend_output_variants
 
 
@@ -60,7 +61,7 @@ class SustainedSearchTests(unittest.TestCase):
             source = work / 'ports/mnk-5-5-4-8.bend'
             source.write_text(bend_resident(source.read_text(), 8, 32, 64))
             cpp = work / 'gpu/mnk.cpp'
-            cpp.write_text(literal_win_check(cpp_resident(cpp.read_text(), 256, 32, 64)))
+            cpp.write_text(literal_win_check(cpp_resident(cpp.read_text(), 256, 32, 64, host_array=True)))
             builds, cases = plan(config, work)
             control_variants(builds, cases)
             bulk_variants(builds, cases)
@@ -75,12 +76,17 @@ class SustainedSearchTests(unittest.TestCase):
             for command in builds:
                 result = execute(command)
                 self.assertEqual(result['returncode'], 0, result['stderr'])
+                if '-o' in command and command[0] == config['tools']['bun']:
+                    generated = Path(command[command.index('-o') + 1])
+                    generated.write_text(instrument(generated.read_text(), 256))
             expected = json.loads(source.with_suffix('.json').read_text())
             for index, case in enumerate(cases):
                 folder = work / str(index)
                 folder.mkdir()
-                result = resident(case['command'], folder, config, expected, 256, False, 32)
+                result = resident(case['command'], folder, config, expected, 256, False, 32, host_array=True)
                 self.assertTrue(result['correct'])
+                self.assertTrue(result['host_array_correct'])
+                self.assertEqual(len(result['host_ready_seconds']), 32)
                 self.assertEqual(len(result['batches']), 32)
                 self.assertEqual(len(result['phases']), 32)
                 self.assertGreater(sum(p['search_seconds'] for p in result['phases']), 0)
@@ -96,3 +102,13 @@ class SustainedSearchTests(unittest.TestCase):
                 resident(['/usr/bin/printf', 'READY\n99\nEND\n'], folder, {}, [0] * 16, 16, False)
             self.assertFalse(json.loads((folder / 'result.json').read_text())['correct'])
             self.assertIn('99', (folder / 'stdout.txt').read_text())
+
+    def test_host_array_rejects_corruption_truncation_and_extra_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'answers.bin'
+            path.write_bytes(bytes(64))
+            validate(path, [0] * 16, 16, 1)
+            for data in (bytes(63), bytes(65), b'\x01' + bytes(63)):
+                path.write_bytes(data)
+                with self.assertRaises(ValueError):
+                    validate(path, [0] * 16, 16, 1)
