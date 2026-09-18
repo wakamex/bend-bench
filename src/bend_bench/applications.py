@@ -115,10 +115,10 @@ def mnk_corpus(m, n, k, empty, count=16):
     return boards
 
 
-def pricing_reference(n, steps):
+def pricing_reference(n, steps, offset=0):
     # FP64 oracle implements the financial model independently of the FP32 ports.
     values = []
-    for i in range(n):
+    for i in range(offset, offset + n):
         state = 1 + hash32(i + 1) % 2147483646
         spot, total = 100.0, 0.0
         for _ in range(steps):
