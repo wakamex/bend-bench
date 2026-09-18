@@ -1,5 +1,7 @@
 # Benchmark execution
 
+Commit changes atomically. For changes that affect benchmark results, include the measured before-and-after results in the commit message, identifying the workload and configuration. If the effect has not been measured, state that explicitly rather than implying an improvement. Keep implementation changes and subsequent result reporting in separate commits when measurements follow implementation.
+
 Read README.md, VALIDATION.md and QUEUE.md before running benchmarks. Source checkouts and historical evidence in `/code/bend2` are immutable evaluation references. Use `/code/bend` for compiler fixes, with the exact commit and patch preserved separately.
 
 Do not overlap benchmark runs or preparation with the legacy evaluation. The per-user harness lock and configured blocked services are required gates. Do not modify harness source, tests, tools or experiment configuration while a queued or active validation depends on them. Cancel the queued service explicitly before changing its pinned inputs, then enqueue a new validation.
