@@ -1,5 +1,21 @@
 # Resident-process game-search experiment
 
+The extended GPU sweep levels off around 524,288–1,048,576 positions per batch. Bend peaks at 1.36 million positions/second and conventional CUDA at 1.38 million. A 524,288-position batch reaches about 98% of each implementation's best observed throughput; increasing to 4,194,304 mostly increases latency, from about 0.39 seconds to 3.2 seconds. All 14 GPU configurations passed every answer check across two warmup and ten measured batches.
+
+| Positions per batch | Bend GPU, positions/s | Conventional CUDA, positions/s | Bend mean delivered batch latency |
+|---|---:|---:|---:|
+| 65,536 | 706,980 | 730,901 | 92.7 ms |
+| 131,072 | 1,007,560 | 964,637 | 130.1 ms |
+| 262,144 | 1,188,085 | 1,180,666 | 220.6 ms |
+| 524,288 | 1,334,051 | 1,350,186 | 393.0 ms |
+| 1,048,576 | 1,356,879 | 1,380,810 | 772.8 ms |
+| 2,097,152 | 1,334,751 | 1,325,274 | 1,571.2 ms |
+| 4,194,304 | 1,311,685 | 1,316,224 | 3,197.6 ms |
+
+The [complete logarithmic sweep](runs/mnk-sustained-20260918-103906/report.md) uses implementation commit `56010dd`. Replaying the saved million-position batches through the same reader, with no search, delivers 4.47 million positions/second. This counterfactual rules out the reader alone imposing the observed 1.3–1.4 million ceiling. The measured path still includes search, answer formatting, transfers and delivery; these timings do not isolate device compute saturation. Replay evidence is retained under `runs/mnk-sustained-20260918-103906/reader-replay-1048576/`.
+
+## Earlier matched CPU and GPU sweep
+
 Keeping the process alive and increasing the batch to 65,536 positions makes Bend GPU about 22% faster than Bend's 16-thread CPU: 528,000 versus 432,000 positions per second. Conventional CUDA is close at 541,000; OpenMP remains fastest at 729,000. Every answer passed validation in all 20 configurations, each with two warmup batches and ten measured batches in one process.
 
 | Positions per batch | Bend CPU, 16 threads, positions/s | Bend GPU, positions/s | OpenMP, 16 threads, positions/s | Conventional CUDA, positions/s |
@@ -27,4 +43,4 @@ Run with `uv run --locked python mnk_sustained.py`. Results are written to a new
 
 ## Extended logarithmic sweep
 
-The follow-up doubles the batch from 65,536 to 4,194,304 positions, measuring both GPU implementations with `uv run --locked python mnk_sustained.py --gpu-only --depths 16 17 18 19 20 21 22`. It repeats the 65,536-position point because the reader now validates incrementally and the conventional driver's output vector uses heap allocation. Full raw output is still retained. This prevents stack overflow and unnecessary observer memory growth at larger sizes. A plateau in delivered throughput may include formatting and host-observation limits; it does not alone establish GPU compute saturation. The same 300-second per-process limit and 4 GB Bend GPU heap apply. Results from the extension remain separate from the original runs.
+The follow-up doubles the batch from 65,536 to 4,194,304 positions, measuring both GPU implementations with `uv run --locked python mnk_sustained.py --gpu-only --depths 16 17 18 19 20 21 22`. It repeats the 65,536-position point because the reader now validates incrementally and the conventional driver's output vector uses heap allocation. Full raw output is still retained. This prevents stack overflow and unnecessary observer memory growth at larger sizes. The new anchor is faster than the earlier run, so these results are kept separate and are not compared directly with the older CPU timings. The same 300-second per-process limit and 4 GB Bend GPU heap apply; neither limit was reached.
