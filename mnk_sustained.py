@@ -61,7 +61,7 @@ def cpp_resident(source, count, total=12, corpus_size=16):
     source = source.replace('int position = threadIdx.x, best = -1;',
                             f'int position = blockIdx.x * blockDim.x + threadIdx.x, best = -1; if (position >= {count}) return;')
     source = source.replace('empty - 1, -2, 2)', 'empty - 1, -SEARCH_BOUND, SEARCH_BOUND)')
-    source = '#ifndef SEARCH_BOUND\n#define SEARCH_BOUND 2\n#endif\n' + source
+    source = '#ifndef OMP_CHUNK\n#define OMP_CHUNK 1\n#endif\n#ifndef SEARCH_BOUND\n#define SEARCH_BOUND 2\n#endif\n' + source
     return source + f'''
 #ifdef __CUDACC__
 __global__ void whole_positions(int *out, int offset) {{
@@ -103,7 +103,7 @@ int main() {{
     CUDA(cudaGetLastError());
     CUDA(cudaMemcpy(out.data(), d, count * sizeof(int), cudaMemcpyDeviceToHost));
 #else
-#pragma omp parallel for schedule(dynamic, 1)
+#pragma omp parallel for schedule(dynamic, OMP_CHUNK)
     for (int i = 0; i < count; ++i)
       out[i] = 1 + solve(positions[(i + offset) & {mask}][0], positions[(i + offset) & {mask}][1], empty, -SEARCH_BOUND, SEARCH_BOUND);
 #endif
@@ -196,6 +196,49 @@ def literal_win_check(source, m=5, n=5, k=4):
     expression = ' || '.join(f'((board & {mask}u) == {mask}u)' for mask in reversed(masks))
     replacement = f'#ifdef LITERAL_WIN\nSEARCH bool won(uint32_t board) {{ return {expression}; }}\n#else\n'
     return source[:start] + replacement + source[start:end] + '#endif\n' + source[end:]
+
+
+def chunked_bend_output(source):
+    helpers = '''def chunk_text(a: Answers) -> String:
+  match a:
+    case Answer{v}: U32.show(v)
+    case Both{a, b}: output(a, chunk_text(b))
+
+def print_chunks(+depth: Nat, a: Answers) -> IO(Unit):
+  match depth:
+    case 0n: IO.print(chunk_text(a))
+    case 1n+p:
+      match a:
+        case Answer{v}: IO.print(U32.show(v))
+        case Both{a, b}:
+          do IO<Unit>:
+            Unit <- print_chunks(p, a)
+            print_chunks(p, b)
+
+'''
+    old = '    Unit <- IO.print(output(a, "END"))'
+    if source.count(old) != 1:
+        raise ValueError('Resident Bend output template changed')
+    return source.replace('def emit(', helpers + 'def emit(', 1).replace(old, '    Unit <- print_chunks(7n, a)\n    Unit <- IO.print("END")')
+
+
+def bend_output_variants(builds, cases, source, work):
+    target_source = source.with_name(source.stem + '-chunks.bend')
+    target_source.write_text(chunked_bend_output(source.read_text()))
+    base = str(work / 'build' / source.stem)
+    mapping = {str(source): str(target_source), base: base + '-chunks',
+               base + '.c': base + '-chunks.c', base + '-cuda': base + '-chunks-cuda'}
+    for command in list(builds):
+        if any(arg in mapping for arg in command):
+            builds.append([mapping.get(arg, arg) for arg in command])
+    for case in list(cases):
+        if not case['implementation'].startswith('bend'):
+            continue
+        variant = copy.deepcopy(case)
+        variant['implementation'] = 'bend-chunks-cuda' if case['implementation'].endswith('cuda') else 'bend-chunks'
+        variant['id'] += '-chunks'
+        variant['command'][3] = mapping[case['command'][3]]
+        cases.append(variant)
 
 
 class Telemetry:
@@ -339,6 +382,7 @@ def main():
     parser.add_argument('--control-variants', action='store_true', help='Add tight-bound CPU/root-CUDA and whole-position CUDA controls')
     parser.add_argument('--bulk-variants', action='store_true', help='Compare per-answer and bulk output on tight-bound controls')
     parser.add_argument('--literal-win-variants', action='store_true', help='Add literal-mask win checks to bulk-output controls')
+    parser.add_argument('--scheduling-output-variants', action='store_true', help='Compare OpenMP chunks 1/16/64/256 and chunked Bend output')
     args = parser.parse_args()
     if min(1 << d for d in args.depths) < max(args.corpus_sizes):
         parser.error('Every batch must cover the complete corpus')
@@ -371,17 +415,25 @@ def main():
                 cpp_source = literal_win_check(cpp_source)
             cpp.write_text(cpp_source)
             builds, cases = plan(config, work)
-            if args.control_variants or args.bulk_variants or args.literal_win_variants:
+            if args.control_variants or args.bulk_variants or args.literal_win_variants or args.scheduling_output_variants:
                 control_variants(builds, cases)
-            if args.bulk_variants or args.literal_win_variants:
+            if args.bulk_variants or args.literal_win_variants or args.scheduling_output_variants:
                 bulk_variants(builds, cases)
             if args.literal_win_variants:
                 derived_variants(builds, cases, 'literal', '-DLITERAL_WIN=1', 'bulk')
+            if args.scheduling_output_variants:
+                for chunk in (16, 64, 256):
+                    # Exact base selection avoids deriving variants of variants.
+                    selected_cases = [c for c in cases if c['implementation'] == 'local-alpha-beta-openmp-tight-bulk']
+                    derived_variants(builds, selected_cases, f'chunk{chunk}', f'-DOMP_CHUNK={chunk}', 'bulk')
+                    cases.extend(c for c in selected_cases if f'chunk{chunk}' in c['implementation'])
+                bend_output_variants(builds, cases, source, work)
             for case in cases:
                 case['contract'] = {**case['contract'], 'positions': count, 'distinct_positions': corpus_size,
                                     'measured_batches': measured, 'warmup_batches': 2,
                                     'implementation_variant': case['implementation'],
-                                    'output_policy': 'Bend string' if case['implementation'].startswith('bend') else
+                                    'output_policy': 'Bend subtree chunks, split depth 7' if 'bend-chunks' in case['implementation'] else
+                                        'Bend string' if case['implementation'].startswith('bend') else
                                         ('bulk text' if 'bulk' in case['implementation'] else 'line-flushed printf'),
                                     'win_check': 'literal expressions' if case['implementation'].startswith('bend') or
                                         'literal' in case['implementation'] else 'mask array loop'}
@@ -400,7 +452,13 @@ def main():
                        corpus_sha256=hash_file(source.with_suffix('.corpus.json'))))
             selected = []
             for case in cases:
-                if args.multicore_only and case['implementation'] == 'bend' and case['threads'] == 1:
+                if args.scheduling_output_variants and not (
+                    case['implementation'].startswith('bend') or
+                    case['implementation'] == 'local-alpha-beta-openmp-tight-bulk' or
+                    case['implementation'].startswith('local-alpha-beta-openmp-tight-bulk-chunk')
+                ):
+                    continue
+                if args.multicore_only and case['implementation'].startswith('bend') and not case['implementation'].endswith('cuda') and case['threads'] == 1:
                     continue
                 if args.gpu_only and not case['implementation'].endswith('cuda'):
                     continue

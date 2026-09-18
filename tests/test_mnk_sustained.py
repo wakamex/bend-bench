@@ -6,7 +6,7 @@ import unittest
 from bend_bench.core import exclusive, execute, load_config
 from bend_bench.suites import plan, stage
 from bend_bench.applications import mnk_corpus, mnk_oracle
-from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants, bulk_variants, derived_variants, literal_win_check
+from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants, bulk_variants, derived_variants, literal_win_check, bend_output_variants
 
 
 class SustainedSearchTests(unittest.TestCase):
@@ -65,6 +65,13 @@ class SustainedSearchTests(unittest.TestCase):
             control_variants(builds, cases)
             bulk_variants(builds, cases)
             derived_variants(builds, cases, 'literal', '-DLITERAL_WIN=1', 'bulk')
+            bend_output_variants(builds, cases, source, work)
+            for chunk in (16, 64, 256):
+                selected = [c for c in cases if c['implementation'] == 'local-alpha-beta-openmp-tight-bulk']
+                derived_variants(builds, selected, f'chunk{chunk}', f'-DOMP_CHUNK={chunk}', 'bulk')
+                cases.extend(c for c in selected if f'chunk{chunk}' in c['implementation'])
+            outputs = [b[b.index('-o') + 1] for b in builds if '-o' in b]
+            self.assertEqual(len(outputs), len(set(outputs)))
             for command in builds:
                 result = execute(command)
                 self.assertEqual(result['returncode'], 0, result['stderr'])
