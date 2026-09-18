@@ -4,6 +4,8 @@ The bend-bench harness and original contributions are MIT-licensed; see LICENSE.
 
 ## Application comparisons
 
+The packaged N-Queens Bend port and C++ bit-mask baseline are original evaluation code, MIT-licensed. They implement the BOTS N-Queens problem and known solution counts without copying the BOTS array-based solver.
+
 The BFS adapters include [GAP Benchmark Suite](https://github.com/sbeamer/gapbs) and [Gunrock](https://github.com/gunrock/gunrock) from separate pinned checkouts. GAP carries its Regents of the University of California BSD-style license; Gunrock is Apache-2.0. Gunrock also uses [ModernGPU](https://github.com/moderngpu/moderngpu), with Sean Baxter's BSD-style license, and NVIDIA CCCL. The full upstream licenses remain in those checkouts; preserve them when distributing resulting sources or binaries. The harness package does not bundle the repositories. The pricing and exact m,n,k controls are original MIT-licensed code. No source or model from `/code/mnk` is incorporated.
 
 ## NVIDIA CUB / CCCL

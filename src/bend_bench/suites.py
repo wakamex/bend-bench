@@ -27,6 +27,10 @@ def stage(config, work):
         if key in config and not (work / name).exists():
             (work / name).symlink_to(config[key]["path"], target_is_directory=True)
     (work / "build").mkdir(exist_ok=True)
+    if "nqueens" in config["suites"]:
+        for size in config["queens_sizes"]:
+            source = (assets / "ports/nqueens.bend").read_text().replace("@MASK@", str((1 << size) - 1))
+            (work / "ports" / f"nqueens-{size}.bend").write_text(source)
     if set(config['suites']) & {'pricing', 'mnk', 'bfs'}:
         from .applications import stage as stage_applications
         stage_applications(config, work)
@@ -113,6 +117,20 @@ def plan(config, work):
     if set(config['suites']) & {'pricing', 'mnk', 'bfs'}:
         from .applications import plan as plan_applications
         plan_applications(config, work, build, case, cases, bend_build, gpu_reason)
+
+    if "nqueens" in config["suites"]:
+        reference = work / "build/nqueens-bitmask"
+        build([cxx, *flags, "-fopenmp", work / "baselines/nqueens-bitmask.cpp", "-o", reference])
+        for size in config["queens_sizes"]:
+            name = f"nqueens-{size}"
+            expected = str({4: 2, 8: 92, 12: 14200, 14: 365596}[size])
+            contract = dict(workload=name, algorithm="bit-mask exhaustive search", symmetry=False, expected=expected)
+            binary = bend_build(work / "ports" / (name + ".bend"), name)
+            case("nqueens", name, "bitmask-serial", 1, reference, [size, 0], expected, contract=contract)
+            for threads in config["threads"]:
+                case("nqueens", name, "bend", threads, binary, ["--gpu", "off", "--threads", threads], expected, contract=contract)
+                for levels in (3, 5):
+                    case("nqueens", name, f"bitmask-openmp-depth-{levels}", threads, reference, [size, levels], expected, contract=contract)
 
     if "hotspot" in config["suites"]:
         rodinia = Path(config["rodinia"]["path"])

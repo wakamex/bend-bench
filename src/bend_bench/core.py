@@ -139,7 +139,7 @@ def load_config(path):
                "cuda", "gpu_heap", "gpu_arch", "uts_inputs", "uts_cutoffs", "blocked_services",
                "bend", "bots", "cccl", "rodinia", "gpu_depths", "hotspot_sizes", "hotspot_steps",
                "hotspot_pyramids", "tools", "vendor", "require_idle_gpu", "gpu_resident",
-               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu"}
+               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes"}
     if unknown := config.keys() - allowed:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     if config.get("schema") != 1:
@@ -159,8 +159,15 @@ def load_config(path):
             raise ValueError("gpu_resident requires a pinned pid, start_ticks and boot_id")
         if not config.get("require_idle_gpu"):
             raise ValueError("gpu_resident requires require_idle_gpu")
-    if not config.get("suites") or set(config["suites"]) - {"vendor", "uts", "cub", "hotspot", "pricing", "mnk", "bfs"}:
+    if not config.get("suites") or set(config["suites"]) - {"vendor", "uts", "cub", "hotspot", "pricing", "mnk", "bfs", "nqueens"}:
         raise ValueError("Unknown or missing suite")
+    if "nqueens" in config["suites"]:
+        config.setdefault("queens_sizes", [8, 12, 14])
+        if (not config["queens_sizes"] or any(type(n) is not int or n not in {4, 8, 12, 14} for n in config["queens_sizes"])
+                or len(set(config["queens_sizes"])) != len(config["queens_sizes"])):
+            raise ValueError("queens_sizes must select unique sizes from 4, 8, 12, 14")
+        if config.get("cuda"):
+            raise ValueError("The N-Queens baseline comparison currently supports CPU only")
     for key, default in (("repetitions", 10), ("warmups", 1), ("timeout", 180)):
         config.setdefault(key, default)
         if type(config[key]) is not int or config[key] < (10 if key == "repetitions" else 1):

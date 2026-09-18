@@ -44,6 +44,7 @@ Detailed results:
 | Sorting and reduction | Compare recursive programs with mature GPU primitives | NVIDIA CUB |
 | Asian-option pricing | Independent Monte Carlo paths followed by payoff aggregation | Project-written OpenMP and CUDA implementations using identical random streams |
 | Exact m,n,k endgames | Recursive search with known outcomes from an independent solver | Project-written OpenMP and CUDA alpha-beta implementations |
+| N-Queens | Enumerate all solutions with bit-mask search in both languages | Project-written serial C++ and OpenMP task implementations; [comparison contract](NQUEENS.md) |
 | Shared-graph BFS | Irregular graph traversal and memory access | GAP OpenMP and Gunrock CUDA |
 | HotSpot thermal simulation | Repeated local-neighbor updates | Rodinia OpenMP and CUDA, with CUDA pyramid-height variants |
 
@@ -64,6 +65,7 @@ Choose a configuration and edit its source paths, exact commits, tool paths, CPU
 | [gpu-hotspot.toml](gpu-hotspot.toml) | Rodinia HotSpot |
 | [applications.toml](applications.toml) | Pricing, m,n,k and shared-graph BFS |
 | [applications-bfs.toml](applications-bfs.toml) | Corrected BFS comparison alone |
+| [nqueens.toml](nqueens.toml) | Bend and C++ bit-mask N-Queens, with serial and OpenMP task variants |
 
 The supplied configurations reference the evaluation machine's local source checkouts. Paths resolve relative to the configuration file. Obtain the pinned dependencies and adapt those paths before running; the harness does not download sources or install toolchains.
 
