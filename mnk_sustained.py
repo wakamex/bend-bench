@@ -399,6 +399,14 @@ def resident(command, folder, config, expected, count, gpu, total=12, telemetry=
     return result
 
 
+def host_array_implementations(literal_win_variants=False):
+    if literal_win_variants:
+        return {'bend-cuda', 'local-alpha-beta-openmp-tight-bulk',
+                'local-alpha-beta-tight-bulk-cuda', 'local-alpha-beta-tight-bulk-literal-cuda'}
+    return {'bend', 'bend-cuda', 'local-alpha-beta-openmp-tight-bulk',
+            'local-alpha-beta-tight-bulk-cuda', 'local-alpha-beta-position-tight-bulk-cuda'}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--depths', type=int, nargs='+', choices=range(4, 23), default=[4, 8, 12, 16])
@@ -495,10 +503,7 @@ def main():
                        corpus_sha256=hash_file(source.with_suffix('.corpus.json'))))
             selected = []
             for case in cases:
-                if args.host_array and case['implementation'] not in (
-                    'bend', 'bend-cuda', 'local-alpha-beta-openmp-tight-bulk',
-                    'local-alpha-beta-tight-bulk-cuda', 'local-alpha-beta-position-tight-bulk-cuda'
-                ):
+                if args.host_array and case['implementation'] not in host_array_implementations(args.literal_win_variants):
                     continue
                 if args.scheduling_output_variants and not (
                     case['implementation'].startswith('bend') or

@@ -7,6 +7,7 @@ from bend_bench.core import exclusive, execute, load_config
 from bend_bench.suites import plan, stage
 from bend_bench.applications import mnk_corpus, mnk_oracle
 from mnk_host_array import instrument, validate
+from mnk_sustained import host_array_implementations
 from mnk_sustained import ROOT, bend_resident, cpp_resident, resident, control_variants, bulk_variants, derived_variants, literal_win_check, bend_output_variants
 
 
@@ -44,6 +45,16 @@ class SustainedSearchTests(unittest.TestCase):
             control_variants(builds, cases)
             bulk_variants(builds, cases)
             derived_variants(builds, cases, 'literal', '-DLITERAL_WIN=1', 'bulk')
+            selected = [c for c in cases if c['workload'] == 'mnk-5-5-4-8' and
+                        c['implementation'] in host_array_implementations(True)]
+            self.assertEqual({c['implementation'] for c in selected}, {
+                'bend-cuda', 'local-alpha-beta-openmp-tight-bulk',
+                'local-alpha-beta-tight-bulk-cuda', 'local-alpha-beta-tight-bulk-literal-cuda'})
+            literal = next(c for c in selected if c['implementation'].endswith('literal-cuda'))
+            command = next(b for b in builds if '-o' in b and b[b.index('-o') + 1] == literal['command'][3])
+            self.assertIn('-DLITERAL_WIN=1', command)
+            self.assertIn('-DBULK_OUTPUT=1', command)
+            self.assertIn('-DSEARCH_BOUND=1', command)
             outputs = [b[b.index('-o') + 1] for b in builds if '-o' in b]
             self.assertEqual(len(outputs), len(set(outputs)))
             for case in cases:
