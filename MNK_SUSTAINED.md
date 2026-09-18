@@ -1,6 +1,21 @@
-# Resident-process game-search audit
+# Corrected resident-process game-search comparison
 
-The previous m,n,k Bend-versus-CUDA comparison is withdrawn. Both build commands targeted `mnk-5-5-4-8-cuda`; the later Bend build overwrote the conventional control. Both GPU labels therefore executed Bend, with different command-line settings and CPU affinity. The same naming collision affected every m,n,k game size, including historical one-shot measurements. Correct output alone did not detect the wrong implementation.
+Bend GPU delivers a median 1.20 million positions/second on the fixed repeated endgame corpus, versus 837,000 for OpenMP16, 537,000 for Bend CPU16 and 435,000 for the corrected project-written CUDA control. Each implementation ran in three fresh processes in a saved shuffled order, with two warmups and 30 measured batches of 524,288 positions per process. Every answer passed in all 12 process runs.
+
+| Implementation | Median delivered positions/s across three processes | Minimum–maximum process throughput | Median search-to-host ms per batch |
+|---|---:|---:|---:|
+| Bend GPU | 1,199,512 | 1,191,288–1,201,124 | 82.1 |
+| OpenMP, 16 CPU threads | 836,619 | 836,334–843,608 | 283.1 |
+| Bend, 16 CPU threads | 537,472 | 514,351–537,739 | 779.1 |
+| Project-written CUDA root-parallel control | 434,915 | 426,366–435,082 | 878.4 |
+
+Bend GPU delivers 2.23× its own multicore CPU throughput, 1.43× OpenMP and 2.76× this CUDA control. The result compares these implementations on this repeated corpus; the CUDA control is not claimed to be tuned or optimal. Bend and OpenMP distribute complete positions, while CUDA distributes root moves and then performs recursive alpha-beta search. This difference can change the amount of pruning and work. Broader position diversity and stronger CUDA implementations remain separate work.
+
+The [matched report](runs/mnk-sustained-20260918-110942/report.md), commit `b51893f`, preserves the shuffled schedule, generated sources, binary hashes, every batch output, phase timing and hardware observations. Throughput and search columns summarize process means using the median across three processes; individual batches are not counted as independent process repetitions. Search-to-host time includes result transfers and is not kernel-only time. Output formatting and delivery remain included in delivered throughput.
+
+## Withdrawn historical CUDA comparisons
+
+The previous m,n,k Bend-versus-CUDA comparisons are withdrawn. Both build commands targeted `mnk-5-5-4-8-cuda`; the later Bend build overwrote the conventional control. Both GPU labels therefore executed Bend, with different command-line settings and CPU affinity. The same naming collision affected every m,n,k game size, including historical one-shot measurements. Correct output alone did not detect the wrong implementation.
 
 The control now builds to `-control-cuda`, and the planner rejects duplicate compiler output paths. A regression test checks that every m,n,k CUDA control has a distinct executable produced from the C++ source by the CUDA compiler. The other application suites use distinct control paths. Historical source, commands, hashes and outputs remain unchanged in their original run directories.
 
@@ -38,4 +53,4 @@ The genuine conventional CUDA control averages 879.0 ms per batch in search-to-h
 
 Bend's sampled GPU SM clocks stayed around 2 GHz while temperature rose from roughly 48 to 62 C; its host RSS varied rather than growing monotonically. The CUDA control drove substantially more GPU activity and temperature reached 77 C, but its search interval remained stable. Raw GPU clocks, temperature, power, utilization and memory are in each process's `gpu-telemetry.csv`; `/proc` CPU and memory observations are in `host-telemetry.jsonl`. These observations locate the measured Bend slowdown in the output phase; they do not identify a specific allocator, formatting or pipe mechanism.
 
-The compact matched rerun uses `uv run --locked python mnk_sustained.py --depths 19 --batches 30 --repeats 3 --multicore-only --telemetry`: three independently launched processes per implementation, each with two warmups and 30 measured batches, in a saved seeded shuffled order. The implementations are Bend CPU16, OpenMP16, Bend GPU and the corrected project-written CUDA control. Timers record when search results return to the host and when output completes. Bend's timer has millisecond resolution; the conventional timer uses nanoseconds. Neither phase is claimed to be device-kernel time. The workload still repeats 16 positions and does not establish general game-search performance or optimal CUDA performance.
+Reproduce the completed matched rerun with `uv run --locked python mnk_sustained.py --depths 19 --batches 30 --repeats 3 --multicore-only --telemetry`. Timers record when search results return to the host and when output completes. Bend's timer has millisecond resolution; the conventional timer uses nanoseconds. The full test suite passed 46 tests with three expected skips, and source distribution and wheel builds passed before the rerun.
