@@ -6,38 +6,15 @@ The [Bend](https://github.com/bendlang/bend) programming lanauage lets you run t
 
 Performance depends much more on the implementation than the language it was written in. Comparing implementations across languages can be tricky, as each language allows different optimizations. We compare against existing benchmarks and new implementations as well.
 
-We rerun Bend’s 16 published workloads with added parallel baselines.
+We compare Bend’s 16 published workloads with added parallel baselines written by GPT-6-Astra in C and OpenMP.
 
-Tested against existing baselines:
-
-- HotSpot thermal simulation from [Rodinia](https://github.com/ivanradanov/rodinia) tests repeated heat flow between neighboring cells against existing OpenMP and CUDA code.
-- Sorting and summation compare Bend against NVIDIA’s [CUB](https://github.com/NVIDIA/cccl/tree/main/cub) library, providing mature GPU implementations of common operations.
-- Breadth-first search against [GAP](https://github.com/sbeamer/gapbs) on CPU and [Gunrock](https://github.com/gunrock/gunrock) on GPU tests traversal of one shared graph with irregular memory access.
+Additional benchmarks are chosen to span a few interesting dimensions:
+- Pricing and game search contrast predictable independent work with uneven, decision-dependent work.
+- HotSpot and BFS contrast regular local communication with irregular shared-data access.
+- Sorting and summation from NVIDIA’s [CUB](https://github.com/NVIDIA/cccl/tree/main/cub) library compare to highly optimized primitives.
 - Unbalanced Tree Search from [BOTS](https://github.com/bsc-pm/bots) tests Bend's [documented limitation](https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/README.md#limitations) that "Parallelism requires balanced calls. Flexible parallelism will be added later."
 
-We also wrote application tests to compare the same Bend code on CPU and GPU across two different kinds of work, with matching OpenMP and CUDA implementations:
-
-- Monte Carlo pricing of an Asian option tests a GPU-friendly application: many independent simulated price paths followed by averaging their payoffs. A one-off run measures the complete process, including startup and printing every payoff. A persistent pricing service measures repeated requests that return a price and standard error, spreading startup costs across requests.
-- Exact m,n,k game search tests recursive branching and pruning, with answers checked against an independent solver. Unlike pricing, each search can take a different amount of work. The tested alpha-beta search favors CPU execution.
-
-### CPU scaling
-
-On Bend's 16 published workloads, using 16 CPU threads gives Bend a median 13.6× speedup over its own one-thread execution; OpenMP gains 14.2× over its own. Similar scaling does not mean equal running time: at 16 threads, Bend takes 32% longer than OpenMP at the median and wins 2 of 16 comparisons. The added irregular-tree search from BOTS shows a different pattern: Bend gains no speedup on either tested tree, while OpenMP finishes about 3.0× and 3.4× sooner at 16 threads. [CPU results and thread-count sweeps](PERFORMANCE.md).
-
-### GPU scaling
-
-Bend makes good use of the GPU for option pricing: the same program runs about 68× faster than on 16 CPU threads, beating the OpenMP implementation by 40×. Writing the simulation directly in CUDA still pays off: that implementation is another 7.2× faster than Bend GPU.
-
-This comparison models a pricing service that stays running and returns a price and its standard error for each request. It measures the wait for that answer, including getting it back from the GPU.
-
-| Implementation | Time to return a price and standard error, using 262,144 paths with 256 observations each |
-|---|---:|
-| Bend, 16 CPU threads | 239.7 ms |
-| OpenMP, 16 CPU threads | 139.5 ms |
-| Bend GPU | 3.50 ms |
-| Project-written CUDA simulation with CUB reduction | 0.488 ms |
-
-Requests using 65,536 simulated paths also benefit substantially from the GPU. [Results for 65,536 and 262,144 paths, correctness checks and measurement details](PRICING_SUSTAINED.md).
+Not tested: dense linear algebra, FFTs, database operations
 
 ### Startup costs, graph traversal and GPU primitives
 
