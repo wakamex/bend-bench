@@ -1,14 +1,23 @@
 # bend-bench
 
-A reproducible benchmark harness comparing [Bend](https://github.com/bendlang/bend)'s automatic parallel execution with OpenMP on CPU and CUDA on GPU. It checks answers, sweeps thread counts and input sizes, and records exact source revisions, build commands and individual measurements.
+The [Bend](https://github.com/bendlang/bend) programming lanauage lets you run the same code in parallel on CPU and GPU. This benchmark compares performance with OpenMP on CPU and CUDA on GPU. Bend's main benefit is verifiability, being fast is just a perk.
 
-Bend can use multiple CPU cores and a GPU from the same program. In these tests it scales well on its published CPU workloads and delivers substantial GPU speedups for repeated option pricing. Conventional parallel implementations usually finish sooner.
+## Benchmark choice
 
-This evaluation measures execution speed and correctness against conventional parallel implementations. It does not measure development effort or the benefits of Bend's proof system.
+Performance depends much more on the implementation than the language it was written in. Comparing implementations across languages can be tricky, as each language allows different optimizations. We compare against existing benchmarks and new implementations as well.
 
-## Results
+We rerun Bend’s 16 published workloads with added parallel baselines.
 
-These September 17–18, 2026 measurements use a Ryzen 9 3950X with 16 physical cores and 32 hardware threads, plus an RTX 3090. Answers are checked against published outputs or independent reference implementations before results are accepted.
+Tested against existing baselines:
+- HotSpot thermal simulation from [Rodinia](https://github.com/ivanradanov/rodinia) compares Bend against existing OpenMP and CUDA code.
+- Sorting and summation from NVIDIA’s [CUB](https://github.com/nvidia/cub) library tests low-level primitives for common operations.
+- Breadth-first search against [GAP](link) on CPU and [Gunrock](link) on GPU tests traversal of one shared graph with irregular memory access.
+- Unbalanced Tree Search from [BOTS](https://github.com/bsc-pm/bots) tests Bend's current limitation that "Parallelism requires balanced calls. Flexible parallelism will be added later."
+
+We wrote a few additional tests: (why?)
+Monte Carlo option pricing tests a GPU-friendly application: many independent simulated price paths followed by aggregation. We wrote matching OpenMP and CUDA implementations. One-off pricer measures startup time, while the persistent pricer abstracts it away.
+
+Exact m,n,k game search tests recursive branching and pruning against our OpenMP and CUDA implementations, with answers checked against an independent solver. This test favors CPU over GPU.
 
 ### CPU scaling
 
