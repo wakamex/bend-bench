@@ -9,15 +9,16 @@ Performance depends much more on the implementation than the language it was wri
 We rerun Bend’s 16 published workloads with added parallel baselines.
 
 Tested against existing baselines:
-- HotSpot thermal simulation from [Rodinia](https://github.com/ivanradanov/rodinia) compares Bend against existing OpenMP and CUDA code.
-- Sorting and summation from NVIDIA’s [CUB](https://github.com/nvidia/cub) library tests low-level primitives for common operations.
-- Breadth-first search against [GAP](link) on CPU and [Gunrock](link) on GPU tests traversal of one shared graph with irregular memory access.
-- Unbalanced Tree Search from [BOTS](https://github.com/bsc-pm/bots) tests Bend's current limitation that "Parallelism requires balanced calls. Flexible parallelism will be added later."
 
-We wrote a few additional tests: (why?)
-Monte Carlo option pricing tests a GPU-friendly application: many independent simulated price paths followed by aggregation. We wrote matching OpenMP and CUDA implementations. One-off pricer measures startup time, while the persistent pricer abstracts it away.
+- HotSpot thermal simulation from [Rodinia](https://github.com/ivanradanov/rodinia) tests repeated heat flow between neighboring cells against existing OpenMP and CUDA code.
+- Sorting and summation compare Bend against NVIDIA’s [CUB](https://github.com/NVIDIA/cccl/tree/main/cub) library, providing mature GPU implementations of common operations.
+- Breadth-first search against [GAP](https://github.com/sbeamer/gapbs) on CPU and [Gunrock](https://github.com/gunrock/gunrock) on GPU tests traversal of one shared graph with irregular memory access.
+- Unbalanced Tree Search from [BOTS](https://github.com/bsc-pm/bots) tests Bend's [documented limitation](https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/README.md#limitations) that "Parallelism requires balanced calls. Flexible parallelism will be added later."
 
-Exact m,n,k game search tests recursive branching and pruning against our OpenMP and CUDA implementations, with answers checked against an independent solver. This test favors CPU over GPU.
+We also wrote application tests to compare the same Bend code on CPU and GPU across two different kinds of work, with matching OpenMP and CUDA implementations:
+
+- Monte Carlo pricing of an Asian option tests a GPU-friendly application: many independent simulated price paths followed by averaging their payoffs. A one-off run measures the complete process, including startup and printing every payoff. A persistent pricing service measures repeated requests that return a price and standard error, spreading startup costs across requests.
+- Exact m,n,k game search tests recursive branching and pruning, with answers checked against an independent solver. Unlike pricing, each search can take a different amount of work. The tested alpha-beta search favors CPU execution.
 
 ### CPU scaling
 
