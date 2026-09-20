@@ -1,6 +1,16 @@
 # Matched 17×17 N-Queens batching
 
-Does upfront batching explain Bend's stronger scaling on its published N-Queens workload? This experiment compares the published solver, our child/sibling recursive solver, and the same recursive solver with published-style batching. All three search the same selected 17×17 starting positions. OpenMP and serial C++ provide conventional baselines. Results will be saved in [the run report](runs/queens-batching-20260920/report.md).
+Upfront batching makes our recursive Bend solver 4.9× faster at 16 CPU threads on the same selected 17×17 search space. One-thread time is essentially unchanged. Moving from one to 16 threads gives 2.6× speedup with natural recursion and 12.5× with batching. All variants returned the same 6,899,189 solutions and 863,992,044 below-prefix search nodes across 117 checked executions.
+
+| Implementation | 1 CPU thread | 16 CPU threads | CPU speedup |
+|---|---:|---:|---:|
+| Published Bend, batched | 12.206 s | 0.999 s | 12.2× |
+| Our Bend, natural recursion | 9.466 s | 3.678 s | 2.6× |
+| Our Bend, batched | 9.463 s | 0.754 s | 12.5× |
+| OpenMP, batched | 4.583 s | 0.319 s | 14.4× |
+| Serial C++ | 4.521 s | | |
+
+Our batched version also finishes 1.3× faster than the published Bend solver at 16 threads. OpenMP remains 2.4× faster than our batched version. Each cell is the median of ten complete-program measurements after two warmups, with shuffled execution order. See the [full run report](runs/queens-batching-20260920/report.md) and [individual executions](runs/queens-batching-20260920/samples.jsonl).
 
 ## Matched search space
 
