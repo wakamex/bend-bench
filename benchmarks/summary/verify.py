@@ -28,14 +28,21 @@ def table(relative):
     return [[s.strip() for s in line.split('|')[1:-1]]
             for line in (ROOT / relative).read_text().splitlines() if re.match(r'^\| \d', line)]
 
-pricing = table('runs/pricing-sustained-20260918-165158/report.md')
+pricing_run = ROOT / 'runs/pricing-crossover-20260920'
+pricing = max((json.loads(line) for line in (pricing_run / 'summary.jsonl').read_text().splitlines()), key=lambda p: p['paths'])
 for row in data['rows']:
     if row['group'] == 'Repeated pricing requests':
         n = int(row['detail'].split()[0].replace(',', ''))
-        for column, impl in [(1, 'bend'), (2, 'bend-cuda'), (4, 'local-openmp'), (5, 'local-cuda')]:
-            values = [float(r[3]) for r in pricing if int(r[0]) == n and r[1] == impl]
-            assert len(values) == 3
-            assert row['ms'][column] == statistics.median(values)
+        assert n == pricing['paths']
+        assert all(row['ms'][column] is None for column in (0, 1, 3, 4))
+        for column, impl, key in [(2, 'bend-cuda', 'bend'), (5, 'local-cuda', 'cuda')]:
+            values = []
+            for rep in range(3):
+                result = json.loads((pricing_run / str(n) / f'{impl}-{rep}' / 'result.json').read_text())
+                assert result['correct'] and len(result['pricing_seconds']) == 12
+                values.append(statistics.mean(result['pricing_seconds'][2:]))
+            assert pricing[key] == statistics.median(values)
+            assert abs(row['ms'][column] - pricing[key] * 1000) < 1e-9
     elif row['group'] == 'Repeated game-search batches':
         final = 'final cuda' in row['detail']
         run = '161850' if final else '160439'
@@ -51,6 +58,6 @@ for row in data['rows']:
             assert len(values) == 3
             assert row['ms'][column] == statistics.median(values)
 
-assert len(data['rows']) == 40
+assert len(data['rows']) == 39
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
-print('Verified 40 rows, source hashes, correctness gates and repeated-request medians.')
+print('Verified 39 rows, source hashes, correctness gates and repeated-request medians.')

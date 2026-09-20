@@ -1,6 +1,6 @@
 {
   "title": "Bend benchmark scorecard",
-  "measurement_dates": "17–18 September 2026",
+  "measurement_dates": "17–19 September 2026",
   "hardware": "AMD Ryzen 9 3950X · NVIDIA RTX 3090",
   "bend_revision": "b9d1352c9f45632447f40a2e927355c92f2be58c",
   "columns": [
@@ -915,31 +915,15 @@
     {
       "group": "Repeated pricing requests",
       "name": "Asian call",
-      "detail": "65,536 paths · 256 observations · price + standard error",
-      "baseline": "Project OpenMP / project CUDA + CUB",
+      "detail": "1,073,741,824 paths · 256 observations · price + standard error",
+      "baseline": "Project CUDA + CUB",
       "ms": [
         null,
-        66.593,
-        2.42,
         null,
-        35.321,
-        0.18
-      ],
-      "link": "../../PRICING_SUSTAINED.md",
-      "metric": "request to host quote"
-    },
-    {
-      "group": "Repeated pricing requests",
-      "name": "Asian call",
-      "detail": "262,144 paths · 256 observations · price + standard error",
-      "baseline": "Project OpenMP / project CUDA + CUB",
-      "ms": [
+        7823.6413995,
         null,
-        239.666,
-        3.501,
         null,
-        139.491,
-        0.488
+        1874.26899
       ],
       "link": "../../PRICING_SUSTAINED.md",
       "metric": "request to host quote"
@@ -983,7 +967,7 @@
     "runs/c058f6b3293bda1d65dd/summary.json": "f7549a4ff228d71b3f68666c9f83f82e30d7d56395293d4bff51c298522d5e4a",
     "runs/6f09d7ec9215cbadd596/summary.json": "1fe56090cebb3a4b8c62b5332d9bbc9c311c6df1f3d9a82a608401fa3c028a2d",
     "runs/921fd5564318acbccf09/summary.json": "e13430f76afd0d643ecc83af06f92d83f774907802383d8b2104cacb2017ed88",
-    "runs/pricing-sustained-20260918-165158/report.md": "94b9d22657be4aceaaa4b9fdf00ec7abc65114d0381b3de80dca77ca21143bac",
+    "runs/pricing-crossover-20260920/summary.jsonl": "245d057f4828959603c162a8640c8688e1036f2b89c6e73274021497e7ab0e28",
     "runs/mnk-sustained-20260918-161850/report.md": "2831352084e6bb083088b3887c1959de9a3214f5b852063211484f11f14fc26d",
     "runs/mnk-sustained-20260918-160439/report.md": "d924404c40e1eae71ba3853873a387b8a24b0338203ec5bcdbdc3bf2d8a4a8ff"
   }

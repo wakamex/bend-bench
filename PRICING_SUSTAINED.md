@@ -4,10 +4,11 @@ Bend GPU returns a price and standard error about 68× faster than Bend CPU16 an
 
 | Paths per request | Bend, 16 CPU threads | OpenMP, 16 CPU threads | Bend GPU | Project-written CUDA with CUB reduction |
 |---:|---:|---:|---:|---:|
-| 65,536 | 66.593 ms | 35.321 ms | 2.420 ms | 0.180 ms |
-| 262,144 | 239.666 ms | 139.491 ms | 3.501 ms | 0.488 ms |
+| 1,073,741,824 | | | 7,823.641 ms | 1,874.269 ms |
 
-Times include simulation, aggregation and returning the quote to CPU memory. Each cell is the median of three fresh processes' mean request times, with two warmups and 30 measured requests per process. All four backends passed the per-path audit and all full-size quote checks. Separate conventional GPU qualification runs passed at both sizes. [Individual process results](runs/pricing-sustained-20260918-165158/report.md) and [preserved run evidence](runs/pricing-sustained-20260918-165158/) contain the measurements and source provenance.
+The table shows the largest completed request size. CUDA is 4.2× faster than Bend GPU there; no crossover occurred across the 15 doubled sizes. CPU cells are blank because this size was only measured on GPU. Times include simulation, aggregation and returning the quote to CPU memory, using the median of three process means with two warmups and ten measured requests each. All sizes passed quote checks. See the [full size sweep](runs/pricing-crossover-20260920/report.md) and [sweep methodology](PRICING_CROSSOVER.md).
+
+The earlier CPU/GPU comparison above used 262,144 paths and 30 measured requests per process. Its [individual process results](runs/pricing-sustained-20260918-165158/report.md) and [preserved run evidence](runs/pricing-sustained-20260918-165158/) remain available. The following sections describe that initial experiment.
 
 ## Pricing and arithmetic
 
