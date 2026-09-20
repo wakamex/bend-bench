@@ -20,7 +20,8 @@ for row in data['rows']:
         if case_id is None:
             assert ms is None
             continue
-        case = cases[row['source']][case_id]
+        source = row.get('case_sources', {}).get(case_id, row['source'])
+        case = cases[source][case_id]
         assert case['status'] == 'passed' and case['checked'] and case['samples'] >= 10
         assert ms == case['end_to_end_seconds'] * 1000, case_id
 
@@ -78,6 +79,10 @@ if summation:
             assert ms == statistics.median(r['end_to_end_seconds'] for r in measured) * 1000
 games = [row for row in data['rows'] if row['group'] == 'Repeated game-search batches']
 assert len(games) == 1 and 'matched cpu / gpu' in games[0]['detail']
-assert len(data['rows']) == 25 + len(summation)
+sorting = [row for row in data['rows'] if row['name'] == 'Tree bitonic sort']
+assert len(sorting) == 1 and sorting[0]['cases'][5] == 'cub/sort-23/cub-cuda/1'
+assert sorting[0]['case_sources'][sorting[0]['cases'][5]] == 'runs/e930e5a1b9c488a9f8ba/summary.json'
+assert not any(row['name'] == 'Integer sorting' for row in data['rows'])
+assert len(data['rows']) == 22 + len(summation)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
 print(f'Verified {len(data["rows"])} rows, source hashes, correctness gates and repeated-request medians.')

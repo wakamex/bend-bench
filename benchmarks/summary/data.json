@@ -340,15 +340,15 @@
     {
       "group": "Published workloads",
       "name": "Tree bitonic sort",
-      "detail": "8,388,608 U32 keys",
-      "baseline": "Serial C / project OpenMP",
+      "detail": "8,388,608 U32 keys · GPU comparison: CUB radix sort",
+      "baseline": "Serial C / project OpenMP / CUB radix sort",
       "ms": [
         12712.495281477459,
         1689.0525331255049,
         923.5257800901309,
         9652.225953992456,
         87.12216338608414,
-        null
+        192.26558844093233
       ],
       "cases": [
         "vendor/tree-bitonic/bend/1",
@@ -356,11 +356,14 @@
         "vendor/tree-bitonic/bend-cuda/32",
         "vendor/tree-bitonic/serial-c/1",
         "vendor/tree-bitonic/openmp/16",
-        null
+        "cub/sort-23/cub-cuda/1"
       ],
       "link": "../../PERFORMANCE.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "cub/sort-23/cub-cuda/1": "runs/e930e5a1b9c488a9f8ba/summary.json"
+      }
     },
     {
       "group": "Published workloads",
@@ -461,81 +464,6 @@
       "link": "../../PERFORMANCE.md#uts-irregular-search",
       "metric": "complete program",
       "source": "runs/64b53b136d7cfde4ed9e/summary.json"
-    },
-    {
-      "group": "GPU primitives",
-      "name": "Integer sorting",
-      "detail": "4,096 generated U32 values",
-      "baseline": "Serial C++ / CUB radix sort",
-      "ms": [
-        null,
-        null,
-        240.90884195175022,
-        3.076210035942495,
-        null,
-        188.3026019204408
-      ],
-      "cases": [
-        null,
-        null,
-        "cub/sort-12/bend-cuda/16",
-        "cub/sort-12/serial-cpp/1",
-        null,
-        "cub/sort-12/cub-cuda/1"
-      ],
-      "link": "../../GPU_COMPARISON.md",
-      "metric": "complete program",
-      "source": "runs/e930e5a1b9c488a9f8ba/summary.json"
-    },
-    {
-      "group": "GPU primitives",
-      "name": "Integer sorting",
-      "detail": "262,144 generated U32 values",
-      "baseline": "Serial C++ / CUB radix sort",
-      "ms": [
-        null,
-        null,
-        345.1340440660715,
-        17.35145249404013,
-        null,
-        187.47678853105754
-      ],
-      "cases": [
-        null,
-        null,
-        "cub/sort-18/bend-cuda/16",
-        "cub/sort-18/serial-cpp/1",
-        null,
-        "cub/sort-18/cub-cuda/1"
-      ],
-      "link": "../../GPU_COMPARISON.md",
-      "metric": "complete program",
-      "source": "runs/e930e5a1b9c488a9f8ba/summary.json"
-    },
-    {
-      "group": "GPU primitives",
-      "name": "Integer sorting",
-      "detail": "8,388,608 generated U32 values",
-      "baseline": "Serial C++ / CUB radix sort",
-      "ms": [
-        null,
-        null,
-        937.420517555438,
-        586.1767090391368,
-        null,
-        192.26558844093233
-      ],
-      "cases": [
-        null,
-        null,
-        "cub/sort-23/bend-cuda/16",
-        "cub/sort-23/serial-cpp/1",
-        null,
-        "cub/sort-23/cub-cuda/1"
-      ],
-      "link": "../../GPU_COMPARISON.md",
-      "metric": "complete program",
-      "source": "runs/e930e5a1b9c488a9f8ba/summary.json"
     },
     {
       "group": "GPU primitives",
