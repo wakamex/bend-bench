@@ -715,56 +715,6 @@
     {
       "group": "Bit-mask search",
       "name": "N-Queens",
-      "detail": "8 × 8 board · enumerate every solution",
-      "baseline": "C++ serial / OpenMP tasks through row 3",
-      "ms": [
-        2.418579999357462,
-        2.9092615004628897,
-        null,
-        2.7775486232712865,
-        3.7994718877598643,
-        null
-      ],
-      "cases": [
-        "nqueens/nqueens-8/bend/1",
-        "nqueens/nqueens-8/bend/16",
-        null,
-        "nqueens/nqueens-8/bitmask-serial/1",
-        "nqueens/nqueens-8/bitmask-openmp-depth-3/16",
-        null
-      ],
-      "link": "../../NQUEENS.md",
-      "metric": "complete program",
-      "source": "runs/921fd5564318acbccf09/summary.json"
-    },
-    {
-      "group": "Bit-mask search",
-      "name": "N-Queens",
-      "detail": "12 × 12 board · enumerate every solution",
-      "baseline": "C++ serial / OpenMP tasks through row 3",
-      "ms": [
-        11.681602103635669,
-        9.339979034848511,
-        null,
-        7.264751009643078,
-        4.165109479799867,
-        null
-      ],
-      "cases": [
-        "nqueens/nqueens-12/bend/1",
-        "nqueens/nqueens-12/bend/16",
-        null,
-        "nqueens/nqueens-12/bitmask-serial/1",
-        "nqueens/nqueens-12/bitmask-openmp-depth-3/16",
-        null
-      ],
-      "link": "../../NQUEENS.md",
-      "metric": "complete program",
-      "source": "runs/921fd5564318acbccf09/summary.json"
-    },
-    {
-      "group": "Bit-mask search",
-      "name": "N-Queens",
       "detail": "14 × 14 board · enumerate every solution",
       "baseline": "C++ serial / OpenMP tasks through row 3",
       "ms": [

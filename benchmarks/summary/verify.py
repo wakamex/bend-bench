@@ -60,6 +60,8 @@ for row in data['rows']:
 
 hotspot = [row for row in data['rows'] if row['name'] == 'Rodinia HotSpot']
 assert len(hotspot) == 1 and hotspot[0]['cases'][0] == 'hotspot/hotspot-1024-100/bend/1'
-assert len(data['rows']) == 34
+queens = [row for row in data['rows'] if row['group'] == 'Bit-mask search' and row['name'] == 'N-Queens']
+assert len(queens) == 1 and queens[0]['cases'][0] == 'nqueens/nqueens-14/bend/1'
+assert len(data['rows']) == 32
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
-print('Verified 34 rows, source hashes, correctness gates and repeated-request medians.')
+print('Verified 32 rows, source hashes, correctness gates and repeated-request medians.')
