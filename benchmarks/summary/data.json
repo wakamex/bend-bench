@@ -688,31 +688,6 @@
       "source": "runs/6f09d7ec9215cbadd596/summary.json"
     },
     {
-      "group": "Bit-mask search",
-      "name": "N-Queens",
-      "detail": "14 × 14 board · enumerate every solution",
-      "baseline": "C++ serial / OpenMP tasks through row 3",
-      "ms": [
-        289.0660515986383,
-        224.00769451633096,
-        null,
-        141.4282670011744,
-        14.030350022949278,
-        null
-      ],
-      "cases": [
-        "nqueens/nqueens-14/bend/1",
-        "nqueens/nqueens-14/bend/16",
-        null,
-        "nqueens/nqueens-14/bitmask-serial/1",
-        "nqueens/nqueens-14/bitmask-openmp-depth-3/16",
-        null
-      ],
-      "link": "../../NQUEENS.md",
-      "metric": "complete program",
-      "source": "runs/921fd5564318acbccf09/summary.json"
-    },
-    {
       "group": "Repeated pricing requests",
       "name": "Option pricing",
       "detail": "1,073,741,824 paths · 256 observations · price + standard error",
@@ -750,7 +725,6 @@
     "runs/e930e5a1b9c488a9f8ba/summary.json": "ceea1fefc21a160f0a5934213fdc4051e8b0b270260e48cf7c3b6b5c5b4047c0",
     "runs/c058f6b3293bda1d65dd/summary.json": "f7549a4ff228d71b3f68666c9f83f82e30d7d56395293d4bff51c298522d5e4a",
     "runs/6f09d7ec9215cbadd596/summary.json": "1fe56090cebb3a4b8c62b5332d9bbc9c311c6df1f3d9a82a608401fa3c028a2d",
-    "runs/921fd5564318acbccf09/summary.json": "e13430f76afd0d643ecc83af06f92d83f774907802383d8b2104cacb2017ed88",
     "runs/pricing-crossover-20260920/summary.jsonl": "245d057f4828959603c162a8640c8688e1036f2b89c6e73274021497e7ab0e28",
     "runs/mnk-sustained-20260918-160439/report.md": "d924404c40e1eae71ba3853873a387b8a24b0338203ec5bcdbdc3bf2d8a4a8ff",
     "runs/summation-scaling-20260920/summary.json": "67d2ad36468ed9bd0516d0df2d8344888b76203f304eb2b0a7c820869d665c96"

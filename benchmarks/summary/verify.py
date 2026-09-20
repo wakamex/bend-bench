@@ -60,8 +60,8 @@ for row in data['rows']:
 
 hotspot = [row for row in data['rows'] if row['name'] == 'Rodinia HotSpot']
 assert len(hotspot) == 1 and hotspot[0]['cases'][0] == 'hotspot/hotspot-1024-100/bend/1'
-queens = [row for row in data['rows'] if row['group'] == 'Bit-mask search' and row['name'] == 'N-Queens']
-assert len(queens) == 1 and queens[0]['cases'][0] == 'nqueens/nqueens-14/bend/1'
+queens = [row for row in data['rows'] if row['name'] == 'N-Queens']
+assert len(queens) == 1 and queens[0]['group'] == 'Published workloads'
 bfs = [row for row in data['rows'] if row['group'] == 'Shared-graph traversal']
 assert len(bfs) == 1 and bfs[0]['cases'][0] == 'bfs/bfs-18/bend/1'
 summation = [row for row in data['rows'] if row['name'] == 'Integer summation']
@@ -78,6 +78,6 @@ if len(summation) == 4:
             assert ms == statistics.median(r['end_to_end_seconds'] for r in measured) * 1000
 games = [row for row in data['rows'] if row['group'] == 'Repeated game-search batches']
 assert len(games) == 1 and 'matched cpu / gpu' in games[0]['detail']
-assert len(data['rows']) == 26 + len(summation)
+assert len(data['rows']) == 25 + len(summation)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
 print(f'Verified {len(data["rows"])} rows, source hashes, correctness gates and repeated-request medians.')
