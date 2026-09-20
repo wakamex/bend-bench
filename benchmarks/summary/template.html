@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bend benchmark scorecard</title>
+<style>
+:root { color-scheme: light; --ink:#182932; --muted:#65777e; --line:#dce5e7; --bend:#087b70; --compare:#385c9a; }
+* { box-sizing:border-box; }
+body { margin:0; background:#edf1f2; color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
+.toolbar { max-width:1440px; margin:20px auto; padding:0 28px; display:flex; gap:8px; align-items:center; }
+.toolbar span { margin-right:auto; font-size:13px; color:var(--muted); }
+button { font:inherit; font-size:13px; padding:10px 15px; border:1px solid #c6d3d6; background:white; border-radius:6px; cursor:pointer; }
+button[aria-pressed="true"] { background:var(--ink); color:white; border-color:var(--ink); }
+#scorecard { width:1440px; margin:0 auto 28px; padding:42px 44px 30px; background:#fff; }
+.eyebrow { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--bend); margin:0 0 12px; }
+.heading { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; }
+h1 { font-size:42px; letter-spacing:-1.6px; margin:0 0 12px; font-weight:650; }
+.hardware { color:var(--muted); font-size:15px; margin:0; }
+.stamp { text-align:right; color:var(--muted); font-size:12px; line-height:1.8; padding-bottom:3px; white-space:nowrap; }
+.legend { display:flex; gap:24px; align-items:center; margin:25px 0 18px; padding:13px 16px; background:#f3f7f7; border-radius:5px; font-size:13px; }
+.legend #metric-label { color:var(--ink); margin-right:auto; }
+.dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#087b70; margin-right:6px; }
+table { width:100%; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }
+col.workload { width:40%; } col.result { width:10%; }
+thead th { text-align:center; font-size:14px; padding:11px 5px; font-weight:600; }
+thead th:first-child { text-align:left; }
+thead .bend { background:#e6f4f1; color:var(--bend); font-size:18px; border-radius:6px 0 0 0; }
+thead .comparison { background:#edf1f8; color:var(--compare); font-size:18px; border-radius:0 6px 0 0; }
+thead .sub { color:var(--muted); border-bottom:1px solid var(--line); font-size:12px; }
+tbody .section th { text-align:left; padding:22px 0 9px; border-bottom:2px solid #283e48; }
+.section-title { font-size:15px; letter-spacing:.1px; }
+.section-note { float:right; color:var(--muted); font-size:11px; font-weight:400; }
+tbody td, tbody th.label { border-bottom:1px solid #e8eeee; padding:10px 8px; }
+tbody th.label { text-align:left; padding-left:0; font-weight:400; }
+.name { display:block; font-size:14px; line-height:1.35; }
+.detail { display:block; color:var(--muted); font-size:11px; margin-top:3px; }
+td { text-align:center; font-size:16px; color:#43535c; }
+td.bend-cell { background:#f7fbfa; }
+td.compare-start { border-left:1px solid var(--line); }
+td.fastest { color:#086c60; background:#ddf1e9; }
+td.empty { background-image:repeating-linear-gradient(135deg,transparent,transparent 5px,#f4f6f6 5px,#f4f6f6 6px); }
+a { color:inherit; text-decoration:none; } a:hover { text-decoration:underline; }
+.notes { display:grid; grid-template-columns:1fr 1fr; gap:25px; margin-top:25px; border-top:2px solid #283e48; padding-top:18px; }
+.notes h2 { font-size:13px; margin:0 0 7px; }
+.notes p { font-size:11px; line-height:1.6; color:var(--muted); margin:0 0 8px; }
+.footer { display:flex; justify-content:space-between; margin-top:18px; color:var(--muted); font-size:10px; }
+@media print { body{background:white}.toolbar{display:none}#scorecard{margin:0}tr{break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="toolbar"><span>Self-contained scorecard · select a metric before export</span><button data-mode="ratio" aria-pressed="true">Relative time</button><button data-mode="ms" aria-pressed="false">Milliseconds</button></div>
+<main id="scorecard">
+<p class="eyebrow">bend-bench / CPU + GPU</p>
+<div class="heading"><div><h1>Bend benchmark scorecard</h1><p class="hardware">AMD Ryzen 9 3950X · NVIDIA RTX 3090</p></div><div class="stamp">46 workload / input comparisons<br>Measurements: 17–18 September 2026</div></div>
+<div class="legend"><span id="metric-label"></span><span><span class="dot"></span>Lowest recorded time in row</span><span>Blank = no matching measurement</span></div>
+<table aria-label="Bend and comparison execution times"><colgroup><col class="workload"><col span="6" class="result"></colgroup>
+<thead><tr><th rowspan="2" scope="col">Workload and input</th><th class="bend" colspan="3" scope="colgroup">Bend</th><th class="comparison" colspan="3" scope="colgroup">Comparisons</th></tr><tr><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th></tr></thead>
+<tbody id="results"></tbody></table>
+<div class="notes">
+<div><h2>Timing boundaries</h2><p>Complete-program rows include startup, input preparation, computation, transfers and output. Each cell is a median of ten correctness-gated executions after warmup. Repeated-request rows exclude startup and use medians of three process means, each with 30 measured batches after two warmups. Quote and game-search timings end when their results are available on the CPU.</p><p>Relative time divides each cell by the fastest measured time in its row. Lower is better. Compare implementations within a row, not ratios across different workloads. Highlighting is descriptive, not a significance test.</p></div>
+<div><h2>Comparison implementations</h2><p>Published workloads use serial C and project-written OpenMP, with project CUDA for Game of Life. BOTS uses its canonical OpenMP tasks. CUB uses serial C++ controls and library sorting/reduction. HotSpot uses corrected Rodinia OpenMP and CUDA pyramid height 1. BFS uses GAP and Gunrock. Pricing and game search use project-written OpenMP/CUDA. Bit-mask N-Queens uses serial C++ and OpenMP tasks through row 3.</p><p>Sorting algorithms and data representations differ. The two game-search rows are separate runs; missing CPU measurements are not filled from another run. Failed, invalid and superseded measurements, kernel-only timings and the pending reduction crossover are excluded.</p></div>
+</div>
+<div class="footer"><span>Bend revision b9d1352 · CPU columns count threads, not sockets · GPU columns use the full device</span><span>Sources and exact values embedded · bend-bench</span></div>
+</main>
+<script id="benchmark-data" type="application/json">__DATA__</script>
+<script>
+const data=JSON.parse(document.getElementById('benchmark-data').textContent);
+const descriptions={
+ 'Published workloads':'Complete program · original 16 workloads',
+ 'Irregular recursive search':'Complete program · BOTS canonical task baseline',
+ 'GPU primitives':'Complete program · serial C++ / NVIDIA CUB',
+ 'Thermal simulation':'Complete program · Rodinia OpenMP / CUDA pyramid 1',
+ 'Shared-graph traversal':'Complete program · GAP OpenMP / Gunrock CUDA',
+ 'One-off option pricing':'Complete program · includes every payoff in output',
+ 'Bit-mask search':'Complete program · serial C++ / OpenMP tasks through row 3',
+ 'Repeated pricing requests':'Request to host quote · startup excluded',
+ 'Repeated game-search batches':'Batch to CPU result array · startup excluded'
+};
+function render(mode){
+ document.documentElement.dataset.metric=mode;
+ document.getElementById('metric-label').textContent=mode==='ratio'?'Relative time · fastest in each row = 1.0× · lower is better':'Time in milliseconds · lower is better';
+ document.querySelectorAll('button[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+ const body=document.getElementById('results'); body.replaceChildren();let group='';
+ for(const row of data.rows){
+  if(row.group!==group){group=row.group;const tr=body.insertRow();tr.className='section';const th=document.createElement('th');th.colSpan=7;th.scope='rowgroup';const title=document.createElement('span');title.className='section-title';title.textContent=group;const note=document.createElement('span');note.className='section-note';note.textContent=descriptions[group];th.append(title,note);tr.append(th);}
+  const tr=body.insertRow();const label=document.createElement('th');label.scope='row';label.className='label';const a=document.createElement('a');a.href=row.link;a.className='name';a.textContent=row.name;const detail=document.createElement('span');detail.className='detail';detail.textContent=row.detail;label.append(a,detail);tr.append(label);
+  const best=Math.min(...row.ms.filter(v=>v!==null));
+  row.ms.forEach((v,i)=>{const td=tr.insertCell();td.className=(i<3?'bend-cell ':'')+(i===3?'compare-start ':'');
+   if(v===null){td.classList.add('empty');td.setAttribute('aria-label','No matching measurement');return;}
+   if(v===best)td.classList.add('fastest');
+   td.textContent=mode==='ratio'?(v/best).toFixed(1)+'×':v.toLocaleString('en-US',{minimumFractionDigits:v<1?3:1,maximumFractionDigits:v<1?3:1});
+   td.title=data.columns[i]+': '+v.toPrecision(8)+' ms; '+row.baseline+'; '+row.metric;
+  });
+ }
+}
+document.querySelectorAll('button[data-mode]').forEach(b=>b.addEventListener('click',()=>render(b.dataset.mode)));
+render(new URLSearchParams(location.search).get('metric')==='ms'?'ms':'ratio');
+window.scorecardReady=true;
+</script>
+</body>
+</html>
