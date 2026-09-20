@@ -689,7 +689,7 @@
     },
     {
       "group": "Repeated pricing requests",
-      "name": "Asian call",
+      "name": "Option pricing",
       "detail": "1,073,741,824 paths · 256 observations · price + standard error",
       "baseline": "Project CUDA + CUB",
       "ms": [

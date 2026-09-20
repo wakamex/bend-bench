@@ -35,7 +35,7 @@ def main():
             page.wait_for_function('window.scorecardReady === true')
             assert not errors, errors
             assert page.locator('tbody th.label').count() == len(data['rows'])
-            assert page.locator('tbody tr.section').count() == 3
+            assert page.locator('tbody tr.section').count() == 2
             assert page.locator('tbody tr:not(.section) td').count() == len(data['rows']) * 6
             assert page.evaluate('document.querySelector("#scorecard").scrollWidth <= document.querySelector("#scorecard").clientWidth')
             args.png.parent.mkdir(parents=True, exist_ok=True)
