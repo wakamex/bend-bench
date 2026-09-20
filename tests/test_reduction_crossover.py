@@ -23,7 +23,8 @@ class ReductionCrossover(unittest.TestCase):
     def test_source_limits_and_original(self):
         base = (ROOT / 'src/bend_bench/assets/gpu/reduce.bend').read_text()
         self.assertEqual(module.source(1 << 18), base)
-        for n in (0, (1 << 30) + 1):
+        self.assertIn('sum!(31n, 0)', module.source(1 << 31))
+        for n in (0, (1 << 31) + 1):
             with self.assertRaises(ValueError):
                 module.source(n)
 
@@ -46,6 +47,30 @@ class ReductionCrossover(unittest.TestCase):
             self.assertEqual(bend['stdout'], oracle['stdout'])
             cub = next(c for c in cases if c['implementation'] == 'cub-cuda')
             self.assertEqual(cub['command'][-2:], ['reduce', '13'])
+
+    def test_matched_cpu_recipes_and_real_outputs(self):
+        config = module.load_config(ROOT / 'gpu-primitives.toml')
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            builds, cases = module.recipes(config, folder, 4097, cpu=True)
+            self.assertEqual(len(cases), 6)
+            for command in builds:
+                if command[-1] == '--gpu-build':
+                    continue
+                result = module.execute(command, timeout=180)
+                self.assertEqual(result['returncode'], 0, result['stdout'] + result['stderr'])
+            oracle = module.execute([folder / 'build/cub-reference'])
+            self.assertEqual(oracle['returncode'], 0)
+            for case in cases:
+                if case['implementation'].endswith('cuda'):
+                    continue
+                result = module.execute(case['command'], env={**module.environment(), **case['env']})
+                self.assertEqual(result['returncode'], 0, result['stderr'])
+                self.assertEqual(result['stdout'], oracle['stdout'])
+            self.assertIn('keys,sum,uint64_t(n)', (folder / 'gpu/cub.cu').read_text())
+            for value in ('0', '2147483649', 'junk'):
+                result = module.execute([folder / 'build/serial-cpp', value])
+                self.assertNotEqual(result['returncode'], 0)
 
     def test_real_bend_prefixes_on_cpu(self):
         if not Path('/code/bend2/upstream').exists():

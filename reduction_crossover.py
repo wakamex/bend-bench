@@ -16,8 +16,8 @@ MAX_COUNT = 1 << 30
 
 
 def source(count):
-    if not 1 <= count <= MAX_COUNT:
-        raise ValueError('count must be between 1 and 2^30')
+    if not 1 <= count <= 1 << 31:
+        raise ValueError('count must be between 1 and 2^31')
     base = (ROOT / 'src/bend_bench/assets/gpu/reduce.bend').read_text()
     # Build the prefix from unchanged power-of-two reductions. Only the
     # incomplete right edge differs from the original balanced reduction.
@@ -47,7 +47,7 @@ def pins(config):
     return dict(provenance=provenance(config), files={str(p): hash_file(p) for p in files if p.is_file()})
 
 
-def recipes(config, folder, count):
+def recipes(config, folder, count, cpu=False):
     local = {**config, 'gpu_depths': [23]}
     stage(local, folder)
     bend = folder / 'ports/cub-reduce-23.bend'
@@ -61,7 +61,7 @@ def recipes(config, folder, count):
         raise ValueError('CUB adapter changed')
     cuda.write_text(text.replace(old, '''unsigned depth=0;
   unsigned long requested=strtoul(argv[2],nullptr,10);
-  if(strcmp(argv[1],"reduce") || requested<1 || requested>(1ul<<30)) return 2;
+  if(strcmp(argv[1],"reduce") || requested<1 || requested>(1ul<<31)) return 2;
   uint32_t n=uint32_t(requested);'''))
     # Independent scalar oracle, no large input allocation. The CUDA and Bend
     # sides still generate exactly these values inside their reductions.
@@ -84,11 +84,34 @@ int main() {
     for case in cases:
         if case['implementation'] == 'cub-cuda':
             case['command'][-1] = str(count)
+    if cpu:
+        import copy
+        # Explicit wide item counts avoid offset overflow above INT_MAX.
+        cuda.write_text(cuda.read_text().replace('keys,sum,n)', 'keys,sum,uint64_t(n))'))
+        reference_case = cases[0]
+        cpu_source = folder / 'gpu/reduction_cpu.cpp'
+        cpu_source.write_text((ROOT / 'src/bend_bench/assets/gpu/reduction_cpu.cpp').read_text())
+        for implementation, threads in [('bend-1', 1), ('bend-16', 16), ('serial-cpp', 1), ('openmp-16', 16)]:
+            case = copy.deepcopy(reference_case)
+            case.update(implementation=implementation, threads=threads, unsupported=None)
+            case.pop('check_args', None)
+            binary = folder / 'build' / implementation
+            args = [str(count)]
+            if implementation.startswith('bend-'):
+                binary = folder / 'build/cub-reduce-23'
+                args = ['--gpu', 'off', '--threads', str(threads)]
+            else:
+                flags = ['-fopenmp'] if threads == 16 else []
+                builds.append([config['tools']['cxx'], '-std=c++17', '-O3', '-march=native',
+                               '-ffp-contract=off', *flags, str(cpu_source), '-o', str(binary)])
+            case['command'] = ['taskset', '-c', ','.join(map(str, config['cpus'][:threads])), str(binary), *args]
+            case['env'].update(OMP_NUM_THREADS=str(threads), OMP_DYNAMIC='false')
+            cases.append(case)
     return builds, cases
 
 
-def build(config, folder, count):
-    builds, cases = recipes(config, folder, count)
+def build(config, folder, count, cpu=False):
+    builds, cases = recipes(config, folder, count, cpu=cpu)
     for command in builds:
         result = execute(command, timeout=180)
         append(folder / 'build.jsonl', result)
@@ -115,10 +138,10 @@ def build(config, folder, count):
     return cases
 
 
-def measure(config, out, count):
+def measure(config, out, count, cpu=False):
     folder = out / str(count)
     folder.mkdir()
-    cases = build(config, folder, count)
+    cases = build(config, folder, count, cpu=cpu)
     samples = {c['implementation']: [] for c in cases}
     rng = random.Random(count)
     for phase, repetitions in [('check', 1), ('warmup', 2), ('measure', 10)]:
@@ -134,6 +157,8 @@ def measure(config, out, count):
                     raise RuntimeError(f'Correctness/activity gate failed: {folder}')
                 if phase == 'measure':
                     samples[case['implementation']].append(result['end_to_end_seconds'])
+                if cpu:
+                    print(phase, count, case['implementation'], rep, result['end_to_end_seconds'], flush=True)
     medians = {k: statistics.median(v) for k, v in samples.items()}
     result = dict(count=count, medians=medians, cub_wins=medians['cub-cuda'] < medians['bend-cuda'])
     write_json(folder / 'summary.json', result)

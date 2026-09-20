@@ -64,6 +64,18 @@ queens = [row for row in data['rows'] if row['group'] == 'Bit-mask search' and r
 assert len(queens) == 1 and queens[0]['cases'][0] == 'nqueens/nqueens-14/bend/1'
 bfs = [row for row in data['rows'] if row['group'] == 'Shared-graph traversal']
 assert len(bfs) == 1 and bfs[0]['cases'][0] == 'bfs/bfs-18/bend/1'
-assert len(data['rows']) == 30
+summation = [row for row in data['rows'] if row['name'] == 'Integer summation']
+sizes = [int(row['detail'].split()[0].replace(',', '')) for row in summation]
+assert sizes in ([4096, 262144, 8388608], [1 << depth for depth in (28, 29, 30, 31)])
+if len(summation) == 4:
+    for row, size in zip(summation, sizes):
+        records = [json.loads(line) for line in (ROOT / row['source']).parent.joinpath(str(size), 'samples.jsonl').read_text().splitlines()]
+        for case_id, ms in zip(row['cases'], row['ms']):
+            samples = [r for r in records if r['case'] == case_id]
+            assert len(samples) == 13 and all(r['correct'] and r['returncode'] == 0 and not r['timeout'] and not r.get('contention_error') for r in samples)
+            measured = [r for r in samples if r['phase'] == 'measure']
+            assert sorted(r['rep'] for r in measured) == list(range(10))
+            assert ms == statistics.median(r['end_to_end_seconds'] for r in measured) * 1000
+assert len(data['rows']) == 27 + len(summation)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
-print('Verified 30 rows, source hashes, correctness gates and repeated-request medians.')
+print(f'Verified {len(data["rows"])} rows, source hashes, correctness gates and repeated-request medians.')
