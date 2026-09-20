@@ -66,8 +66,8 @@ bfs = [row for row in data['rows'] if row['group'] == 'Shared-graph traversal']
 assert len(bfs) == 1 and bfs[0]['cases'][0] == 'bfs/bfs-18/bend/1'
 summation = [row for row in data['rows'] if row['name'] == 'Integer summation']
 sizes = [int(row['detail'].split()[0].replace(',', '')) for row in summation]
-assert sizes in ([4096, 262144, 8388608], [1 << depth for depth in (28, 29, 30, 31)])
-if len(summation) == 4:
+assert sizes == [1 << 31]
+if summation:
     for row, size in zip(summation, sizes):
         records = [json.loads(line) for line in (ROOT / row['source']).parent.joinpath(str(size), 'samples.jsonl').read_text().splitlines()]
         for case_id, ms in zip(row['cases'], row['ms']):

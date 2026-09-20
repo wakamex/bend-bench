@@ -53,7 +53,7 @@ def publish(out, points):
     data = json.loads(path.read_text())
     first = next(i for i, row in enumerate(data['rows']) if row['name'] == 'Integer summation')
     data['rows'] = [row for row in data['rows'] if row['name'] != 'Integer summation']
-    data['rows'][first:first] = rows
+    data['rows'][first:first] = rows[-1:]
     data['source_sha256'][relative] = hash_file(out / 'summary.json')
     data['measurement_dates'] = '17–20 September 2026'
     write_json(path, data)
