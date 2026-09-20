@@ -22,7 +22,7 @@ For sorting, we also compare against NVIDIA’s CUB library, which finishes 4.9�
 
 For a single summation job, Bend finishes 1.6× faster because it spends less time on startup and other overhead. CUB performs the calculation itself about 280× faster, but the calculation is too short to offset that overhead.
   
-Option pricing on an RTX 3090 is 68× faster than on 16 CPU threads of a 3950x. Our CUDA implementation is another 7.2× faster than Bend GPU. [Pricing results](/code/bend-bench/PRICING_SUSTAINED.md).
+For repeated pricing requests, Bend on an RTX 3090 is 68× faster than on 16 CPU threads of a 3950x. Our CUDA implementation is another 7.2× faster than Bend GPU. [Pricing results](PRICING_SUSTAINED.md).
 
 For alpha-beta game search, Bend GPU is 1.9× faster than Bend on 16 CPU threads and 2.0× faster than our fastest CUDA implementation. OpenMP on 16 CPU threads is 1.3× faster than Bend GPU. [game-search results](/code/bend-bench/MNK_HOST_ARRAY.md).
 

@@ -51,5 +51,6 @@ for row in data['rows']:
             assert len(values) == 3
             assert row['ms'][column] == statistics.median(values)
 
-assert len(data['rows']) == 46
-print('Verified 46 rows, source hashes, correctness gates and repeated-request medians.')
+assert len(data['rows']) == 40
+assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
+print('Verified 40 rows, source hashes, correctness gates and repeated-request medians.')

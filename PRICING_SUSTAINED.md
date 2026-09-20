@@ -9,8 +9,6 @@ Bend GPU returns a price and standard error about 68× faster than Bend CPU16 an
 
 Times include simulation, aggregation and returning the quote to CPU memory. Each cell is the median of three fresh processes' mean request times, with two warmups and 30 measured requests per process. All four backends passed the per-path audit and all full-size quote checks. Separate conventional GPU qualification runs passed at both sizes. [Individual process results](runs/pricing-sustained-20260918-165158/report.md) and [preserved run evidence](runs/pricing-sustained-20260918-165158/) contain the measurements and source provenance.
 
-The earlier one-shot result remains valid: for 262,144 paths and 256 observations, OpenMP16 finished the complete process in 0.122 seconds, versus 0.206 seconds for conventional CUDA and 0.262 seconds for Bend GPU. That endpoint included startup and printing every payoff. The new endpoint includes simulation, aggregation and bringing the three quote fields to the host; setup and text formatting are reported separately through process wall time rather than charged to every repeated quote.
-
 ## Pricing and arithmetic
 
 The option has spot and strike 100, maturity one year, risk-free rate 5% and volatility 20%. Each simulated path has 256 equally spaced observations. Payoffs are discounted by exp(-0.05). Path generation retains the existing Park-Miller integer generator and Box-Muller transform with identical seeds across backends. Batch r uses hashed path indices from r*N through (r+1)*N-1. These are distinct deterministic seed inputs, not a claim of proven independent random streams or production-quality financial calibration.
@@ -36,4 +34,4 @@ uv run --locked python pricing_sustained.py
 journalctl --user -u bend-bench-pricing-sustained.service -f
 ```
 
-This experiment extends pricing rather than replacing the one-shot benchmark. HotSpot's sustained simulation is a separate follow-up after the conventional GPU qualification and pricing comparison are assessed.
+HotSpot's sustained simulation is a separate follow-up after the conventional GPU qualification and pricing comparison are assessed.
