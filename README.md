@@ -32,7 +32,7 @@ Rodinia’s CUDA implementation finishes HotSpot sooner than Bend GPU. Gunrock a
 
 ## Takeaways
 
-Bend scales well across CPU cores on its published workloads, but gains no speedup on the irregular UTS trees. Moving the same Bend program to GPU can deliver large gains, especially for balanced independent workloads like option pricing. Implementations matter more than language choice (for exampling batching outputs gives 1.5x in game search).
+Bend scales well across CPU cores on its published workloads, but gains no speedup on the irregular UTS trees. Moving the same Bend program to GPU can deliver large gains, especially for balanced independent workloads like option pricing. Implementations matter more than language choice. Bend benefits greatly from balanced work: batching the same N-Queens search made it 4.9× faster on 16 CPU threads, with essentially no change in single-thread time.
 
 ## Run a benchmark
 
