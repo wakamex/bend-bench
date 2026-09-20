@@ -1,6 +1,6 @@
 {
   "title": "Bend benchmark scorecard",
-  "measurement_dates": "17–19 September 2026",
+  "measurement_dates": "17–20 September 2026",
   "hardware": "AMD Ryzen 9 3950X · NVIDIA RTX 3090",
   "bend_revision": "b9d1352c9f45632447f40a2e927355c92f2be58c",
   "columns": [
@@ -540,77 +540,102 @@
     {
       "group": "GPU primitives",
       "name": "Integer summation",
-      "detail": "4,096 generated U32 values",
-      "baseline": "Serial C++ / CUB reduction",
+      "detail": "268,435,456 generated U32 values",
+      "baseline": "Fused serial C++ / OpenMP / CUB reduction",
       "ms": [
-        null,
-        null,
-        115.69150898139924,
-        2.971382928080857,
-        null,
-        187.80585599597543
+        1285.7109429314733,
+        101.27483669202775,
+        164.60689599625766,
+        59.22087049111724,
+        8.349696989171207,
+        207.2665710002184
       ],
       "cases": [
-        null,
-        null,
-        "cub/reduce-12/bend-cuda/16",
-        "cub/reduce-12/serial-cpp/1",
-        null,
-        "cub/reduce-12/cub-cuda/1"
+        "reduce-268435456/bend-1",
+        "reduce-268435456/bend-16",
+        "reduce-268435456/bend-cuda",
+        "reduce-268435456/serial-cpp",
+        "reduce-268435456/openmp-16",
+        "reduce-268435456/cub-cuda"
       ],
-      "link": "../../GPU_COMPARISON.md",
+      "link": "../../SUMMATION_SCALING.md",
       "metric": "complete program",
-      "source": "runs/e930e5a1b9c488a9f8ba/summary.json"
+      "source": "runs/summation-scaling-20260920/summary.json"
     },
     {
       "group": "GPU primitives",
       "name": "Integer summation",
-      "detail": "262,144 generated U32 values",
-      "baseline": "Serial C++ / CUB reduction",
+      "detail": "536,870,912 generated U32 values",
+      "baseline": "Fused serial C++ / OpenMP / CUB reduction",
       "ms": [
-        null,
-        null,
-        115.81605242099613,
-        3.6307229893282056,
-        null,
-        188.1722945254296
+        2495.6717459717765,
+        193.6067120404914,
+        192.22665042616427,
+        114.56608143635094,
+        12.294206884689629,
+        208.816196070984
       ],
       "cases": [
-        null,
-        null,
-        "cub/reduce-18/bend-cuda/16",
-        "cub/reduce-18/serial-cpp/1",
-        null,
-        "cub/reduce-18/cub-cuda/1"
+        "reduce-536870912/bend-1",
+        "reduce-536870912/bend-16",
+        "reduce-536870912/bend-cuda",
+        "reduce-536870912/serial-cpp",
+        "reduce-536870912/openmp-16",
+        "reduce-536870912/cub-cuda"
       ],
-      "link": "../../GPU_COMPARISON.md",
+      "link": "../../SUMMATION_SCALING.md",
       "metric": "complete program",
-      "source": "runs/e930e5a1b9c488a9f8ba/summary.json"
+      "source": "runs/summation-scaling-20260920/summary.json"
     },
     {
       "group": "GPU primitives",
       "name": "Integer summation",
-      "detail": "8,388,608 generated U32 values",
-      "baseline": "Serial C++ / CUB reduction",
+      "detail": "1,073,741,824 generated U32 values",
+      "baseline": "Fused serial C++ / OpenMP / CUB reduction",
       "ms": [
-        null,
-        null,
-        120.17236207611859,
-        24.040340911597013,
-        null,
-        188.74481692910194
+        4718.809622107074,
+        329.99371050391346,
+        245.2067225240171,
+        225.1613464904949,
+        18.639173009432852,
+        206.90235740039498
       ],
       "cases": [
-        null,
-        null,
-        "cub/reduce-23/bend-cuda/16",
-        "cub/reduce-23/serial-cpp/1",
-        null,
-        "cub/reduce-23/cub-cuda/1"
+        "reduce-1073741824/bend-1",
+        "reduce-1073741824/bend-16",
+        "reduce-1073741824/bend-cuda",
+        "reduce-1073741824/serial-cpp",
+        "reduce-1073741824/openmp-16",
+        "reduce-1073741824/cub-cuda"
       ],
-      "link": "../../GPU_COMPARISON.md",
+      "link": "../../SUMMATION_SCALING.md",
       "metric": "complete program",
-      "source": "runs/e930e5a1b9c488a9f8ba/summary.json"
+      "source": "runs/summation-scaling-20260920/summary.json"
+    },
+    {
+      "group": "GPU primitives",
+      "name": "Integer summation",
+      "detail": "2,147,483,648 generated U32 values",
+      "baseline": "Fused serial C++ / OpenMP / CUB reduction",
+      "ms": [
+        9718.447379535064,
+        759.5777524402365,
+        366.87906994484365,
+        449.90290398709476,
+        44.38203445170075,
+        211.26708446536213
+      ],
+      "cases": [
+        "reduce-2147483648/bend-1",
+        "reduce-2147483648/bend-16",
+        "reduce-2147483648/bend-cuda",
+        "reduce-2147483648/serial-cpp",
+        "reduce-2147483648/openmp-16",
+        "reduce-2147483648/cub-cuda"
+      ],
+      "link": "../../SUMMATION_SCALING.md",
+      "metric": "complete program",
+      "source": "runs/summation-scaling-20260920/summary.json"
     },
     {
       "group": "Thermal simulation",
@@ -744,6 +769,7 @@
     "runs/921fd5564318acbccf09/summary.json": "e13430f76afd0d643ecc83af06f92d83f774907802383d8b2104cacb2017ed88",
     "runs/pricing-crossover-20260920/summary.jsonl": "245d057f4828959603c162a8640c8688e1036f2b89c6e73274021497e7ab0e28",
     "runs/mnk-sustained-20260918-161850/report.md": "2831352084e6bb083088b3887c1959de9a3214f5b852063211484f11f14fc26d",
-    "runs/mnk-sustained-20260918-160439/report.md": "d924404c40e1eae71ba3853873a387b8a24b0338203ec5bcdbdc3bf2d8a4a8ff"
+    "runs/mnk-sustained-20260918-160439/report.md": "d924404c40e1eae71ba3853873a387b8a24b0338203ec5bcdbdc3bf2d8a4a8ff",
+    "runs/summation-scaling-20260920/summary.json": "67d2ad36468ed9bd0516d0df2d8344888b76203f304eb2b0a7c820869d665c96"
   }
 }
