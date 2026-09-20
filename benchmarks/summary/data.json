@@ -417,32 +417,7 @@
     },
     {
       "group": "Irregular recursive search",
-      "name": "BOTS UTS",
-      "detail": "4,112,897 nodes",
-      "baseline": "BOTS serial C / canonical OpenMP",
-      "ms": [
-        991.6912815533578,
-        1049.3936609709635,
-        null,
-        406.9735255325213,
-        350.9794754208997,
-        null
-      ],
-      "cases": [
-        "uts/test/bend/1",
-        "uts/test/bend/16",
-        null,
-        "uts/test/serial-c/1",
-        "uts/test/openmp/16",
-        null
-      ],
-      "link": "../../PERFORMANCE.md#uts-irregular-search",
-      "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
-    },
-    {
-      "group": "Irregular recursive search",
-      "name": "BOTS UTS",
+      "name": "Unbalanced Tree Search",
       "detail": "30,399,117 nodes",
       "baseline": "BOTS serial C / canonical OpenMP",
       "ms": [

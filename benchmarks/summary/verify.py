@@ -83,6 +83,8 @@ sorting = [row for row in data['rows'] if row['name'] == 'Tree bitonic sort']
 assert len(sorting) == 1 and sorting[0]['cases'][5] == 'cub/sort-23/cub-cuda/1'
 assert sorting[0]['case_sources'][sorting[0]['cases'][5]] == 'runs/e930e5a1b9c488a9f8ba/summary.json'
 assert not any(row['name'] == 'Integer sorting' for row in data['rows'])
-assert len(data['rows']) == 22 + len(summation)
+uts = [row for row in data['rows'] if row['group'] == 'Irregular recursive search']
+assert len(uts) == 1 and uts[0]['name'] == 'Unbalanced Tree Search' and uts[0]['cases'][0] == 'uts/tiny/bend/1'
+assert len(data['rows']) == 21 + len(summation)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
 print(f'Verified {len(data["rows"])} rows, source hashes, correctness gates and repeated-request medians.')
