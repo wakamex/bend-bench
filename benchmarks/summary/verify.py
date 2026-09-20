@@ -76,6 +76,8 @@ if len(summation) == 4:
             measured = [r for r in samples if r['phase'] == 'measure']
             assert sorted(r['rep'] for r in measured) == list(range(10))
             assert ms == statistics.median(r['end_to_end_seconds'] for r in measured) * 1000
-assert len(data['rows']) == 27 + len(summation)
+games = [row for row in data['rows'] if row['group'] == 'Repeated game-search batches']
+assert len(games) == 1 and 'matched cpu / gpu' in games[0]['detail']
+assert len(data['rows']) == 26 + len(summation)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
 print(f'Verified {len(data["rows"])} rows, source hashes, correctness gates and repeated-request medians.')
