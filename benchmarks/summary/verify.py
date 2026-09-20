@@ -58,6 +58,8 @@ for row in data['rows']:
             assert len(values) == 3
             assert row['ms'][column] == statistics.median(values)
 
-assert len(data['rows']) == 39
+hotspot = [row for row in data['rows'] if row['name'] == 'Rodinia HotSpot']
+assert len(hotspot) == 1 and hotspot[0]['cases'][0] == 'hotspot/hotspot-1024-100/bend/1'
+assert len(data['rows']) == 34
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
-print('Verified 39 rows, source hashes, correctness gates and repeated-request medians.')
+print('Verified 34 rows, source hashes, correctness gates and repeated-request medians.')
