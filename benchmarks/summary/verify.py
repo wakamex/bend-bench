@@ -62,6 +62,8 @@ hotspot = [row for row in data['rows'] if row['name'] == 'Rodinia HotSpot']
 assert len(hotspot) == 1 and hotspot[0]['cases'][0] == 'hotspot/hotspot-1024-100/bend/1'
 queens = [row for row in data['rows'] if row['group'] == 'Bit-mask search' and row['name'] == 'N-Queens']
 assert len(queens) == 1 and queens[0]['cases'][0] == 'nqueens/nqueens-14/bend/1'
-assert len(data['rows']) == 32
+bfs = [row for row in data['rows'] if row['group'] == 'Shared-graph traversal']
+assert len(bfs) == 1 and bfs[0]['cases'][0] == 'bfs/bfs-18/bend/1'
+assert len(data['rows']) == 30
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
-print('Verified 32 rows, source hashes, correctness gates and repeated-request medians.')
+print('Verified 30 rows, source hashes, correctness gates and repeated-request medians.')

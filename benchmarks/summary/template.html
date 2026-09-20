@@ -52,14 +52,14 @@ a { color:inherit; text-decoration:none; } a:hover { text-decoration:underline; 
 <div class="toolbar"><span>Self-contained scorecard · select a metric before export</span><button data-mode="ratio" aria-pressed="true">Relative time</button><button data-mode="ms" aria-pressed="false">Milliseconds</button></div>
 <main id="scorecard">
 <p class="eyebrow">bend-bench / CPU + GPU</p>
-<div class="heading"><div><h1>Bend benchmark scorecard</h1><p class="hardware">AMD Ryzen 9 3950X · NVIDIA RTX 3090</p></div><div class="stamp"><span id="row-count"></span> workload / input comparisons<br>Measurements: 17–18 September 2026</div></div>
+<div class="heading"><div><h1>Bend benchmark scorecard</h1><p class="hardware">AMD Ryzen 9 3950X · NVIDIA RTX 3090</p></div><div class="stamp"><span id="row-count"></span> workload / input comparisons<br>Measurements: <span id="measurement-dates"></span></div></div>
 <div class="legend"><span id="metric-label"></span><span><span class="dot"></span>Lowest recorded time in row</span><span>Blank = no matching measurement</span></div>
 <table aria-label="Bend and comparison execution times"><colgroup><col class="workload"><col span="6" class="result"></colgroup>
 <thead><tr><th rowspan="2" scope="col">Workload and input</th><th class="bend" colspan="3" scope="colgroup">Bend</th><th class="comparison" colspan="3" scope="colgroup">Comparisons</th></tr><tr><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th></tr></thead>
 <tbody id="results"></tbody></table>
 <div class="notes">
-<div><h2>Timing boundaries</h2><p>Complete-program rows include startup, input preparation, computation, transfers and output. Each cell is a median of ten correctness-gated executions after warmup. Repeated-request rows exclude startup and use medians of three process means, each with 30 measured batches after two warmups. Quote and game-search timings end when their results are available on the CPU.</p><p>Relative time divides each cell by the fastest measured time in its row. Lower is better. Compare implementations within a row, not ratios across different workloads. Highlighting is descriptive, not a significance test.</p></div>
-<div><h2>Comparison implementations</h2><p>Published workloads use serial C and project-written OpenMP, with project CUDA for Game of Life. BOTS uses its canonical OpenMP tasks. CUB uses serial C++ controls and library sorting/reduction. HotSpot uses corrected Rodinia OpenMP and CUDA pyramid height 1. BFS uses GAP and Gunrock. Pricing and game search use project-written OpenMP/CUDA. Bit-mask N-Queens uses serial C++ and OpenMP tasks through row 3.</p><p>Sorting algorithms and data representations differ. The two game-search rows are separate runs; missing CPU measurements are not filled from another run. Failed, invalid and superseded measurements, kernel-only timings and the pending reduction crossover are excluded.</p></div>
+<div><h2>Timing boundaries</h2><p>Complete-program rows include startup, input preparation, computation, transfers and output. Each cell is a median of ten correctness-gated executions after warmup. Repeated-request rows exclude startup and use medians of three process means, with ten measured pricing requests or 30 game-search batches after two warmups. Quote and game-search timings end when their results are available on the CPU.</p><p>Relative time divides each cell by the fastest measured time in its row. Lower is better. Compare implementations within a row, not ratios across different workloads. Highlighting is descriptive, not a significance test.</p></div>
+<div><h2>Comparison implementations</h2><p>Published workloads use serial C and project-written OpenMP, with project CUDA for Game of Life. BOTS uses its canonical OpenMP tasks. CUB uses serial C++ controls and library sorting/reduction. HotSpot uses corrected Rodinia OpenMP and CUDA pyramid height 1. BFS uses GAP and Gunrock. Pricing and game search use project-written OpenMP/CUDA. Bit-mask N-Queens uses serial C++ and OpenMP tasks through row 3.</p><p>Sorting algorithms and data representations differ. The two game-search rows are separate runs; missing CPU measurements are not filled from another run. Failed, invalid and superseded measurements, kernel-only timings and the separate reduction crossover sweep are excluded.</p></div>
 </div>
 <div class="footer"><span>Bend revision b9d1352 · CPU columns count threads, not sockets · GPU columns use the full device</span><span>Sources and exact values embedded · bend-bench</span></div>
 </main>
@@ -67,24 +67,24 @@ a { color:inherit; text-decoration:none; } a:hover { text-decoration:underline; 
 <script>
 const data=JSON.parse(document.getElementById('benchmark-data').textContent);
 document.getElementById('row-count').textContent=data.rows.length;
+document.getElementById('measurement-dates').textContent=data.measurement_dates;
 const descriptions={
  'Published workloads':'Complete program · original 16 workloads',
- 'Irregular recursive search':'Complete program · BOTS canonical task baseline',
- 'GPU primitives':'Complete program · serial C++ / NVIDIA CUB',
- 'Thermal simulation':'Complete program · Rodinia OpenMP / CUDA pyramid 1',
- 'Shared-graph traversal':'Complete program · GAP OpenMP / Gunrock CUDA',
- 'Bit-mask search':'Complete program · serial C++ / OpenMP tasks through row 3',
- 'Repeated pricing requests':'Request to host quote · startup excluded',
- 'Repeated game-search batches':'Batch to CPU result array · startup excluded'
+ 'Additional workloads':'Complete program · startup and output included',
+ 'Repeated requests':'Results returned to CPU · startup excluded'
 };
+function section(row){
+ return row.group==='Published workloads'?'Published workloads':
+  row.metric==='complete program'?'Additional workloads':'Repeated requests';
+}
 function render(mode){
  document.documentElement.dataset.metric=mode;
  document.getElementById('metric-label').textContent=mode==='ratio'?'Relative time · fastest in each row = 1.0× · lower is better':'Time in milliseconds · lower is better';
  document.querySelectorAll('button[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
  const body=document.getElementById('results'); body.replaceChildren();let group='';
  for(const row of data.rows){
-  if(row.group!==group){group=row.group;const tr=body.insertRow();tr.className='section';const th=document.createElement('th');th.colSpan=7;th.scope='rowgroup';const title=document.createElement('span');title.className='section-title';title.textContent=group;const note=document.createElement('span');note.className='section-note';note.textContent=descriptions[group];th.append(title,note);tr.append(th);}
-  const tr=body.insertRow();const label=document.createElement('th');label.scope='row';label.className='label';const a=document.createElement('a');a.href=row.link;a.className='name';a.textContent=row.name;const detail=document.createElement('span');detail.className='detail';detail.textContent=row.detail;label.append(a,detail);tr.append(label);
+  if(section(row)!==group){group=section(row);const tr=body.insertRow();tr.className='section';const th=document.createElement('th');th.colSpan=7;th.scope='rowgroup';const title=document.createElement('span');title.className='section-title';title.textContent=group;const note=document.createElement('span');note.className='section-note';note.textContent=descriptions[group];th.append(title,note);tr.append(th);}
+  const tr=body.insertRow();const label=document.createElement('th');label.scope='row';label.className='label';const a=document.createElement('a');a.href=row.link;a.className='name';a.textContent=row.name;const detail=document.createElement('span');detail.className='detail';detail.textContent=row.detail;if(row.group!=='Published workloads'){const baseline=document.createElement('span');baseline.className='detail';baseline.textContent=row.baseline;detail.append(baseline);}label.append(a,detail);tr.append(label);
   const best=Math.min(...row.ms.filter(v=>v!==null));
   row.ms.forEach((v,i)=>{const td=tr.insertCell();td.className=(i<3?'bend-cell ':'')+(i===3?'compare-start ':'');
    if(v===null){td.classList.add('empty');td.setAttribute('aria-label','No matching measurement');return;}

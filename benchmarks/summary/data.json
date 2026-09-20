@@ -640,56 +640,6 @@
     {
       "group": "Shared-graph traversal",
       "name": "Breadth-first search",
-      "detail": "1,024 vertices · up to 8 incoming neighbors",
-      "baseline": "GAP OpenMP / Gunrock CUDA",
-      "ms": [
-        12.958665960468352,
-        12.345567578449845,
-        155.0162930507213,
-        5.294420989230275,
-        6.588575430214405,
-        218.51280005648732
-      ],
-      "cases": [
-        "bfs/bfs-10/bend/1",
-        "bfs/bfs-10/bend/16",
-        "bfs/bfs-10/bend-cuda/32",
-        "bfs/bfs-10/gap-openmp/1",
-        "bfs/bfs-10/gap-openmp/16",
-        "bfs/bfs-10/gunrock-cuda/1"
-      ],
-      "link": "../../BFS_RESULTS.md",
-      "metric": "complete program",
-      "source": "runs/6f09d7ec9215cbadd596/summary.json"
-    },
-    {
-      "group": "Shared-graph traversal",
-      "name": "Breadth-first search",
-      "detail": "16,384 vertices · up to 8 incoming neighbors",
-      "baseline": "GAP OpenMP / Gunrock CUDA",
-      "ms": [
-        267.75497500784695,
-        142.198400455527,
-        690.3512000571936,
-        21.64297946728766,
-        20.475603407248855,
-        249.22368209809065
-      ],
-      "cases": [
-        "bfs/bfs-14/bend/1",
-        "bfs/bfs-14/bend/16",
-        "bfs/bfs-14/bend-cuda/32",
-        "bfs/bfs-14/gap-openmp/1",
-        "bfs/bfs-14/gap-openmp/16",
-        "bfs/bfs-14/gunrock-cuda/1"
-      ],
-      "link": "../../BFS_RESULTS.md",
-      "metric": "complete program",
-      "source": "runs/6f09d7ec9215cbadd596/summary.json"
-    },
-    {
-      "group": "Shared-graph traversal",
-      "name": "Breadth-first search",
       "detail": "262,144 vertices · up to 8 incoming neighbors",
       "baseline": "GAP OpenMP / Gunrock CUDA",
       "ms": [
