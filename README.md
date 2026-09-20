@@ -16,41 +16,21 @@ Additional benchmarks are chosen to span a few interesting dimensions:
 
 Not tested: dense linear algebra, FFTs, database operations
 
-### Startup costs, graph traversal and GPU primitives
+## Results
 
-Starting a program to price one option and print every simulated payoff gives a different result: CPU execution finishes sooner than GPU execution for both Bend and the conventional implementations. Shared-graph BFS also finishes sooner on CPU at every tested input size.
+On Bend’s 16 published workloads, moving from one to 16 CPU threads gives Bend a median 13.6× speedup, compared with OpenMP’s 14.2×. Bend takes 32% longer than OpenMP at 16 threads at the median. [CPU results](/code/bend-bench/PERFORMANCE.md). For sorting, we also compare against NVIDIA’s CUB library, which finishes 4.9× faster than Bend GPU. [GPU sorting results](runs/e930e5a1b9c488a9f8ba/report.md).
 
-Complete-run time to price an option or find distances through a graph, including startup, input preparation, transfers and output:
+Option pricing on an RTX 3090 is 68× faster than on a 3950x. Our CUDA implementation is another 7.2× faster than Bend GPU. [Pricing results](/code/bend-bench/PRICING_SUSTAINED.md).
 
-| Task and amount of work | Bend CPU, 16 threads | Conventional CPU, 16 threads | Bend GPU | Conventional GPU | Conventional baselines |
-|---|---:|---:|---:|---:|---|
-| Price an arithmetic Asian call using 262,144 simulated paths with 256 observations each | 0.228 s | 0.122 s | 0.262 s | 0.206 s | Project-written OpenMP and CUDA simulation; CUB payoff reduction |
-| Find shortest-path distances from one vertex in a graph with 262,144 vertices and about 2.1 million directed edges | 2.83 s | 0.257 s | 11.24 s | 0.812 s | GAP OpenMP and Gunrock CUDA |
+For alpha-beta game search, Bend GPU is 1.9× faster than Bend on 16 CPU threads and 2.0× faster than our fastest CUDA implementation. OpenMP on 16 CPU threads is 1.3× faster than Bend GPU. [game-search results](/code/bend-bench/MNK_HOST_ARRAY.md).
 
-These complete-run times are medians of ten measured executions after warmups. For the graph shown, Bend GPU takes about 4× its own CPU time and 13.8× Gunrock's total time. Bend uses immutable trees where the conventional baselines use graph arrays. See the [pricing measurements](runs/486e78825d4fa285adcc/report.md) and [BFS results](BFS_RESULTS.md) for size sweeps and implementation details.
+Irregular work is harder. Bend gains no CPU speedup on either UTS input. [UTS results](/code/bend-bench/PERFORMANCE.md#uts-irregular-search).
 
-Mature GPU primitives provide a stronger baseline than serial C: NVIDIA CUB sorts 8,388,608 keys in 0.192 seconds end-to-end versus Bend's 0.937 seconds. CUB also sums numbers much faster during computation; Bend's shorter startup can make it finish a short reduction job sooner. [Sorting and reduction measurements](runs/e930e5a1b9c488a9f8ba/report.md). The suite also includes [Rodinia HotSpot thermal simulation](runs/c058f6b3293bda1d65dd/report.md), whose correctness and unprofiled measurements passed; GPU profiling remains incomplete.
+Rodinia’s CUDA implementation finishes HotSpot sooner than Bend GPU. Gunrock also finishes BFS sooner on the two larger graphs, while Bend finishes sooner on the smallest. HotSpot comparison (GPU_COMPARISON.md), BFS results (BFS_RESULTS.md).
 
-### Exact game search
+## Takeaways
 
-The tested alpha-beta game search favors CPU execution: OpenMP on 16 threads solves 2.32 million endgame positions per second, versus 1.72 million for Bend GPU and 872,000 for the strongest CUDA implementation written for this project. Bend itself benefits from the GPU, producing 86% more answers per second than its CPU backend in a separate matched comparison. Alpha-beta's branching and pruning make it a less straightforward GPU workload than independent pricing paths. These measurements include making every answer available in CPU memory. [Game positions, implementation comparisons and timing methods](MNK_HOST_ARRAY.md).
-
-## Workloads and comparison strength
-
-| Workloads | Purpose | Baselines |
-|---|---|---|
-| Bend's 16 published benchmarks | Reproduce supplied inputs and test CPU scaling | Serial C and OpenMP implementations written for this project, plus its CUDA Game of Life implementation |
-| BOTS Unbalanced Tree Search | Irregular recursive task creation and load balancing | Canonical BOTS OpenMP task implementations and labeled cutoff variants |
-| Sorting and reduction | Compare recursive programs with mature GPU primitives | NVIDIA CUB |
-| Asian-option pricing | Independent Monte Carlo paths followed by payoff aggregation | Project-written OpenMP and CUDA implementations using identical random streams |
-| Exact m,n,k endgames | Recursive search with known outcomes from an independent solver | Project-written OpenMP and CUDA alpha-beta implementations |
-| N-Queens | Enumerate all solutions with bit-mask search in both languages | Project-written serial C++ and OpenMP task implementations; [comparison contract](NQUEENS.md) |
-| Shared-graph BFS | Irregular graph traversal and memory access | GAP OpenMP and Gunrock CUDA |
-| HotSpot thermal simulation | Repeated local-neighbor updates | Rodinia OpenMP and CUDA, with CUDA pyramid-height variants |
-
-Pricing tests a prescribed set of simulated paths; variance reduction and time to a target pricing accuracy are outside this comparison.
-
-Bend's published BFS batches independent small mazes, whereas the added BFS traverses one shared graph. Its published Game of Life benchmark counts independent 4×4 soups. See [application contracts](APPLICATIONS.md) and [CUB/HotSpot contracts and source corrections](GPU_COMPARISON.md) for input definitions, arithmetic, algorithms and preserved patches.
+Bend GPU does better on shorter tasks, which benefit from its faster load time compared to CUDA.
 
 ## Run a benchmark
 
