@@ -63,9 +63,12 @@ def execute(command, cwd=None, env=None, timeout=180, measured=False, gpu_policy
         workload = ["/bin/sh", "-c", 'read -r stat < /proc/$$/stat; printf "%s\\n" "$stat" > "$1"; shift; exec "$@"',
                     "bend-bench", identity_file.name, *command]
         argv = ["/usr/bin/time", "-f", "BEND_BENCH_RSS_KB=%M", *workload] if measured else workload
+    launch_env = env or environment()
+    if monitor:
+        launch_env = {**launch_env, "BEND_BENCH_PID_FILE": identity_file.name}
     start = time.perf_counter()
     try:
-        proc = subprocess.Popen(argv, cwd=cwd, env=env or environment(), stdout=subprocess.PIPE,
+        proc = subprocess.Popen(argv, cwd=cwd, env=launch_env, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, text=True, start_new_session=True)
     except BaseException:
         if monitor:
@@ -93,7 +96,8 @@ def execute(command, cwd=None, env=None, timeout=180, measured=False, gpu_policy
         identity_file.close()
         if saved_stat:
             known = getattr(monitor.activity, "known_benchmarks", {})
-            known[int(saved_stat.split(" ", 1)[0])] = int(saved_stat.rsplit(") ", 1)[1].split()[19])
+            for stat in saved_stat.splitlines():
+                known[int(stat.split(" ", 1)[0])] = int(stat.rsplit(") ", 1)[1].split()[19])
             monitor.activity.known_benchmarks = known
         result["gpu_activity"] = monitor.finish()
         if result["gpu_activity"]["errors"]:
