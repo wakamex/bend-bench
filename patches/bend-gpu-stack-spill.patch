@@ -1,0 +1,206 @@
+diff --git a/bend2/comp.ts b/bend2/comp.ts
+index c44bc9c..0863c34 100644
+--- a/bend2/comp.ts
++++ b/bend2/comp.ts
+@@ -3265,33 +3265,38 @@ using namespace metal;
+ #define WL_SPIN     for (;;) { if (err_spun(e.mem, &wpoll)) { return 0; }
+ #define WL_SPUN     } break;
+ #define WL_AGAIN(F) continue
+-#define WL_POP()    { sp -= LANE_STEP; WL_DYN((Fid)STK(0)); }
++#define WL_POP()    { sp -= STK_STEP; WL_DYN((Fid)STK(0)); }
+ 
+ #define LANE_STEP (DEVICE ? (int64_t)CUBE : 1)
+-#define STK(I)    sp[(int64_t)(I) * LANE_STEP]
++#if DEVICE
++#define STK_STEP  stack->step
++#define WL_ROOM(N) \
++  if (!stack_room(e, stack, &sp, (N))) { return 0; }
++#else
++#define STK_STEP  1
++#define WL_ROOM(N)
++#endif
++#define STK(I)    sp[(int64_t)(I) * STK_STEP]
+ 
+ #define WL_RETN(N)  { rn = (N); WL_POP(); }
+ #define WL_CONT     STK(-3)
+ #define WL_IDX      STK(-2)
+-#define WL_POPN(N)  sp -= N * LANE_STEP
+-#define WL_PUSHN(N) sp += N * LANE_STEP
++#define WL_POPN(N)  sp -= N * STK_STEP
++#define WL_PUSHN(N) sp += N * STK_STEP
+ #define WL_FRAME(T) \
+   Loc wtl = task_tail(T); \
+   u64 wtw = e.mem[wtl + 1]; \
++  WL_ROOM(3); \
+   STK(0) = e.mem[wtl]; \
+   STK(1) = (wtw >> 32) & 0xFFFF; \
+   STK(2) = FID_EXIT; \
+-  sp += 3 * LANE_STEP;
++  sp += 3 * STK_STEP;
+ #define WL_ARGS(A, N) \
++  WL_ROOM((N) - 1); \
+   for (u32 wi = 0; wi + 1 < N; wi += 1) { \
+     STK(wi) = e.mem[A + wi]; \
+   } \
+-  sp += (N - 1) * LANE_STEP;
+-#define WL_ROOM(N) \
+-  if (DEVICE && sp + (N) * CUBE >= e.mem + HEAP_OFF + CUBE) { \
+-    err_post(e.mem, ERR_DEEP); \
+-    return 0; \
+-  }
++  sp += (N - 1) * STK_STEP;
+ 
+ // Types
+ // =====
+@@ -4246,6 +4251,46 @@ static u32 root_take(Corpus H, THR Term* v) {
+ // Work
+ // ====
+ 
++#if DEVICE
++// Keep the transposed fixed stack until a lane needs more. A spill grows
++// geometrically in the ordinary heap; only that lane pays for the space.
++typedef struct {
++  Stk base;
++  int64_t step;
++  u64 cap;
++  Loc loc;
++} Stack;
++
++INLINE bool stack_room(Env e, THR Stack* s, THR Stk* sp, u32 n) {
++  u64 used = *sp - s->base;
++  if (used + (u64)n * s->step <= s->cap * s->step) {
++    return true;
++  }
++  used /= s->step;
++  if (used + n > (1ull << 31)) {
++    err_post(e.mem, ERR_HEAP);
++    return false;
++  }
++  Cls cls = cls_fit((u32)(used + n));
++  Loc loc = heap_alloc(e, cls);
++  if (err_seen(e.mem)) {
++    return false;
++  }
++  for (u64 i = 0; i < used; i += 1) {
++    e.mem[loc + i] = s->base[i * s->step];
++  }
++  if (s->loc) {
++    heap_free(e, cls_fit((u32)s->cap), s->loc);
++  }
++  s->base = e.mem + loc;
++  s->step = 1;
++  s->cap  = 1ull << cls;
++  s->loc  = loc;
++  *sp = s->base + used;
++  return true;
++}
++#endif
++
+ // A host self-jump is a tail call: as a loop, MachineLICM hoisted eleven
+ // constants into symreg's entry (3.05 s against 2.51 s).
+ #if !DEVICE
+@@ -4265,7 +4310,11 @@ static const WlFn wl_tab[] = { WL_TABLE };
+ #undef WL_X
+ #endif
+ 
++#if DEVICE
++static Reply work_inner(Env e, Stk sp, Term t, bool seq, THR Stack* stack) {
++#else
+ static Reply work_loop(Env e, Stk sp, Term t, bool seq) {
++#endif
+   WL_BANK
+   u32 rn = 0;
+   r0 = t;
+@@ -4339,7 +4388,7 @@ static Reply work_loop(Env e, Stk sp, Term t, bool seq) {
+     if (err_seen(e.mem)) {
+       return 0;
+     }
+-    sp -= 2 * LANE_STEP;
++    sp -= 2 * STK_STEP;
+     Term cont = STK(0);
+     u32  idx  = (u32)STK(1);
+     if (cont != TERM_HOLE && fid_seqk((u32)term_aux(cont))) {
+@@ -4363,6 +4412,15 @@ static Reply work_loop(Env e, Stk sp, Term t, bool seq) {
+   }
+   }
+ }
++
++static Reply work_loop(Env e, Stk sp, Term t, bool seq) {
++  Stack stack = { sp, CUBE, STAK_LEN, 0 };
++  Reply r = work_inner(e, sp, t, seq, &stack);
++  if (stack.loc) {
++    heap_free(e, cls_fit((u32)stack.cap), stack.loc);
++  }
++  return r;
++}
+ #endif
+ 
+ // Monk
+diff --git a/tests/run/gpu_stack_boxed.bend b/tests/run/gpu_stack_boxed.bend
+new file mode 100644
+index 0000000..996454e
+--- /dev/null
++++ b/tests/run/gpu_stack_boxed.bend
+@@ -0,0 +1,31 @@
++# Heap-owned arrays survive stack relocation and are consumed on unwind.
++# Repeated independent calls also exercise reuse of returned spill blocks.
++import Base
++
++def leaf(+x: U32) -> U32:
++  U32.xor(U32.xor(x, 12345), 12345)
++
++def read(r: Array<U32> & U32, n: U32) -> U32:
++  (a, x) = r
++  U32.add(x, n)
++
++def finish(a: Array<U32>, n: U32) -> U32:
++  read(a[0], n)
++
++def deep(n: Nat, +x: U32) -> U32:
++  match n:
++    case 0n: x
++    case 1n+p:
++      a = [x : U32*1n]
++      left right = deep(p, U32.add(x, 1)) leaf(0)
++      finish(a, U32.add(left, right))
++
++def repeat(n: Nat, acc: U32) -> U32:
++  match n:
++    case 0n: acc
++    case 1n+p: repeat(p, U32.add(acc, deep(U32.to_nat(4096), 1)))
++
++def main() -> IO(Unit):
++  IO.print(U32.show(repeat!(8n, 0)))
++
++#|67158024
+diff --git a/tests/run/gpu_stack_spill.bend b/tests/run/gpu_stack_spill.bend
+new file mode 100644
+index 0000000..67a6044
+--- /dev/null
++++ b/tests/run/gpu_stack_spill.bend
+@@ -0,0 +1,25 @@
++# Non-tail recursion must outgrow the fixed GPU lane stack, preserve
++# every held word, unwind, and return through a parallel join.
++import Base
++
++def leaf(+x: U32) -> U32:
++  U32.xor(U32.xor(x, 12345), 12345)
++
++def deep(n: Nat, +x: U32) -> U32:
++  match n:
++    case 0n: x
++    case 1n+p:
++      a b = deep(p, U32.add(x, 1)) leaf(x)
++      U32.add(a, b)
++
++def batch(+d: Nat, +n: Nat) -> U32:
++  match d:
++    case 0n: deep(n, 1)
++    case 1n+p:
++      a b = batch(p, n) batch(p, n)
++      U32.add(a, b)
++
++def main() -> IO(Unit):
++  IO.print(U32.show(batch!(4n, U32.to_nat(8192))))
++
++#|537067536

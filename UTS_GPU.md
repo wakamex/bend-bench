@@ -27,6 +27,8 @@ The generated runtime reserves 2,048 words per GPU lane through `STAK_LEN`; `WL_
 
 No runtime patch, traversal rewrite or manual balancing was applied to obtain a Bend timing. A larger GPU continuation stack or a revised port would require a separate, explicitly labeled comparison. The pinned evaluation checkout remains unchanged.
 
+A subsequent [fork-only runtime fix](UTS_GPU_STACK_FIX.md) adds heap-backed stack growth. Its validation and measurements are separate from the pinned results above.
+
 ## Reproduction and evidence
 
 The [UTS GPU configuration](uts-gpu.toml) explicitly enables `uts_gpu`; existing configurations retain their CPU-only UTS selection. Adapt dependency and tool paths before running:
