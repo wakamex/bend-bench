@@ -1,0 +1,566 @@
+{
+  "audit_date": "2026-09-20",
+  "timezone": "America/Toronto",
+  "scope": "Read-only feasibility audit of 14 missing conventional GPU cells; no builds or measurements.",
+  "repositories": [
+    {
+      "name": "cudf",
+      "repo": "NVIDIA/cudf",
+      "sha": "cba08937526d54de1b15ded7b0b2769ee3d43759"
+    },
+    {
+      "name": "cuco",
+      "repo": "NVIDIA/cuCollections",
+      "sha": "0bda929bebc39b50865eed2b3256bf35f976548d"
+    },
+    {
+      "name": "cuda-samples",
+      "repo": "NVIDIA/cuda-samples",
+      "sha": "5443602d89ed99aede2e4b7bf329daddeadb320e"
+    },
+    {
+      "name": "cuvs",
+      "repo": "NVIDIA/cuvs",
+      "sha": "241df2755c77d7660d3f0f03ec0949e0befaf338"
+    },
+    {
+      "name": "evogp",
+      "repo": "EMI-Group/evogp",
+      "sha": "5538d75470ee0fa444ee6bbe5ea98b2eed6e99f8"
+    },
+    {
+      "name": "optix",
+      "repo": "NVIDIA/optix-sdk",
+      "sha": "6a6c77392ef2bc9770b5c2e142cc5eefbd5b110d"
+    }
+  ],
+  "notes": [
+    "Candidate source files retrieved September 20 local time (September 21 UTC for later downloads); timestamps below are filesystem capture metadata.",
+    "cuBLAS online manual is version 13.4; installed toolkit is 13.1. Local API compatibility has not been measured.",
+    "cublas.md is a convenience extraction with omitted introductory material and a malformed title; retain cublas.html as the original.",
+    "Existing CCCL checkout has a documented compatibility patch. Hashes identify the exact inspected headers; this audit does not certify a clean checkout.",
+    "Original downloaded sources are stored locally and ignored by Git. Bend contracts are immutable pre-existing evidence."
+  ],
+  "files": [
+    {
+      "path": "sources/cccl-clang/cub/cub/device/device_radix_sort.cuh",
+      "sha256": "57d33e99fe926fc2a5ee895eeac1257e7c01d0e85e9f0b0a02d35ff3c5924f36",
+      "bytes": 135134,
+      "saved_at_utc": "2026-09-18T01:21:41.120769+00:00",
+      "url": "https://github.com/NVIDIA/cccl/blob/ecfd3adfaa7ebcb81d80d5b297ab3551619fda02/cub/cub/device/device_radix_sort.cuh",
+      "commit": "ecfd3adfaa7ebcb81d80d5b297ab3551619fda02",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/cccl-clang/cub/cub/device/device_reduce.cuh",
+      "sha256": "a0d99028188c11f9904b2fc16ced706cf389fbe1752e0fea28c54a18a6667f9e",
+      "bytes": 70882,
+      "saved_at_utc": "2026-09-18T01:21:41.120769+00:00",
+      "url": "https://github.com/NVIDIA/cccl/blob/ecfd3adfaa7ebcb81d80d5b297ab3551619fda02/cub/cub/device/device_reduce.cuh",
+      "commit": "ecfd3adfaa7ebcb81d80d5b297ab3551619fda02",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/cccl-clang/cub/cub/device/device_select.cuh",
+      "sha256": "2b0e94915dc145c48d2c870da6f5aa6d9c841c4fe0f27a3ed2aad86662d763ed",
+      "bytes": 47266,
+      "saved_at_utc": "2026-09-18T01:21:41.121769+00:00",
+      "url": "https://github.com/NVIDIA/cccl/blob/ecfd3adfaa7ebcb81d80d5b297ab3551619fda02/cub/cub/device/device_select.cuh",
+      "commit": "ecfd3adfaa7ebcb81d80d5b297ab3551619fda02",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/Mandelbrot-README.md",
+      "sha256": "a9eff2f2ed62e0280d406e47eb01345296e8d62f5b368bb6e7aafa8e567edfd3",
+      "bytes": 2072,
+      "saved_at_utc": "2026-09-21T01:32:37.743108+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuda-samples/5443602d89ed99aede2e4b7bf329daddeadb320e/cpp/5_Domain_Specific/Mandelbrot/README.md",
+      "commit": "5443602d89ed99aede2e4b7bf329daddeadb320e",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/Mandelbrot_kernel.cuh",
+      "sha256": "973d49b3a83c544b2870a8ffeb31b7eeaec2fa083f692df2ac80fa5b62090c99",
+      "bytes": 13133,
+      "saved_at_utc": "2026-09-21T01:32:37.216945+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuda-samples/5443602d89ed99aede2e4b7bf329daddeadb320e/cpp/5_Domain_Specific/Mandelbrot/Mandelbrot_kernel.cuh",
+      "commit": "5443602d89ed99aede2e4b7bf329daddeadb320e",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cublas.html",
+      "sha256": "187094ecbb755ae58cd798dbb147f16a864c08c5133eb558f292a502b0cb3ffe",
+      "bytes": 2491162,
+      "saved_at_utc": "2026-09-21T01:32:40.050342+00:00",
+      "url": "https://docs.nvidia.com/cuda/cublas/index.html",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cublas.md",
+      "sha256": "fea262e3bfeee20dd87fa88804341ebcbe9e456aa4f5c0c0025d122d64df32b1",
+      "bytes": 411400,
+      "saved_at_utc": "2026-09-21T01:31:09.990258+00:00",
+      "url": "https://docs.nvidia.com/cuda/cublas/index.html",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuco-README.md",
+      "sha256": "691c508c3fef8a964bf8bafec85d8a200476afb26df7b2a422e0b19c34d802b6",
+      "bytes": 55903,
+      "saved_at_utc": "2026-09-21T01:31:28.552276+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuCollections/0bda929bebc39b50865eed2b3256bf35f976548d/README.md",
+      "commit": "0bda929bebc39b50865eed2b3256bf35f976548d",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuco-commit.json",
+      "sha256": "e88ae43bf636c11e4488d5476ff32a9e9fa8808e1d57264efa6d7df87a99f543",
+      "bytes": 43520,
+      "saved_at_utc": "2026-09-21T01:30:34.450225+00:00",
+      "url": "https://api.github.com/repos/NVIDIA/cuCollections/commits/HEAD",
+      "commit": "0bda929bebc39b50865eed2b3256bf35f976548d",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuco-static_set.cuh",
+      "sha256": "1d74518e627e079a64a8e5b10c9cae89543b719df9b52482bf9a1cbc7c4dd1d9",
+      "bytes": 46259,
+      "saved_at_utc": "2026-09-21T01:31:33.451280+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuCollections/0bda929bebc39b50865eed2b3256bf35f976548d/include/cuco/static_set.cuh",
+      "commit": "0bda929bebc39b50865eed2b3256bf35f976548d",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuda-samples-README.md",
+      "sha256": "96850507b9494e43e67c8ac9f04542e83221e5d8e4bc85025375aee72ab381aa",
+      "bytes": 34260,
+      "saved_at_utc": "2026-09-21T01:31:29.092276+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuda-samples/5443602d89ed99aede2e4b7bf329daddeadb320e/README.md",
+      "commit": "5443602d89ed99aede2e4b7bf329daddeadb320e",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuda-samples-commit.json",
+      "sha256": "4a71ef91d5cc4f21abcd15266e5d44bf353eec32274936d449f9ab192b9d5f47",
+      "bytes": 933661,
+      "saved_at_utc": "2026-09-21T01:30:34.890226+00:00",
+      "url": "https://api.github.com/repos/NVIDIA/cuda-samples/commits/HEAD",
+      "commit": "5443602d89ed99aede2e4b7bf329daddeadb320e",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuda-samples-tree.json",
+      "sha256": "f1fa39f303b3d765174382daffd651405627027f0191314f07ecbffbb0ebfc4f",
+      "bytes": 562219,
+      "saved_at_utc": "2026-09-21T01:31:34.739281+00:00",
+      "url": "https://api.github.com/repos/NVIDIA/cuda-samples/git/trees/5443602d89ed99aede2e4b7bf329daddeadb320e?recursive=1",
+      "commit": "5443602d89ed99aede2e4b7bf329daddeadb320e",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cudf-README.md",
+      "sha256": "4bd0cd43d16d237e9085cb41a920b863a3b48caabc15d0da3721a847d8c9658e",
+      "bytes": 5007,
+      "saved_at_utc": "2026-09-21T01:31:28.065193+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cudf/cba08937526d54de1b15ded7b0b2769ee3d43759/README.md",
+      "commit": "cba08937526d54de1b15ded7b0b2769ee3d43759",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cudf-commit.json",
+      "sha256": "5230fe802de5681dae52d5c96a4003c63e1fbaa15a3f2f1e744fded796a775c4",
+      "bytes": 94588,
+      "saved_at_utc": "2026-09-21T01:30:34.203225+00:00",
+      "url": "https://api.github.com/repos/NVIDIA/cudf/commits/HEAD",
+      "commit": "cba08937526d54de1b15ded7b0b2769ee3d43759",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cudf-edit_distance.cu",
+      "sha256": "231ffeb6f4ff8f0c09ab4d705bce6d836b864124df60e3e66ddab4236e06401c",
+      "bytes": 11444,
+      "saved_at_utc": "2026-09-21T01:31:32.278429+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cudf/cba08937526d54de1b15ded7b0b2769ee3d43759/cpp/src/text/edit_distance.cu",
+      "commit": "cba08937526d54de1b15ded7b0b2769ee3d43759",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cudf-edit_distance.hpp",
+      "sha256": "54f16da699e20f62774575bc4f7faf769b5f0b1bbd5cc1bd50697b3352f34be2",
+      "bytes": 2205,
+      "saved_at_utc": "2026-09-21T01:31:31.746364+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cudf/cba08937526d54de1b15ded7b0b2769ee3d43759/cpp/include/nvtext/edit_distance.hpp",
+      "commit": "cba08937526d54de1b15ded7b0b2769ee3d43759",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuvs-README.md",
+      "sha256": "03a90f5fe8c0a75d6e1618ceb985a67e563daa7f514d28bcf4c8b5203939d9c8",
+      "bytes": 10366,
+      "saved_at_utc": "2026-09-21T01:31:29.601725+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuvs/241df2755c77d7660d3f0f03ec0949e0befaf338/README.md",
+      "commit": "241df2755c77d7660d3f0f03ec0949e0befaf338",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuvs-commit.json",
+      "sha256": "d13f9fc5663bf4359a56f3d5a292ee0b79e5d6ba5d431f14dc15a88768c6a634",
+      "bytes": 24471,
+      "saved_at_utc": "2026-09-21T01:30:35.108226+00:00",
+      "url": "https://api.github.com/repos/NVIDIA/cuvs/commits/HEAD",
+      "commit": "241df2755c77d7660d3f0f03ec0949e0befaf338",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/cuvs-kmeans.hpp",
+      "sha256": "9114335ce337a26fb6a90fd03e47a2d6a5c9dcec2207f935c86bab612df30755",
+      "bytes": 78014,
+      "saved_at_utc": "2026-09-21T01:31:32.896280+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuvs/241df2755c77d7660d3f0f03ec0949e0befaf338/cpp/include/cuvs/cluster/kmeans.hpp",
+      "commit": "241df2755c77d7660d3f0f03ec0949e0befaf338",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/evogp-README.md",
+      "sha256": "a8e95e38022c1693086be0702faba61be759371d0640ba9ac547659f63548f91",
+      "bytes": 15240,
+      "saved_at_utc": "2026-09-21T01:31:30.152800+00:00",
+      "url": "https://raw.githubusercontent.com/EMI-Group/evogp/5538d75470ee0fa444ee6bbe5ea98b2eed6e99f8/README.md",
+      "commit": "5538d75470ee0fa444ee6bbe5ea98b2eed6e99f8",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/evogp-commit.json",
+      "sha256": "b095ec552a48f95828100cc61412927474ed6d37a5a184d305bbb3d4bb6eaf9c",
+      "bytes": 15982,
+      "saved_at_utc": "2026-09-21T01:30:35.467227+00:00",
+      "url": "https://api.github.com/repos/EMI-Group/evogp/commits/HEAD",
+      "commit": "5538d75470ee0fa444ee6bbe5ea98b2eed6e99f8",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/nbody-README.md",
+      "sha256": "c46a81af58157eaf982b6d3306e41979aaf5ea68c6078d9aad8041367e35239b",
+      "bytes": 2969,
+      "saved_at_utc": "2026-09-21T01:32:38.268667+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuda-samples/5443602d89ed99aede2e4b7bf329daddeadb320e/cpp/5_Domain_Specific/nbody/README.md",
+      "commit": "5443602d89ed99aede2e4b7bf329daddeadb320e",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/nbody-bodysystemcuda.cu",
+      "sha256": "0586418febce9a2e9d322d6688bb6740f4d0102fc818e410739f09e2417a6083",
+      "bytes": 11130,
+      "saved_at_utc": "2026-09-21T01:32:36.703339+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/cuda-samples/5443602d89ed99aede2e4b7bf329daddeadb320e/cpp/5_Domain_Specific/nbody/bodysystemcuda.cu",
+      "commit": "5443602d89ed99aede2e4b7bf329daddeadb320e",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/optix-README.md",
+      "sha256": "84068b3f42d6637f2d9c80a75b62ad1444fdc127bdc191be3d92d76030a3ee1e",
+      "bytes": 1401,
+      "saved_at_utc": "2026-09-21T01:31:30.660409+00:00",
+      "url": "https://raw.githubusercontent.com/NVIDIA/optix-sdk/6a6c77392ef2bc9770b5c2e142cc5eefbd5b110d/README.md",
+      "commit": "6a6c77392ef2bc9770b5c2e142cc5eefbd5b110d",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "sources/gpu-baseline-audit-20260920/optix-commit.json",
+      "sha256": "73de9fa04567afceb3da303de08b0f4d0f0bf802f8c2c058b5ceef8c91d9a945",
+      "bytes": 6703,
+      "saved_at_utc": "2026-09-21T01:30:35.740696+00:00",
+      "url": "https://api.github.com/repos/NVIDIA/optix-sdk/commits/HEAD",
+      "commit": "6a6c77392ef2bc9770b5c2e142cc5eefbd5b110d",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/bfs/main.bend",
+      "sha256": "d7e2acda29553218004cc937d3107e50862d692a140630740268eaa3896bffbd",
+      "bytes": 6871,
+      "saved_at_utc": "2026-09-17T20:23:29.761045+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/bfs/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/bfs/main.c",
+      "sha256": "ad283af87da1383a8f5f905ff8f8fb693da8b7e324ad96f76948696ab7cd98c3",
+      "bytes": 2869,
+      "saved_at_utc": "2026-09-17T20:23:29.761168+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/bfs/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/editdist/main.bend",
+      "sha256": "466891a27b87119b5593209eb98aa0d687ff88b6ff28cc2ca339e248907a3959",
+      "bytes": 5722,
+      "saved_at_utc": "2026-09-17T20:23:29.761168+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/editdist/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/editdist/main.c",
+      "sha256": "b26ec20e9e3930f9ae27cc219cd3cc5e2bf15004aa48465deab2705541e19f85",
+      "bytes": 2155,
+      "saved_at_utc": "2026-09-17T20:23:29.761355+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/editdist/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/gameoflife/main.bend",
+      "sha256": "31f82656e9b54917803d9fa6b07284bc260f3c62c1c15976b118236151565eae",
+      "bytes": 5555,
+      "saved_at_utc": "2026-09-17T20:23:29.761355+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/gameoflife/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/gameoflife/main.c",
+      "sha256": "c0c3414fae74204fdc42eb904030c5b7572adc106daf325f04913d42e7f4440a",
+      "bytes": 4377,
+      "saved_at_utc": "2026-09-17T20:23:29.761531+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/gameoflife/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/hashmap/main.bend",
+      "sha256": "9c1682c2b495e69aaca895a62fc8a68362c73bb30ae6705ba7088459684e4f6d",
+      "bytes": 6314,
+      "saved_at_utc": "2026-09-17T20:23:29.761531+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/hashmap/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/hashmap/main.c",
+      "sha256": "2a1f490a81d67cba3c02d29b6fe0e303a9f2de6c1a7242c5692643a67df44013",
+      "bytes": 3362,
+      "saved_at_utc": "2026-09-17T20:23:29.761718+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/hashmap/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/kmeans/main.bend",
+      "sha256": "68af341f50d57878b2518f8c0907e445552750ceb4a264ab0e4e7877600bffb1",
+      "bytes": 8113,
+      "saved_at_utc": "2026-09-17T20:23:29.761718+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/kmeans/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/kmeans/main.c",
+      "sha256": "1a67c73d84055871187cc6bb5867f79333434114e8559b705ac3cb9949b1b6a7",
+      "bytes": 7060,
+      "saved_at_utc": "2026-09-17T20:23:29.761900+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/kmeans/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/lexer/main.bend",
+      "sha256": "5187685d61672de9434f3902e06c427af4f2fa5648723fd869a8c26ab311fcf6",
+      "bytes": 6982,
+      "saved_at_utc": "2026-09-17T20:23:29.761900+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/lexer/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/lexer/main.c",
+      "sha256": "3b6d317151f79550052ee29d13092539403b559686a53fd6cece0cf4e23903af",
+      "bytes": 2712,
+      "saved_at_utc": "2026-09-17T20:23:29.762100+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/lexer/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/mandelbrot/main.bend",
+      "sha256": "400b94705df43c5f6506ecba640db11ae91b24f74d58e39a5e5f7f56dcbabcfa",
+      "bytes": 6427,
+      "saved_at_utc": "2026-09-17T20:23:29.762100+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/mandelbrot/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/mandelbrot/main.c",
+      "sha256": "c9ae35e9ad7eada27a589ba02f5512b9520cca1411941b37cfb61463a66ad10f",
+      "bytes": 5196,
+      "saved_at_utc": "2026-09-17T20:23:29.762291+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/mandelbrot/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/merkle/main.bend",
+      "sha256": "fee3e9144d09a4426a3903656ef485d68d9b9c99822ef02368b5fcbc663e39c9",
+      "bytes": 5042,
+      "saved_at_utc": "2026-09-17T20:23:29.762291+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/merkle/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/merkle/main.c",
+      "sha256": "6bf4057ef894a53bd964589bb784ba6f17566c9acf3dd678d47227119176109b",
+      "bytes": 5137,
+      "saved_at_utc": "2026-09-17T20:23:29.762474+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/merkle/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/nbody/main.bend",
+      "sha256": "e261a45e3a3fcc7fbdc42143a487d19d76aece4935d8ccc313408ec2ec6aba91",
+      "bytes": 11679,
+      "saved_at_utc": "2026-09-17T20:23:29.762474+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/nbody/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/nbody/main.c",
+      "sha256": "99ee6145ba9ff085d976df3adc7beef85958df1e0b3c1932c7b54a5f4c8b3c12",
+      "bytes": 8074,
+      "saved_at_utc": "2026-09-17T20:23:29.762675+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/nbody/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/queens/main.bend",
+      "sha256": "9ba530618a3449470b294a01a7d8670b67ba959d9bd09b67bb748917ade0676f",
+      "bytes": 8816,
+      "saved_at_utc": "2026-09-17T20:23:29.762675+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/queens/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/queens/main.c",
+      "sha256": "a5f8ac13be366ef62235050fe86941b699165a2e615d9a4eefcdfbb73ad89535",
+      "bytes": 2710,
+      "saved_at_utc": "2026-09-17T20:23:29.762880+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/queens/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/raytrace/main.bend",
+      "sha256": "6c4918b2012696146144c2c7ccc1daad042dbb87df444ca1334cf8d51bebee5f",
+      "bytes": 13929,
+      "saved_at_utc": "2026-09-17T20:23:29.762880+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/raytrace/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/raytrace/main.c",
+      "sha256": "a246f486267539b4067426ac422b07b465845b5a1e9ed35a50064a7160e2ad04",
+      "bytes": 5416,
+      "saved_at_utc": "2026-09-17T20:23:29.763073+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/raytrace/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/symreg/main.bend",
+      "sha256": "5aafee4856cde2259dd2efac84ed02fe1d999e68ab026d975d1a3593b430fbf0",
+      "bytes": 5246,
+      "saved_at_utc": "2026-09-17T20:23:29.763073+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/symreg/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/symreg/main.c",
+      "sha256": "ffc791fedd2f6eaca954885985cf1d6558aadf352f9008daae463828f88c7f1e",
+      "bytes": 5207,
+      "saved_at_utc": "2026-09-17T20:23:29.763286+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/symreg/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/terrain/main.bend",
+      "sha256": "5d561e194aed9d34f83797db8b2c96afad5584dec6cb83fb2c791fce8caf669e",
+      "bytes": 12097,
+      "saved_at_utc": "2026-09-17T20:23:29.763286+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/terrain/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/terrain/main.c",
+      "sha256": "2fc1222ef8e0ff73abb586215e7910cd9233c3149b38368052d799a8282a258a",
+      "bytes": 3821,
+      "saved_at_utc": "2026-09-17T20:23:29.763485+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/terrain/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/tree-bitonic/main.bend",
+      "sha256": "1d79c448bae41dff127ff05b6c6a13d010a9a0ebc5c4dcf19da7d6d4641a7d2c",
+      "bytes": 4456,
+      "saved_at_utc": "2026-09-17T20:23:29.763485+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/tree-bitonic/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/tree-bitonic/main.c",
+      "sha256": "81c6fe7d87628b510de44c2e67643ac8f813547438b71b321513d5fd6ce7e691",
+      "bytes": 5244,
+      "saved_at_utc": "2026-09-17T20:23:29.763664+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/tree-bitonic/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/tree-matmul/main.bend",
+      "sha256": "e87baaba955d4dd52224a1bccd7cc2a493999499f42232350a6e89564fb11111",
+      "bytes": 5485,
+      "saved_at_utc": "2026-09-17T20:23:29.763664+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/tree-matmul/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/tree-matmul/main.c",
+      "sha256": "d696d72a7428c51e11314742858946a900470a421283b05f71d055c2a78e9693",
+      "bytes": 7730,
+      "saved_at_utc": "2026-09-17T20:23:29.763845+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/tree-matmul/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/tree-radix/main.bend",
+      "sha256": "2f9784e5035e75bde271ad919075565156de20720be6186f86f0191e0ac9e802",
+      "bytes": 4272,
+      "saved_at_utc": "2026-09-17T20:23:29.763845+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/tree-radix/main.bend",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    },
+    {
+      "path": "/code/bend2/upstream/bench/runtime/tree-radix/main.c",
+      "sha256": "e1cca8669dd57c9ca65d7e7364eeaef1947c95a079317fa1ca35cfcb7911819a",
+      "bytes": 5365,
+      "saved_at_utc": "2026-09-17T20:23:29.764034+00:00",
+      "url": "https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/bench/runtime/tree-radix/main.c",
+      "commit": "b9d1352c9f45632447f40a2e927355c92f2be58c",
+      "timestamp_kind": "local file modification time; existing references predate this audit"
+    }
+  ]
+}
