@@ -24,6 +24,28 @@ class VendorCustomGPU(unittest.TestCase):
                 self.assertIn(flag, command)
 
     @unittest.skipUnless(os.environ.get("BEND_BENCH_VENDOR_GPU_TEST") == "1", "Opt-in real GPU correctness")
+    def test_native_queens(self):
+        config = load_config(ROOT / "vendor-gpu-custom.toml")
+        with exclusive(config):
+            idle_gpu(config)
+            folder = Path(tempfile.mkdtemp(prefix="vendor-queens-check-", dir=ROOT / "runs"))
+            stage(config, folder)
+            builds, cases = plan(config, folder)
+            case = next(c for c in cases if c["implementation"] == "conventional-cuda" and c["workload"] == "queens")
+            command = next(b for b in builds if any(str(x).endswith("vendor-queens.cu") for x in b))
+            result = execute(command, timeout=180)
+            append(folder / "checks.jsonl", result)
+            self.assertEqual(result["returncode"], 0, result["stderr"])
+            for size, limit in ((4, 256), (8, 4096), (12, 100), (17, 11730)):
+                result = execute([*case["command"], "verify", str(size), str(limit)], timeout=180, gpu_policy=config)
+                append(folder / "checks.jsonl", result)
+                self.assertEqual(result["returncode"], 0, result["stderr"])
+                self.assertNotIn("contention_error", result)
+                self.assertIn("FULL_OUTPUT_VERIFIED=", result["stderr"])
+                if size == 17:
+                    self.assertTrue(correct(case, result), result)
+
+    @unittest.skipUnless(os.environ.get("BEND_BENCH_VENDOR_GPU_TEST") == "1", "Opt-in real GPU correctness")
     def test_native_mandelbrot(self):
         config = load_config(ROOT / "vendor-gpu-custom.toml")
         with exclusive(config):
