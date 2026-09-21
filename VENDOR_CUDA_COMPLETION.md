@@ -2,6 +2,12 @@
 
 Goal: add conventional CUDA comparisons for the eleven original workloads still missing one, preserving generated inputs, arithmetic and required outputs. Implementations and subsequent measured results are committed separately. No existing measurement is replaced by a compile-only result.
 
+## Correctness validation, September 21
+
+All 44 input configurations now pass exact output checks across the eleven CUDA adapters, including the full published inputs. Evidence is retained in `runs/vendor-custom-check-o_j0z6dz/`. The earlier v2 queue failed four checks in three-body simulation and ray tracing because the generated CUDA code used approximate square roots. Explicit correctly rounded square roots fix those checks without changing the source algorithms or accepting looser tolerances. The failed checks remain in `runs/vendor-custom-check-78512v4g/`; FMA and square-root compiler-flag counterfactuals are retained in `runs/vendor-fmad-audit-kde9cmif/` and `runs/vendor-sqrt-audit-pdkuhc_7/`.
+
+The replacement timing request is `runs/vendor-cuda-validation-20260921-v3/request.json`. It repeats correctness checks before collecting ten measurements for each of the eleven new CUDA cases. Performance results remain pending. The implementation and compile-only records below describe earlier development stages.
+
 All eleven implementations compile and are committed separately. The regression suite passed 73 tests with eight expected skips before adding the queue tests; both package distributions build. The finite runner [validate_vendor_cuda.py](validate_vendor_cuda.py) reuses the existing 120-second idle-GPU admission gate, pins source/tool/test inputs, checks four input configurations per workload, and then measures only the eleven new CUDA cases. It retains failures and stops rather than retrying them. The full prepared report will also list unmeasured CPU and Bend configurations as pending; those are outside this queue's explicit selection.
 
 The queue's systemd user unit is `bend-bench-vendor-cuda.service`. Follow it with `journalctl --user -u bend-bench-vendor-cuda.service -f`. Queue admission and results are saved under `runs/vendor-cuda-validation-20260921/`; completion requires `completed.json`, not merely successful compilation. Do not edit source, tests, tools or configuration while that request is queued or running. Existing unrelated GPU activity is left alone.
