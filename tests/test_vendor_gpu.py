@@ -1,5 +1,6 @@
 """Library adapters checked against pinned published workload contracts."""
 import os
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -27,7 +28,7 @@ class VendorGPU(unittest.TestCase):
         original = (ROOT / "vendor-gpu-libraries.toml").read_text()
         for value in ('["unknown"]', '["tree-radix", "tree-radix"]'):
             with tempfile.NamedTemporaryFile(mode="w", suffix=".toml") as f:
-                f.write(original.replace('vendor_gpu = ["tree-radix"]', f'vendor_gpu = {value}'))
+                f.write(re.sub(r'vendor_gpu = \[.*\]', f'vendor_gpu = {value}', original))
                 f.flush()
                 with self.assertRaises(ValueError):
                     load_config(f.name)
@@ -53,3 +54,35 @@ class VendorGPU(unittest.TestCase):
                 self.assertIn("FULL_OUTPUT_VERIFIED=", result["stderr"])
                 if depth == 22:
                     self.assertTrue(correct(case, result), result)
+
+    @unittest.skipUnless(os.environ.get("BEND_BENCH_VENDOR_GPU_TEST") == "1", "Opt-in real GPU correctness")
+    def test_native_matmul(self):
+        config = load_config(ROOT / "vendor-gpu-libraries.toml")
+        with exclusive(config):
+            idle_gpu(config)
+            folder = Path(tempfile.mkdtemp(prefix="vendor-matmul-check-", dir=ROOT / "runs"))
+            stage(config, folder)
+            builds, cases = plan(config, folder)
+            case = next(c for c in cases if c["implementation"] == "cublas-cuda")
+            command = next(b for b in builds if any(str(x).endswith("vendor-matmul.cu") for x in b))
+            reference = folder / "build/matmul-reference"
+            commands = [command, [config["tools"]["cc"], "-O3", "-std=c11",
+                "-I" + config["bend"]["path"] + "/bench/runtime/tree-matmul",
+                ROOT / "tests/vendor_matmul_reference.c", "-o", reference]]
+            for command in commands:
+                result = execute(command, timeout=180)
+                append(folder / "checks.jsonl", result)
+                self.assertEqual(result["returncode"], 0, result["stderr"])
+            for depth, batches in ((2, 1), (3, 7), (5, 3), (7, 384)):
+                result = execute([*case["command"], "verify", str(depth), str(batches)], timeout=180, gpu_policy=config)
+                append(folder / "checks.jsonl", result)
+                self.assertEqual(result["returncode"], 0, result["stderr"])
+                self.assertNotIn("contention_error", result)
+                self.assertIn("FULL_OUTPUT_VERIFIED=", result["stderr"])
+                if depth == 7:
+                    self.assertTrue(correct(case, result), result)
+                else:
+                    ref = execute([reference, str(depth), str(batches)], timeout=180)
+                    append(folder / "checks.jsonl", ref)
+                    self.assertEqual(ref["returncode"], 0, ref["stderr"])
+                    self.assertEqual(result["stdout"], ref["stdout"])

@@ -167,9 +167,9 @@ def load_config(path):
         raise ValueError("Unknown or missing suite")
     config.setdefault("vendor_gpu", [])
     selected_gpu = config["vendor_gpu"]
-    if (not isinstance(selected_gpu, list) or any(x not in {"tree-radix"} for x in selected_gpu)
+    if (not isinstance(selected_gpu, list) or any(x not in {"tree-radix", "tree-matmul"} for x in selected_gpu)
             or len(set(selected_gpu)) != len(selected_gpu)):
-        raise ValueError("vendor_gpu must select unique supported workloads: tree-radix")
+        raise ValueError("vendor_gpu must select unique supported workloads: tree-radix, tree-matmul")
     if selected_gpu and ("vendor" not in config["suites"] or not config.get("cuda")
                          or not set(selected_gpu) <= set(config.get("vendor", selected_gpu))):
         raise ValueError("vendor_gpu requires CUDA and matching vendor workloads")
@@ -289,7 +289,7 @@ def provenance(config):
     toolkit = {}
     if config["cuda"]:
         root = Path(config["tools"]["cuda_path"])
-        for pattern in ("version.json", "include/*.h", "lib64/libnvrtc.so*", "lib64/libnvrtc-builtins.so*", "lib64/libcudart.so*"):
+        for pattern in ("version.json", "include/*.h", "lib64/libnvrtc.so*", "lib64/libnvrtc-builtins.so*", "lib64/libcudart.so*", "lib64/libcublas.so*", "lib64/libcublasLt.so*"):
             for file in sorted(root.glob(pattern)):
                 if file.is_file():
                     toolkit[str(file)] = hash_file(file)

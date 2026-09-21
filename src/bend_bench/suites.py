@@ -233,6 +233,16 @@ def plan(config, work):
                     case("vendor", name, "cub-cuda", 1, gpu_binary, [], expected, gpu_reason)
                     cases[-1]["check_args"] = ["verify"]
 
+                if name == "tree-matmul" and name in config.get("vendor_gpu", []):
+                    gpu_binary = work / "build/tree-matmul-cublas"
+                    if not gpu_reason:
+                        build([tools["cuda_cxx"], "-std=c++17", *flags, f"--cuda-path={cuda}",
+                               f"--cuda-gpu-arch={config['gpu_arch']}", "-Wno-unknown-cuda-version",
+                               work / "gpu/vendor-matmul.cu", f"-L{cuda}/lib64", f"-Wl,-rpath,{cuda}/lib64",
+                               "-lcudart", "-lcublas", "-o", gpu_binary])
+                    case("vendor", name, "cublas-cuda", 1, gpu_binary, [], expected, gpu_reason)
+                    cases[-1]["check_args"] = ["verify"]
+
     if "uts" in config["suites"]:
         bots = Path(config["bots"]["path"])
         for mode in ("serial", "omp-tasks"):
