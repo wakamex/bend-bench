@@ -6,6 +6,8 @@ The 22 rows cover all 16 published workloads, with CUB added to the bitonic-sort
 
 `data.json` preserves times in milliseconds, source-report hashes and case identifiers where available. Complete-program figures are taken from correctness-passed JSON summaries with at least ten measured samples. Repeated-request figures are medians of the three process means in the archived reports. The bitonic-sort row adds CUB radix sort on the same 8,388,608 keys and output contract. That GPU cell comes from a separate run, preserved through its per-case source override and archived report hash; the other five cells retain their original measurements. The game-search row uses one matched CPU/GPU run; unmeasured cells are not backfilled across runs. HotSpot consistently uses CUDA pyramid height 1. The conventional one-thread column uses the baseline named in each section, which can be serial C/C++ rather than a one-thread OpenMP run.
 
+All sixteen published rows now have a conventional GPU comparison. Eleven cells use the September 21 [custom CUDA results](../../VENDOR_CUDA_COMPLETION.md); three use the September 20 [CUB, cuBLAS and cuDF results](../../VENDOR_GPU_LIBRARIES.md). Game of Life and bitonic-sort comparisons retain their earlier sources. Existing Bend and CPU measurements are unchanged. Per-case source overrides and hashes preserve these separate runs.
+
 Rebuild the HTML after editing the data or template:
 
 ```sh

@@ -1,0 +1,10 @@
+test_compile (test_vendor_custom_gpu.VendorCustomGPU.test_compile) ... skipped 'Opt-in CUDA compile checks without execution'
+test_native (test_vendor_custom_gpu.VendorCustomGPU.test_native) ... /code/bend-bench/runs/vendor-custom-check-i_7yzes4
+ok
+test_plan (test_vendor_custom_gpu.VendorCustomGPU.test_plan) ... ok
+test_terrain_wavefront_against_serial (test_vendor_custom_gpu.VendorCustomGPU.test_terrain_wavefront_against_serial) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 123.273s
+
+OK (skipped=1)

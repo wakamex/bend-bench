@@ -1,6 +1,6 @@
 {
   "title": "Bend benchmark scorecard",
-  "measurement_dates": "17–20 September 2026",
+  "measurement_dates": "17–21 September 2026",
   "hardware": "AMD Ryzen 9 3950X · NVIDIA RTX 3090",
   "bend_revision": "b9d1352c9f45632447f40a2e927355c92f2be58c",
   "columns": [
@@ -16,14 +16,14 @@
       "group": "Published workloads",
       "name": "Batched maze BFS",
       "detail": "Independent 32 × 32 mazes",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         4560.057916096412,
         328.21413059718907,
         527.5435069343075,
         4267.623825580813,
         288.55402499902993,
-        null
+        206.4914695220068
       ],
       "cases": [
         "vendor/bfs/bend/1",
@@ -31,24 +31,27 @@
         "vendor/bfs/bend-cuda/32",
         "vendor/bfs/serial-c/1",
         "vendor/bfs/openmp/16",
-        null
+        "vendor/bfs/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/bfs/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Edit distance",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / cuDF",
       "ms": [
         5865.410397062078,
         406.1890905722976,
         313.7726385612041,
         2617.0018184930086,
         183.14281455241144,
-        null
+        320.84485702216625
       ],
       "cases": [
         "vendor/editdist/bend/1",
@@ -56,11 +59,14 @@
         "vendor/editdist/bend-cuda/32",
         "vendor/editdist/serial-c/1",
         "vendor/editdist/openmp/16",
-        null
+        "vendor/editdist/cudf-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_GPU_LIBRARIES.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/editdist/cudf-cuda/1": "runs/182bf42ec81e810fd617/summary.json"
+      }
     },
     {
       "group": "Published workloads",
@@ -91,14 +97,14 @@
       "group": "Published workloads",
       "name": "Independent hash tables",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         3778.3419210463762,
         343.66512997075915,
         940.4313480481505,
         1021.0577874677256,
         92.90597809012979,
-        null
+        307.7936429763213
       ],
       "cases": [
         "vendor/hashmap/bend/1",
@@ -106,24 +112,27 @@
         "vendor/hashmap/bend-cuda/32",
         "vendor/hashmap/serial-c/1",
         "vendor/hashmap/openmp/16",
-        null
+        "vendor/hashmap/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/hashmap/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "K-means",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         3654.953998629935,
         472.1679760841653,
         530.9800410177559,
         3191.7418765369803,
         420.26987695135176,
-        null
+        254.86047845333815
       ],
       "cases": [
         "vendor/kmeans/bend/1",
@@ -131,24 +140,27 @@
         "vendor/kmeans/bend-cuda/32",
         "vendor/kmeans/serial-c/1",
         "vendor/kmeans/openmp/16",
-        null
+        "vendor/kmeans/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/kmeans/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Lexer",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         4542.112331953831,
         387.358769075945,
         1205.3021915489808,
         1544.646285357885,
         149.65578401461244,
-        null
+        192.93321343138814
       ],
       "cases": [
         "vendor/lexer/bend/1",
@@ -156,24 +168,27 @@
         "vendor/lexer/bend-cuda/32",
         "vendor/lexer/serial-c/1",
         "vendor/lexer/openmp/16",
-        null
+        "vendor/lexer/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/lexer/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Mandelbrot",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         6023.355340003036,
         442.06633244175464,
         159.21052847988904,
         4627.950739581138,
         333.41612259391695,
-        null
+        186.65504991076887
       ],
       "cases": [
         "vendor/mandelbrot/bend/1",
@@ -181,24 +196,27 @@
         "vendor/mandelbrot/bend-cuda/32",
         "vendor/mandelbrot/serial-c/1",
         "vendor/mandelbrot/openmp/16",
-        null
+        "vendor/mandelbrot/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/mandelbrot/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Merkle tree and proof",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         6831.146984477527,
         504.5944970333949,
         141.86603506095707,
         5009.62034764234,
         180.02727744169533,
-        null
+        191.45802489947528
       ],
       "cases": [
         "vendor/merkle/bend/1",
@@ -206,24 +224,27 @@
         "vendor/merkle/bend-cuda/32",
         "vendor/merkle/serial-c/1",
         "vendor/merkle/openmp/16",
-        null
+        "vendor/merkle/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/merkle/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Three-body ensemble",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         8635.380806401372,
         600.4841709509492,
         126.69681699480861,
         7364.00388693437,
         500.4423364298418,
-        null
+        188.58818453736603
       ],
       "cases": [
         "vendor/nbody/bend/1",
@@ -231,24 +252,27 @@
         "vendor/nbody/bend-cuda/32",
         "vendor/nbody/serial-c/1",
         "vendor/nbody/openmp/16",
-        null
+        "vendor/nbody/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/nbody/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "N-Queens",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         11761.274998425506,
         833.6754555348307,
         1176.1818615486845,
         4786.313997930847,
         343.23925350327045,
-        null
+        582.2492599254474
       ],
       "cases": [
         "vendor/queens/bend/1",
@@ -256,24 +280,27 @@
         "vendor/queens/bend-cuda/32",
         "vendor/queens/serial-c/1",
         "vendor/queens/openmp/16",
-        null
+        "vendor/queens/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/queens/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Ray tracing",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         9623.470415477641,
         667.2457789536566,
         959.7043599933386,
         8090.035617584363,
         531.6889579407871,
-        null
+        193.82634398061782
       ],
       "cases": [
         "vendor/raytrace/bend/1",
@@ -281,24 +308,27 @@
         "vendor/raytrace/bend-cuda/32",
         "vendor/raytrace/serial-c/1",
         "vendor/raytrace/openmp/16",
-        null
+        "vendor/raytrace/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/raytrace/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Symbolic regression",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         5186.741447425447,
         363.70939889457077,
         653.2062974292785,
         4385.660122032277,
         302.96176206320524,
-        null
+        189.47952438611537
       ],
       "cases": [
         "vendor/symreg/bend/1",
@@ -306,24 +336,27 @@
         "vendor/symreg/bend-cuda/32",
         "vendor/symreg/serial-c/1",
         "vendor/symreg/openmp/16",
-        null
+        "vendor/symreg/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/symreg/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Terrain",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / project CUDA",
       "ms": [
         3156.830084975809,
         238.50759002380073,
         271.47806144785136,
         2598.6640995834023,
         181.96323444135487,
-        null
+        197.4757080897689
       ],
       "cases": [
         "vendor/terrain/bend/1",
@@ -331,11 +364,14 @@
         "vendor/terrain/bend-cuda/32",
         "vendor/terrain/serial-c/1",
         "vendor/terrain/openmp/16",
-        null
+        "vendor/terrain/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_CUDA_COMPLETION.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/terrain/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
+      }
     },
     {
       "group": "Published workloads",
@@ -369,14 +405,14 @@
       "group": "Published workloads",
       "name": "Tree matrix multiplication",
       "detail": "Published input",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / cuBLAS",
       "ms": [
         4933.896861039102,
         461.57969848718494,
         410.89797008316964,
         5506.570488912985,
         528.8383244769648,
-        null
+        303.65532252471894
       ],
       "cases": [
         "vendor/tree-matmul/bend/1",
@@ -384,24 +420,27 @@
         "vendor/tree-matmul/bend-cuda/32",
         "vendor/tree-matmul/serial-c/1",
         "vendor/tree-matmul/openmp/16",
-        null
+        "vendor/tree-matmul/cublas-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_GPU_LIBRARIES.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/tree-matmul/cublas-cuda/1": "runs/182bf42ec81e810fd617/summary.json"
+      }
     },
     {
       "group": "Published workloads",
       "name": "Tree radix sort + deduplication",
       "detail": "4,194,304 24-bit keys",
-      "baseline": "Serial C / project OpenMP",
+      "baseline": "Serial C / project OpenMP / CUB",
       "ms": [
         5818.876933539286,
         801.14289408084,
         578.9034640183672,
         4596.105831558816,
         43.311405926942825,
-        null
+        196.8588640447706
       ],
       "cases": [
         "vendor/tree-radix/bend/1",
@@ -409,11 +448,14 @@
         "vendor/tree-radix/bend-cuda/32",
         "vendor/tree-radix/serial-c/1",
         "vendor/tree-radix/openmp/16",
-        null
+        "vendor/tree-radix/cub-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md",
+      "link": "../../VENDOR_GPU_LIBRARIES.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "case_sources": {
+        "vendor/tree-radix/cub-cuda/1": "runs/182bf42ec81e810fd617/summary.json"
+      }
     },
     {
       "group": "Irregular recursive search",
@@ -555,6 +597,8 @@
     "runs/6f09d7ec9215cbadd596/summary.json": "1fe56090cebb3a4b8c62b5332d9bbc9c311c6df1f3d9a82a608401fa3c028a2d",
     "runs/pricing-crossover-20260920/summary.jsonl": "245d057f4828959603c162a8640c8688e1036f2b89c6e73274021497e7ab0e28",
     "runs/mnk-sustained-20260918-160439/report.md": "d924404c40e1eae71ba3853873a387b8a24b0338203ec5bcdbdc3bf2d8a4a8ff",
-    "runs/summation-scaling-20260920/summary.json": "67d2ad36468ed9bd0516d0df2d8344888b76203f304eb2b0a7c820869d665c96"
+    "runs/summation-scaling-20260920/summary.json": "67d2ad36468ed9bd0516d0df2d8344888b76203f304eb2b0a7c820869d665c96",
+    "benchmarks/vendor-cuda-20260921/summary.json": "9892387d5f9ae6fa27813d7c4d63db8a19ebe74ff09c1aeb998e82c13cb858bb",
+    "runs/182bf42ec81e810fd617/summary.json": "3c3d2557033fceb69d3e93305b80e409a52193780b3c72c1471b152157e6066f"
   }
 }

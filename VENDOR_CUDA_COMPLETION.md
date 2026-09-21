@@ -1,53 +1,66 @@
-# Remaining published-workload CUDA baselines
+# Published-workload CUDA results
 
-Goal: add conventional CUDA comparisons for the eleven original workloads still missing one, preserving generated inputs, arithmetic and required outputs. Implementations and subsequent measured results are committed separately. No existing measurement is replaced by a compile-only result.
+CUDA finishes sooner on eight of the eleven newly implemented comparisons. Bend finishes sooner on Mandelbrot, Merkle trees and the three-body ensemble. The largest CUDA advantages are lexer at 6.2× and ray tracing at 5.0×. Every new implementation passed full-output checks on four inputs, followed by one warmup and ten measured executions of the published input on an RTX 3090.
 
-## Correctness validation, September 21
+These eleven comparisons, the [three GPU library adapters](VENDOR_GPU_LIBRARIES.md), Game of Life and CUB sorting fill the conventional GPU column for all sixteen published workloads in the [scorecard](benchmarks/summary/index.html).
 
-All 44 input configurations now pass exact output checks across the eleven CUDA adapters, including the full published inputs. Evidence is retained in `runs/vendor-custom-check-o_j0z6dz/`. The earlier v2 queue failed four checks in three-body simulation and ray tracing because the generated CUDA code used approximate square roots. Explicit correctly rounded square roots fix those checks without changing the source algorithms or accepting looser tolerances. The failed checks remain in `runs/vendor-custom-check-78512v4g/`; FMA and square-root compiler-flag counterfactuals are retained in `runs/vendor-fmad-audit-kde9cmif/` and `runs/vendor-sqrt-audit-pdkuhc_7/`.
+## Complete-program results
 
-The replacement timing request is `runs/vendor-cuda-validation-20260921-v3/request.json`. It repeats correctness checks before collecting ten measurements for each of the eleven new CUDA cases. Performance results remain pending. The implementation and compile-only records below describe earlier development stages.
+| Workload | Bend GPU, complete program | CUDA, complete program | Faster implementation | CUDA device sequence |
+|---|---:|---:|---|---:|
+| Mandelbrot | 0.159 s | 0.187 s | Bend 1.2× | 0.780 ms |
+| N-Queens | 1.176 s | 0.582 s | CUDA 2.0× | 367.002 ms |
+| Merkle tree and proof | 0.142 s | 0.191 s | Bend 1.3× | 2.313 ms |
+| Lexer | 1.205 s | 0.193 s | CUDA 6.2× | 4.988 ms |
+| K-means | 0.531 s | 0.255 s | CUDA 2.1× | 67.018 ms |
+| Independent hash tables | 0.940 s | 0.308 s | CUDA 3.1× | 123.705 ms |
+| Batched maze BFS | 0.528 s | 0.206 s | CUDA 2.6× | 16.111 ms |
+| Three-body ensemble | 0.127 s | 0.189 s | Bend 1.5× | 3.266 ms |
+| Ray tracing | 0.960 s | 0.194 s | CUDA 5.0× | 6.281 ms |
+| Terrain | 0.271 s | 0.197 s | CUDA 1.4× | 11.013 ms |
+| Symbolic regression | 0.653 s | 0.189 s | CUDA 3.4× | 1.994 ms |
 
-All eleven implementations compile and are committed separately. The regression suite passed 73 tests with eight expected skips before adding the queue tests; both package distributions build. The finite runner [validate_vendor_cuda.py](validate_vendor_cuda.py) reuses the existing 120-second idle-GPU admission gate, pins source/tool/test inputs, checks four input configurations per workload, and then measures only the eleven new CUDA cases. It retains failures and stops rather than retrying them. The full prepared report will also list unmeasured CPU and Bend configurations as pending; those are outside this queue's explicit selection.
+Bend measurements come from the September 17 run `64b53b136d7cfde4ed9e`; the new CUDA measurements come from September 21 run `d5ad0d88f32d6e50f6a7`. All eleven source hashes and output contracts match between those runs. Bend used 32 host threads and the CUDA adapters used one host thread on the same Ryzen 9 3950X / RTX 3090 machine. GPU lane counts are independent of those host-thread settings.
 
-The queue's systemd user unit is `bend-bench-vendor-cuda.service`. Follow it with `journalctl --user -u bend-bench-vendor-cuda.service -f`. Queue admission and results are saved under `runs/vendor-cuda-validation-20260921/`; completion requires `completed.json`, not merely successful compilation. Do not edit source, tests, tools or configuration while that request is queued or running. Existing unrelated GPU activity is left alone.
+Complete-program time includes startup, input generation, allocations, transfers, required results and cleanup. Several CUDA programs finish their device work in a few milliseconds but take around 0.19 seconds overall. Bend's complete-program wins above therefore do not establish faster GPU computation.
 
-| Workload | Implementation | GPU correctness | Ten measured repetitions |
-|---|---|---|---|
-| Mandelbrot | Compiles; pixel-parallel fixed-point escape counts and weighted histogram reduction | Pending idle GPU | Pending |
-| N-Queens | Compiles; split selected prefixes into smaller subtrees, iterative device search | Pending idle GPU | Pending |
-| Merkle tree | Compiles; parallel Speck leaves, stored levels, separate audit and proof verification | Pending idle GPU | Pending |
-| Lexer | Compiles; independent generated lines with ordered token folds and warp reductions | Pending idle GPU | Pending |
-| K-means | Compiles; cached points, parallel assignment and integer centroid reductions | Pending idle GPU | Pending |
-| Hash tables | Compiles; bounded open addressing with original logical bucket accounting | Pending idle GPU | Pending |
-| Batched maze BFS | Compiles; warp-per-maze bit frontiers with bounded batches | Pending idle GPU | Pending |
-| Three-body ensemble | Compiles; original arithmetic compiled for CUDA with independent system lanes | Pending idle GPU | Pending |
-| Ray tracing | Compiles; pixel-parallel original intersections, shading and reflections | Pending idle GPU | Pending |
-| Terrain | Compiles; exact Gauss-Seidel wavefronts and parallel weighted height fold | Pending idle GPU | Pending |
-| Symbolic regression | Compiles; warp-per-candidate evaluation, ordered tournament and hill climbing | Pending idle GPU | Pending |
+CUDA-event intervals appear separately as device-sequence time. Their boundaries follow each adapter's event markers: for example, N-Queens includes task uploads and result downloads, while maze BFS sums per-batch kernel intervals and excludes downloads. They are not uniformly kernel-only measurements; separate kernel profiling remains pending.
 
-The first Mandelbrot native check was refused by the GPU activity gate before compilation or execution because an unapproved GPU process was active. No workload was stopped or exempted. A separate compile-only check passed, with evidence in `runs/vendor-custom-build-i7n433kf/build.jsonl`. The regression suite passed 71 tests with seven expected skips. Mandelbrot verification compares every escape count with the pinned C implementation, all histogram statistics, and the final original checksum, including the published 4096 × 4096 input. These GPU checks remain pending.
+## Implementations and correctness
 
-N-Queens compilation passed in `runs/vendor-queens-build-l8ftajs6/build.jsonl`; focused adapter tests passed with native GPU checks skipped. The host expands each legal four-row prefix by three rows, accounting for every visited node, then the GPU searches those independent subtrees with explicit stacks. Verification compares both solution and node counts for every selected prefix with the original recursive C search. Prefix expansion, transfers and final host aggregation remain in complete-process timing.
+All eleven CUDA adapters are project-written. They retain the published inputs and required outputs while using conventional GPU layouts and scheduling.
 
-Merkle compilation passed in `runs/vendor-merkle-build-zhychlbb/build.jsonl`. The adapter builds flat stored tree levels, then performs the original audit recurrence in a separate pass and verifies a proof using stored sibling hashes. Correctness checks compare every leaf, internal hash and audit value with CPU reference calculations, plus the original proof generator and verifier. The compiler reports the pinned upstream renamed `main` has no explicit return; that unused reference entry point is never called. Focused adapter planning tests passed; GPU checks remain pending.
+| Workload | CUDA implementation and full-output check |
+|---|---|
+| Mandelbrot | Independent fixed-point escape calculations; compare every pixel's escape count and the weighted histogram. |
+| N-Queens | Expand selected four-row prefixes by three more rows, then search subtrees with device stacks; compare both solution and visited-node counts for every original prefix. |
+| Merkle tree | Parallel Speck leaves and stored tree levels, followed by audit and proof calculations; compare leaves, internal hashes, audits and proof results. |
+| Lexer | One lane per generated line, with ordered token folding; compare every line's result. |
+| K-means | Cache generated points and reduce integer cluster statistics; compare every centroid at every iteration and preserve tie and empty-cluster rules. |
+| Hash tables | Open addressing with separate accounting for the original logical buckets; compare bucket lengths, lookups and per-table checksums. |
+| Batched maze BFS | One warp per maze with bitset frontiers; compare every cell's distance, including unreachable cells. |
+| Three-body ensemble | Original arithmetic per independent system, with correctly rounded square roots; compare every system's energy bucket and position digest. |
+| Ray tracing | Original intersections, shading and reflections per pixel, with correctly rounded square roots; compare every quantized pixel. |
+| Terrain | Diagonal wavefronts preserve the original in-place sweeps; compare complete tile output against the serial recurrence. |
+| Symbolic regression | Warp-per-candidate evaluation with ordered tournament and hill climbing; compare candidates, tournament results and mutations. |
 
-Lexer compilation passed in `runs/vendor-lexer-build-ddlwrh_8/build.jsonl`, with the same unused-reference-entry warning. Each lane generates and scans a complete line, preserving identifier hashing, decimal parsing and token order; warp sums combine the independent line results. Verification checks every line's result against the upstream generator and scanner, including all 2^23 published lines. Focused planning tests passed; native correctness and timing remain pending.
+The pinned Bend source is `b9d1352c9f45632447f40a2e927355c92f2be58c`. Builds use Clang 22, CUDA 13.1, `-O3`, native CPU architecture flags, `sm_86` and disabled floating-point contraction. Exact commands, contract hashes and raw measurements remain in the run archive. The shared execution lock and GPU activity gates were enabled; the configured resident transcription worker is permitted by the existing policy.
 
-K-means and all four preceding adapters compiled in `runs/vendor-custom-build-yn1k9j3a/build.jsonl`. The K-means adapter caches the generated points, computes per-block integer sums for eight clusters, and updates all 64 starts over 20 iterations. It retains integer division, lower-index distance ties and unchanged empty clusters. Verification checks the generated point vector and every centroid at every iteration against the original C tree-based calculation. The shared custom-adapter tests now cover every configured workload and provide separate opt-in compilation and GPU-execution checks.
+## Validation and saved evidence
 
-Hash tables and all preceding adapters compiled in `runs/vendor-custom-build-5zd9yrym/build.jsonl`. The CUDA implementation uses 32,768 open-addressed slots for at most 16,384 keys per table, preserving deduplication with atomic insertion. Separate counters retain the original 4,096 logical bucket lengths rather than substituting the CUDA table's physical layout. Verification checks every logical bucket, hit count and per-table checksum against the pinned chain-table reference, including empty and single-key inputs. GPU execution remains pending.
+The completed queue passed 44 boundary/full-input native checks, then eleven harness checks, eleven excluded warmups and 110 measurements. The [saved summary](benchmarks/vendor-cuda-20260921/summary.json), [individual samples](benchmarks/vendor-cuda-20260921/samples.jsonl), [native-check log](benchmarks/vendor-cuda-20260921/native-checks.log) and [completion marker](benchmarks/vendor-cuda-20260921/completed.json) are included in the repository. Only the eleven new CUDA cases were measured; other configurations in the prepared summary remain pending and are not substituted for historical measurements.
 
-Batched maze BFS uses one warp per independent 32 × 32 maze, with row-bitset frontiers and bounded batches of at most 4,096 mazes. The required ordered distance checksum is retained. Verification compares every cell's distance, including unreachable cells, against the original queue traversal for every maze; this is separate from the existing shared-graph BFS benchmark. GPU correctness and timing remain pending.
+The earlier v2 queue failed four checks in three-body simulation and ray tracing because the generated code used approximate square roots. Disabling assembler FMA did not fix them, and LLVM precision flags still emitted approximate square roots. Explicit `__fsqrt_rn` produced correctly rounded instructions and passed every check without loosening tolerances. The fix is commit `75256b3`.
 
-Three-body simulation and all preceding adapters compiled in `runs/vendor-custom-build-l8bopt2s/build.jsonl`. Staging adds device function qualifiers and a namespace to the pinned arithmetic without rewriting its expressions; the host compiles the original reference separately in the same executable. Floating-point contraction remains disabled. Verification compares each system's energy bucket and position digest and all histogram totals at zero, one, ten and 300 steps. GPU numerical agreement is a pending gate, not inferred from compilation.
+Failed evidence remains in `runs/vendor-custom-check-78512v4g/`, with counterfactual builds in `runs/vendor-fmad-audit-kde9cmif/` and `runs/vendor-sqrt-audit-pdkuhc_7/`. The corrected standalone native run is `runs/vendor-custom-check-o_j0z6dz/`; the final queue repeated it in `runs/vendor-custom-check-i_7yzes4/`. No failed samples were erased or pooled with the successful run.
 
-Ray tracing retains the original sphere intersections, nearest-hit order, shadows, depth-four reflections and four subpixel samples, with independent pixels mapped to CUDA lanes. Staging changes function qualifiers and places the nine-sphere scene in device constant memory; tests reverse these annotations and compare the remaining source exactly with upstream. Verification checks every quantized pixel against the host reference and the published image checksum. GPU agreement remains pending.
+## Reproduction
 
-Terrain uses 64-thread diagonal wavefronts within each tile, keeping the five original in-place sweeps and their descending pass salts. The additive height fold is expanded into an exact wrapping-U32 weighted sum; the 64-bin XOR histogram fold stays ordered. A CPU counterfactual checks diagonal execution and weighted folding against the actual pinned serial implementation across 256 tile positions and zero through five sweeps. GPU verification compares every final height and tile result. Native GPU checks and timings remain pending.
+Adapt local dependency paths in [vendor-gpu-custom.toml](vendor-gpu-custom.toml). To queue only these eleven CUDA cases using the existing idle-GPU gate:
 
-All eleven adapters compiled in `runs/vendor-custom-build-2c5jak6b/build.jsonl`. Symbolic regression builds each fixed-depth expression's seed tree in shared memory, evaluates independent input points across a warp, then performs the original right-biased tournament and strict-improvement hill climb. Verification checks every candidate and tournament node against the original AST evaluator, plus every hill-climb candidate and the final result. Zero-point inputs exercise tournament ties; small cases also check the original recursive population traversal. Native GPU execution remains pending.
+```sh
+uv run --locked python validate_vendor_cuda.py --request runs/vendor-cuda-new/request.json --enqueue
+uv run --locked python validate_vendor_cuda.py --request runs/vendor-cuda-new/request.json
+```
 
-Use [vendor-gpu-custom.toml](vendor-gpu-custom.toml) for the implemented additions. Each new workload must first pass small and published-input output checks; collect one excluded warmup and ten complete-process measurements only after correctness passes. Device-sequence timings are separate from process wall times. Preserve all failed attempts. Check the existing execution lock, blocked services and GPU activity policy before every run, and never edit inputs while a validation using them is queued or active.
-
-Keep each implementation attempt bounded: compile and validate a minimal correct mapping before tuning; after two failures at the same gate, inspect the semantic or tooling premise instead of adding another workaround. Do not substitute a different numerical task to fill a cell. If source semantics or hardware requires a scope change, record the evidence and request direction.
+The runner pins inputs, waits for 120 seconds of sampled GPU inactivity, checks correctness and records ten measurements per case. It preserves failures and stops for inspection. Do not edit pinned inputs while a request is queued or running. The completed local user service was `bend-bench-vendor-cuda.service`, request `runs/vendor-cuda-validation-20260921-v3/request.json`.

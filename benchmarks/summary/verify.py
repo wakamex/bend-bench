@@ -87,4 +87,8 @@ uts = [row for row in data['rows'] if row['group'] == 'Irregular recursive searc
 assert len(uts) == 1 and uts[0]['name'] == 'Unbalanced Tree Search' and uts[0]['cases'][0] == 'uts/tiny/bend/1'
 assert len(data['rows']) == 21 + len(summation)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
+published = [row for row in data['rows'] if row['group'] == 'Published workloads']
+assert len(published) == 16 and all(row['ms'][5] is not None for row in published)
+custom = [row for row in published if row.get('case_sources', {}).get(row['cases'][5]) == 'benchmarks/vendor-cuda-20260921/summary.json']
+assert len(custom) == 11
 print(f'Verified {len(data["rows"])} rows, source hashes, correctness gates and repeated-request medians.')

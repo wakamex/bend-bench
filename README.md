@@ -20,6 +20,8 @@ On Bend’s 16 published workloads, moving from one to 16 CPU threads gives Bend
 
 For sorting, we also compare against NVIDIA’s CUB library, which finishes 4.9× faster than Bend GPU. [GPU sorting results](runs/e930e5a1b9c488a9f8ba/report.md).
 
+All 16 published workloads now have conventional GPU comparisons. Among the eleven project-written CUDA additions, CUDA finishes sooner on eight, led by lexer at 6.2× and ray tracing at 5.0×. Bend finishes the complete program sooner on Mandelbrot, Merkle trees and three-body simulation. [GPU results](VENDOR_CUDA_COMPLETION.md), [full scorecard](benchmarks/summary/index.html).
+
 For summation, Bend is faster below about 1 billion items, due to faster startup. CUB performs the calculation itself about 280× faster. [Summation results](/code/bend-bench/runs/reduction-crossover-20260920/report.md).
   
 Option pricing on an RTX 3090 is 68× faster than on 16 CPU threads of a 3950x. Our CUDA implementation is another 7.2× faster than Bend GPU. [Pricing results](/code/bend-bench/PRICING_SUSTAINED.md).
