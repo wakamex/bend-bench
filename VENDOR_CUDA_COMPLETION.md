@@ -2,6 +2,10 @@
 
 Goal: add conventional CUDA comparisons for the eleven original workloads still missing one, preserving generated inputs, arithmetic and required outputs. Implementations and subsequent measured results are committed separately. No existing measurement is replaced by a compile-only result.
 
+All eleven implementations compile and are committed separately. The regression suite passed 73 tests with eight expected skips before adding the queue tests; both package distributions build. The finite runner [validate_vendor_cuda.py](validate_vendor_cuda.py) reuses the existing 120-second idle-GPU admission gate, pins source/tool/test inputs, checks four input configurations per workload, and then measures only the eleven new CUDA cases. It retains failures and stops rather than retrying them. The full prepared report will also list unmeasured CPU and Bend configurations as pending; those are outside this queue's explicit selection.
+
+The queue's systemd user unit is `bend-bench-vendor-cuda.service`. Follow it with `journalctl --user -u bend-bench-vendor-cuda.service -f`. Queue admission and results are saved under `runs/vendor-cuda-validation-20260921/`; completion requires `completed.json`, not merely successful compilation. Do not edit source, tests, tools or configuration while that request is queued or running. Existing unrelated GPU activity is left alone.
+
 | Workload | Implementation | GPU correctness | Ten measured repetitions |
 |---|---|---|---|
 | Mandelbrot | Compiles; pixel-parallel fixed-point escape counts and weighted histogram reduction | Pending idle GPU | Pending |
