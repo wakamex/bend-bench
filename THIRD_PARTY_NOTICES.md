@@ -26,6 +26,8 @@ Relevant papers credited by the suite are Che et al., “Rodinia: A Benchmark Su
 
 Copyright 2026 HigherOrderCO.
 
+The custom published-workload CUDA adapters under `src/bend_bench/assets/gpu/vendor-*.cu` adapt Bend's generators, arithmetic and result contracts, with Apache-2.0 applying to upstream-derived portions. They include pinned upstream C references at build time for correctness checks; the source checkout remains unchanged.
+
 The baseline assets under `src/bend_bench/assets/baselines/` adapt the algorithms, arithmetic, output contracts and structure of Bend's runtime benchmarks. Bend source: https://github.com/bendlang/bend, reference commit `b9d1352c9f45632447f40a2e927355c92f2be58c`, directory `bench/runtime`. Bend distributes those sources under Apache-2.0; the license is included in `licenses/Apache-2.0.txt`. Retain that license for upstream-derived portions of the assets and generated benchmark code.
 
 Local changes add OpenMP loops, reductions and thread-local arenas; conventional parallel sorting; stored-tree Merkle proof extraction; CUDA Game of Life kernels; timing instrumentation; and build-time wrapper generation. Upstream sources are read from a separately pinned checkout and remain unchanged. No upstream NOTICE file was present in the captured repository.
