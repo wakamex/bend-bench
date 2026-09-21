@@ -143,7 +143,7 @@ def load_config(path):
                "cuda", "gpu_heap", "gpu_arch", "uts_inputs", "uts_cutoffs", "blocked_services",
                "bend", "bots", "cccl", "rodinia", "gpu_depths", "hotspot_sizes", "hotspot_steps",
                "hotspot_pyramids", "tools", "vendor", "require_idle_gpu", "gpu_resident",
-               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu"}
+               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu", "cudf"}
     if unknown := config.keys() - allowed:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     if config.get("schema") != 1:
@@ -167,12 +167,19 @@ def load_config(path):
         raise ValueError("Unknown or missing suite")
     config.setdefault("vendor_gpu", [])
     selected_gpu = config["vendor_gpu"]
-    if (not isinstance(selected_gpu, list) or any(x not in {"tree-radix", "tree-matmul"} for x in selected_gpu)
+    if (not isinstance(selected_gpu, list) or any(x not in {"tree-radix", "tree-matmul", "editdist"} for x in selected_gpu)
             or len(set(selected_gpu)) != len(selected_gpu)):
-        raise ValueError("vendor_gpu must select unique supported workloads: tree-radix, tree-matmul")
+        raise ValueError("vendor_gpu must select unique supported workloads: tree-radix, tree-matmul, editdist")
     if selected_gpu and ("vendor" not in config["suites"] or not config.get("cuda")
                          or not set(selected_gpu) <= set(config.get("vendor", selected_gpu))):
         raise ValueError("vendor_gpu requires CUDA and matching vendor workloads")
+    if "editdist" in selected_gpu or "cudf" in config:
+        spec = config.get("cudf", {})
+        if (set(spec) != {"path", "version", "commit", "lock"}
+                or not re.fullmatch(r"[0-9a-f]{40}", spec.get("commit", ""))):
+            raise ValueError("cudf requires wheel site-packages path, version, source commit and uv lock path")
+        for key in ("path", "lock"):
+            spec[key] = str((path.parent / spec[key]).resolve())
     if "nqueens" in config["suites"]:
         config.setdefault("queens_sizes", [8, 12, 14])
         if (not config["queens_sizes"] or any(type(n) is not int or n not in {4, 8, 12, 14} for n in config["queens_sizes"])
@@ -264,6 +271,16 @@ def load_config(path):
 
 def provenance(config):
     sources = {key: repository(config[key]) for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu") if key in config}
+    if "cudf" in config:
+        spec = config["cudf"]
+        root = Path(spec["path"])
+        if ((root / "libcudf/VERSION").read_text().strip() != spec["version"]
+                or (root / "libcudf/GIT_COMMIT").read_text().strip() != spec["commit"]):
+            raise ValueError("Installed libcudf version/source commit does not match configuration")
+        # Include wheel headers, shared libraries and distribution metadata; exclude interpreter caches.
+        hashes = {str(p.relative_to(root)): hash_file(p) for p in sorted(root.rglob("*"))
+                  if p.is_file() and "__pycache__" not in p.parts}
+        sources["cudf"] = {**spec, "files": hashes, "lock_sha256": hash_file(spec["lock"]), "patch": ""}
     if "rodinia" in config:
         spec = config["rodinia"]
         if hash_file(spec["archive"]) != spec["sha256"]:

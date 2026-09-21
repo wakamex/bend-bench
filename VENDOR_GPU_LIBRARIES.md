@@ -16,7 +16,21 @@ Native correctness passed for 4 × 4, 8 × 8, 32 × 32 and the full published 12
 
 The event interval covers GPU generation, GEMM and Freivalds/checksum kernels. Complete-process timing additionally includes library startup, allocations, result transfers and cleanup. Full CPU multiplication is a correctness-stage check and is excluded from normal timed executions. The harness hashes cuBLAS and cuBLASLt along with its existing toolkit and linked-library evidence.
 
+## cuDF edit distance
+
+The native C++ adapter uses `nvtext::edit_distance` for the published 32,768 pairs of 256-symbol sequences. It reuses the pinned upstream C sequence generator and maps symbols 0–3 to ASCII A–D, preserving every edit distance. String offsets and characters are uploaded as cuDF column views. Results return to the host for the original wrapping-U32 checksum. Input generation, column construction, transfers, library initialization and cleanup remain inside complete-process timing.
+
+The correctness stage checks every distance against the original rolling-row C dynamic program. Native checks passed for one, 64 and all 32,768 pairs; the full checksum matches the published pin. CUDA events span uploads, library execution and result download, so this interval is a device sequence, not kernel-only time. Performance remains unmeasured.
+
+The optional dependency environment pins libcudf/librmm 26.8.0 and all resolved wheel hashes. Its libcudf source revision is `ff5b362d7c06ae5837fd7a7337e2ae20895f324d`, distinct from the development revision inspected during the feasibility audit. Preparation records the installed headers, libraries, distribution metadata and lock hash and verifies the declared libcudf revision. Wheel libraries are linked explicitly so execution resolves their transitive dependencies without changing the shell's library path. Initial failed header-compilation and library-loading checks are retained alongside successful development checks.
+
 ## Reproduction
+
+Install the optional cuDF C++ dependency from its separate locked environment. Python/uv supplies the binary distribution; the measured executable is native C++ and does not start Python.
+
+```sh
+uv sync --locked --project dependencies/cudf
+```
 
 Adapt pinned source/tool paths and the approved resident-service cgroup to the target machine. The supplied configuration retains the shared execution lock, blocked-service checks and GPU activity monitoring.
 
@@ -26,7 +40,7 @@ uv run --locked bend-bench check vendor-gpu-libraries.toml
 uv run --locked bend-bench run vendor-gpu-libraries.toml
 ```
 
-Opt-in native development checks retain build and execution logs under `runs/vendor-gpu-check-*/checks.jsonl` and `runs/vendor-matmul-check-*/checks.jsonl`:
+Opt-in native development checks retain build and execution logs under `runs/vendor-gpu-check-*/checks.jsonl`, `runs/vendor-matmul-check-*/checks.jsonl` and `runs/vendor-editdist-check-*/checks.jsonl`:
 
 ```sh
 BEND_BENCH_VENDOR_GPU_TEST=1 uv run --locked python -m unittest discover -s tests -p test_vendor_gpu.py -v

@@ -24,6 +24,14 @@ class VendorGPU(unittest.TestCase):
             self.assertIn("-O3", command)
             self.assertIn("--cuda-gpu-arch=sm_86", command)
 
+    def test_installed_cudf_identity(self):
+        config = load_config(ROOT / "vendor-gpu-libraries.toml")
+        prefix = Path(config["cudf"]["path"]) / "libcudf"
+        if not prefix.exists():
+            self.skipTest("Optional cuDF wheel environment unavailable")
+        self.assertEqual((prefix / "VERSION").read_text().strip(), config["cudf"]["version"])
+        self.assertEqual((prefix / "GIT_COMMIT").read_text().strip(), config["cudf"]["commit"])
+
     def test_config_rejects_invalid_selection(self):
         original = (ROOT / "vendor-gpu-libraries.toml").read_text()
         for value in ('["unknown"]', '["tree-radix", "tree-radix"]'):
@@ -86,3 +94,25 @@ class VendorGPU(unittest.TestCase):
                     append(folder / "checks.jsonl", ref)
                     self.assertEqual(ref["returncode"], 0, ref["stderr"])
                     self.assertEqual(result["stdout"], ref["stdout"])
+
+    @unittest.skipUnless(os.environ.get("BEND_BENCH_VENDOR_GPU_TEST") == "1", "Opt-in real GPU correctness")
+    def test_native_editdist(self):
+        config = load_config(ROOT / "vendor-gpu-libraries.toml")
+        with exclusive(config):
+            idle_gpu(config)
+            folder = Path(tempfile.mkdtemp(prefix="vendor-editdist-check-", dir=ROOT / "runs"))
+            stage(config, folder)
+            builds, cases = plan(config, folder)
+            case = next(c for c in cases if c["implementation"] == "cudf-cuda")
+            command = next(b for b in builds if any(str(x).endswith("vendor-editdist.cpp") for x in b))
+            result = execute(command, timeout=180)
+            append(folder / "checks.jsonl", result)
+            self.assertEqual(result["returncode"], 0, result["stderr"])
+            for depth in (0, 6, 15):
+                result = execute([*case["command"], "verify", str(depth)], timeout=180, gpu_policy=config)
+                append(folder / "checks.jsonl", result)
+                self.assertEqual(result["returncode"], 0, result["stderr"])
+                self.assertNotIn("contention_error", result)
+                self.assertIn("FULL_OUTPUT_VERIFIED=", result["stderr"])
+                if depth == 15:
+                    self.assertTrue(correct(case, result), result)

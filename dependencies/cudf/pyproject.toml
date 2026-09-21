@@ -1,0 +1,5 @@
+[project]
+name = "bend-bench-libcudf-dependency"
+version = "0.0.0"
+requires-python = ">=3.13,<3.14"
+dependencies = ["libcudf-cu13==26.8.0", "librmm-cu13==26.8.0"]

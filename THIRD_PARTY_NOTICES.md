@@ -2,6 +2,10 @@
 
 The bend-bench harness and original contributions are MIT-licensed; see LICENSE. This does not replace the licenses of upstream code used by benchmark adapters or generated programs.
 
+## Published-workload GPU libraries
+
+The optional adapters call separately installed NVIDIA CUB, cuBLAS and cuDF libraries. The radix and matrix generators implement the pinned Bend workload contracts; the edit-distance adapter includes the upstream C generator and correctness oracle at build time. Existing Bend attribution below applies to that included source. cuDF and RMM are Apache-2.0 dependencies supplied through the locked optional environment in `dependencies/cudf`; their wheel distributions retain their own licenses and those of bundled dependencies. cuBLAS is distributed under NVIDIA's applicable SDK license. This repository does not bundle these libraries or relicense generated binaries.
+
 ## Application comparisons
 
 The packaged N-Queens Bend port and C++ bit-mask baseline are original evaluation code, MIT-licensed. They implement the BOTS N-Queens problem and known solution counts without copying the BOTS array-based solver.

@@ -243,6 +243,23 @@ def plan(config, work):
                     case("vendor", name, "cublas-cuda", 1, gpu_binary, [], expected, gpu_reason)
                     cases[-1]["check_args"] = ["verify"]
 
+                if name == "editdist" and name in config.get("vendor_gpu", []):
+                    prefix = Path(config["cudf"]["path"])
+                    gpu_binary = work / "build/editdist-cudf"
+                    includes = [prefix / "libcudf/include", prefix / "libcudf/include/rapids",
+                                prefix / "librmm/include", prefix / "rapids_logger/include", cuda / "include", source]
+                    libraries = [prefix / p for p in ("libcudf/lib64", "librmm/lib64", "rapids_logger/lib64",
+                                 "libkvikio/lib64", "libkvikio_cu13.libs", "nvidia/libnvcomp/lib64", "nvidia/cu13/lib")]
+                    libraries.append(cuda / "lib64")
+                    if not gpu_reason:
+                        build([cxx, "-std=c++20", *flags, *[f"-I{p}" for p in includes],
+                               work / "gpu/vendor-editdist.cpp", *[f"-L{p}" for p in libraries],
+                               "-Wl,--disable-new-dtags", "-Wl,-rpath," + ":".join(map(str, libraries)),
+                               "-Wl,--no-as-needed", "-lcudf", "-lrmm", "-lrapids_logger", "-lkvikio",
+                               "-l:libnvcomp.so.5", "-lcudart", "-Wl,--as-needed", "-o", gpu_binary])
+                    case("vendor", name, "cudf-cuda", 1, gpu_binary, [], expected, gpu_reason)
+                    cases[-1]["check_args"] = ["verify"]
+
     if "uts" in config["suites"]:
         bots = Path(config["bots"]["path"])
         for mode in ("serial", "omp-tasks"):
