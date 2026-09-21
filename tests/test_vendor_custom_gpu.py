@@ -17,6 +17,7 @@ INPUTS = {
     "kmeans": [(6, 6), (8, 0), (12, 2), (19, 6)],
     "hashmap": [(0, 0), (0, 1), (3, 257), (11, 16384)],
     "bfs": [(0,), (2,), (8,), (19,)],
+    "nbody": [(0, 0), (6, 1), (10, 10), (17, 300)],
 }
 
 
@@ -27,6 +28,11 @@ class VendorCustomGPU(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             stage(config, Path(tmp))
             builds, cases = plan(config, tmp)
+            import re
+            original = (Path(config["bend"]["path"]) / "bench/runtime/nbody/main.c").read_text()
+            original = re.sub(r"^#include[^\n]*\n", "", original.split("int main(void)")[0], flags=re.M)
+            device = (Path(tmp) / "gpu/vendor-nbody-device.cuh").read_text()
+            self.assertEqual(device.removeprefix("namespace gpu {\n").removesuffix("}\n").replace("__device__ static ", "static "), original)
             custom = [c for c in cases if c["implementation"] == "conventional-cuda"]
             self.assertEqual({c["workload"] for c in custom}, set(INPUTS))
             for case in custom:
