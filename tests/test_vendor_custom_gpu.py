@@ -1,5 +1,6 @@
 """Custom CUDA adapters preserve the pinned original workload contracts."""
 import os
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -18,6 +19,7 @@ INPUTS = {
     "hashmap": [(0, 0), (0, 1), (3, 257), (11, 16384)],
     "bfs": [(0,), (2,), (8,), (19,)],
     "nbody": [(0, 0), (6, 1), (10, 10), (17, 300)],
+    "raytrace": [(0, 2), (6, 80), (8, 600), (12, 6000)],
 }
 
 
@@ -28,11 +30,12 @@ class VendorCustomGPU(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             stage(config, Path(tmp))
             builds, cases = plan(config, tmp)
-            import re
-            original = (Path(config["bend"]["path"]) / "bench/runtime/nbody/main.c").read_text()
-            original = re.sub(r"^#include[^\n]*\n", "", original.split("int main(void)")[0], flags=re.M)
-            device = (Path(tmp) / "gpu/vendor-nbody-device.cuh").read_text()
-            self.assertEqual(device.removeprefix("namespace gpu {\n").removesuffix("}\n").replace("__device__ static ", "static "), original)
+            for name in ("nbody", "raytrace"):
+                original = (Path(config["bend"]["path"]) / f"bench/runtime/{name}/main.c").read_text()
+                original = re.sub(r"^#include[^\n]*\n", "", original.split("int main(void)")[0], flags=re.M)
+                device = (Path(tmp) / f"gpu/vendor-{name}-device.cuh").read_text()
+                restored = device.removeprefix("namespace gpu {\n").removesuffix("}\n").replace("__device__ static ", "static ")
+                self.assertEqual(restored.replace("__device__ __constant__ const Sph SP[NS]", "static const Sph SP[NS]"), original)
             custom = [c for c in cases if c["implementation"] == "conventional-cuda"]
             self.assertEqual({c["workload"] for c in custom}, set(INPUTS))
             for case in custom:
@@ -81,6 +84,8 @@ class VendorCustomGPU(unittest.TestCase):
                         self.assertIn("FULL_OUTPUT_VERIFIED=", result["stderr"])
                         if name == "mandelbrot" and args == (2, 7):
                             self.assertEqual(result["stdout"].strip(), "887240761")
+                        if name == "raytrace" and args == (6, 80):
+                            self.assertEqual(result["stdout"].strip(), "402971")
                         if index == len(INPUTS[name]) - 1:
                             self.assertTrue(correct(case, result), result)
             print(folder, flush=True)

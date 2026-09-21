@@ -12,7 +12,7 @@ Goal: add conventional CUDA comparisons for the eleven original workloads still 
 | Hash tables | Compiles; bounded open addressing with original logical bucket accounting | Pending idle GPU | Pending |
 | Batched maze BFS | Compiles; warp-per-maze bit frontiers with bounded batches | Pending idle GPU | Pending |
 | Three-body ensemble | Compiles; original arithmetic compiled for CUDA with independent system lanes | Pending idle GPU | Pending |
-| Ray tracing | Pending | Pending | Pending |
+| Ray tracing | Compiles; pixel-parallel original intersections, shading and reflections | Pending idle GPU | Pending |
 | Terrain | Pending | Pending | Pending |
 | Symbolic regression | Pending | Pending | Pending |
 
@@ -31,6 +31,8 @@ Hash tables and all preceding adapters compiled in `runs/vendor-custom-build-5zd
 Batched maze BFS uses one warp per independent 32 × 32 maze, with row-bitset frontiers and bounded batches of at most 4,096 mazes. The required ordered distance checksum is retained. Verification compares every cell's distance, including unreachable cells, against the original queue traversal for every maze; this is separate from the existing shared-graph BFS benchmark. GPU correctness and timing remain pending.
 
 Three-body simulation and all preceding adapters compiled in `runs/vendor-custom-build-l8bopt2s/build.jsonl`. Staging adds device function qualifiers and a namespace to the pinned arithmetic without rewriting its expressions; the host compiles the original reference separately in the same executable. Floating-point contraction remains disabled. Verification compares each system's energy bucket and position digest and all histogram totals at zero, one, ten and 300 steps. GPU numerical agreement is a pending gate, not inferred from compilation.
+
+Ray tracing retains the original sphere intersections, nearest-hit order, shadows, depth-four reflections and four subpixel samples, with independent pixels mapped to CUDA lanes. Staging changes function qualifiers and places the nine-sphere scene in device constant memory; tests reverse these annotations and compare the remaining source exactly with upstream. Verification checks every quantized pixel against the host reference and the published image checksum. GPU agreement remains pending.
 
 Use [vendor-gpu-custom.toml](vendor-gpu-custom.toml) for the implemented additions. Each new workload must first pass small and published-input output checks; collect one excluded warmup and ten complete-process measurements only after correctness passes. Device-sequence timings are separate from process wall times. Preserve all failed attempts. Check the existing execution lock, blocked services and GPU activity policy before every run, and never edit inputs while a validation using them is queued or active.
 
