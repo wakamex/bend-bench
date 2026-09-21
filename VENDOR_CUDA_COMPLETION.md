@@ -13,7 +13,7 @@ Goal: add conventional CUDA comparisons for the eleven original workloads still 
 | Batched maze BFS | Compiles; warp-per-maze bit frontiers with bounded batches | Pending idle GPU | Pending |
 | Three-body ensemble | Compiles; original arithmetic compiled for CUDA with independent system lanes | Pending idle GPU | Pending |
 | Ray tracing | Compiles; pixel-parallel original intersections, shading and reflections | Pending idle GPU | Pending |
-| Terrain | Pending | Pending | Pending |
+| Terrain | Compiles; exact Gauss-Seidel wavefronts and parallel weighted height fold | Pending idle GPU | Pending |
 | Symbolic regression | Pending | Pending | Pending |
 
 The first Mandelbrot native check was refused by the GPU activity gate before compilation or execution because an unapproved GPU process was active. No workload was stopped or exempted. A separate compile-only check passed, with evidence in `runs/vendor-custom-build-i7n433kf/build.jsonl`. The regression suite passed 71 tests with seven expected skips. Mandelbrot verification compares every escape count with the pinned C implementation, all histogram statistics, and the final original checksum, including the published 4096 × 4096 input. These GPU checks remain pending.
@@ -33,6 +33,8 @@ Batched maze BFS uses one warp per independent 32 × 32 maze, with row-bitset fr
 Three-body simulation and all preceding adapters compiled in `runs/vendor-custom-build-l8bopt2s/build.jsonl`. Staging adds device function qualifiers and a namespace to the pinned arithmetic without rewriting its expressions; the host compiles the original reference separately in the same executable. Floating-point contraction remains disabled. Verification compares each system's energy bucket and position digest and all histogram totals at zero, one, ten and 300 steps. GPU numerical agreement is a pending gate, not inferred from compilation.
 
 Ray tracing retains the original sphere intersections, nearest-hit order, shadows, depth-four reflections and four subpixel samples, with independent pixels mapped to CUDA lanes. Staging changes function qualifiers and places the nine-sphere scene in device constant memory; tests reverse these annotations and compare the remaining source exactly with upstream. Verification checks every quantized pixel against the host reference and the published image checksum. GPU agreement remains pending.
+
+Terrain uses 64-thread diagonal wavefronts within each tile, keeping the five original in-place sweeps and their descending pass salts. The additive height fold is expanded into an exact wrapping-U32 weighted sum; the 64-bin XOR histogram fold stays ordered. A CPU counterfactual checks diagonal execution and weighted folding against the actual pinned serial implementation across 256 tile positions and zero through five sweeps. GPU verification compares every final height and tile result. Native GPU checks and timings remain pending.
 
 Use [vendor-gpu-custom.toml](vendor-gpu-custom.toml) for the implemented additions. Each new workload must first pass small and published-input output checks; collect one excluded warmup and ten complete-process measurements only after correctness passes. Device-sequence timings are separate from process wall times. Preserve all failed attempts. Check the existing execution lock, blocked services and GPU activity policy before every run, and never edit inputs while a validation using them is queued or active.
 

@@ -20,17 +20,29 @@ INPUTS = {
     "bfs": [(0,), (2,), (8,), (19,)],
     "nbody": [(0, 0), (6, 1), (10, 10), (17, 300)],
     "raytrace": [(0, 2), (6, 80), (8, 600), (12, 6000)],
+    "terrain": [(0, 0), (0, 1), (4, 5), (16, 5)],
 }
 
 
 class VendorCustomGPU(unittest.TestCase):
+    def test_terrain_wavefront_against_serial(self):
+        config = load_config(ROOT / "vendor-gpu-custom.toml")
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "terrain-reference"
+            build = execute([config["tools"]["cc"], "-std=c11", "-O3",
+                             "-I" + config["bend"]["path"] + "/bench/runtime/terrain",
+                             ROOT / "tests/vendor_terrain_reference.c", "-o", binary], timeout=180)
+            self.assertEqual(build["returncode"], 0, build["stderr"])
+            result = execute([binary], timeout=30)
+            self.assertEqual(result["returncode"], 0, result["stderr"])
+
     def test_plan(self):
         config = load_config(ROOT / "vendor-gpu-custom.toml")
         self.assertEqual(set(config["vendor_gpu"]), set(INPUTS))
         with tempfile.TemporaryDirectory() as tmp:
             stage(config, Path(tmp))
             builds, cases = plan(config, tmp)
-            for name in ("nbody", "raytrace"):
+            for name in ("nbody", "raytrace", "terrain"):
                 original = (Path(config["bend"]["path"]) / f"bench/runtime/{name}/main.c").read_text()
                 original = re.sub(r"^#include[^\n]*\n", "", original.split("int main(void)")[0], flags=re.M)
                 device = (Path(tmp) / f"gpu/vendor-{name}-device.cuh").read_text()

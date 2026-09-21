@@ -52,13 +52,13 @@ def stage(config, work, *, mnk_count=16):
                     raise ValueError(f"GPU template changed: {old}")
                 (work / "ports" / f"cub-{name}-{depth}.bend").write_text(source.replace(old, new))
     if "vendor" in config["suites"]:
-        for name in {"nbody", "raytrace"} & set(config.get("vendor_gpu", [])):
+        for name in {"nbody", "raytrace", "terrain"} & set(config.get("vendor_gpu", [])):
             original = (Path(config["bend"]["path"]) / f"bench/runtime/{name}/main.c").read_text()
             if original.count("int main(void)") != 1:
                 raise ValueError(f"Unexpected {name} reference entry point")
             device = original.split("int main(void)")[0]
             device = re.sub(r"^#include[^\n]*\n", "", device, flags=re.M)
-            device = re.sub(r"^static (?=(?:uint32_t|V2|Hs|float|Hit) \w+\()", "__device__ static ", device, flags=re.M)
+            device = re.sub(r"^static (?=(?:uint32_t|V2|Hs|float|Hit|void) \w+\()", "__device__ static ", device, flags=re.M)
             device = device.replace("static const Sph SP[NS]", "__device__ __constant__ const Sph SP[NS]")
             (work / f"gpu/vendor-{name}-device.cuh").write_text("namespace gpu {\n" + device + "}\n")
         result = execute([sys.executable, work / "baselines/make_openmp.py"])
@@ -242,7 +242,7 @@ def plan(config, work):
                     case("vendor", name, "cub-cuda", 1, gpu_binary, [], expected, gpu_reason)
                     cases[-1]["check_args"] = ["verify"]
 
-                if name in {"mandelbrot", "queens", "merkle", "lexer", "kmeans", "hashmap", "bfs", "nbody", "raytrace"} and name in config.get("vendor_gpu", []):
+                if name in {"mandelbrot", "queens", "merkle", "lexer", "kmeans", "hashmap", "bfs", "nbody", "raytrace", "terrain"} and name in config.get("vendor_gpu", []):
                     gpu_binary = work / "build" / f"{name}-conventional-cuda"
                     if not gpu_reason:
                         build([tools["cuda_cxx"], "-std=c++17", *flags, f"--cuda-path={cuda}",
