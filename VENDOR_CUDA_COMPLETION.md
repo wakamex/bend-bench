@@ -6,7 +6,7 @@ Goal: add conventional CUDA comparisons for the eleven original workloads still 
 |---|---|---|---|
 | Mandelbrot | Compiles; pixel-parallel fixed-point escape counts and weighted histogram reduction | Pending idle GPU | Pending |
 | N-Queens | Compiles; split selected prefixes into smaller subtrees, iterative device search | Pending idle GPU | Pending |
-| Merkle tree | Pending | Pending | Pending |
+| Merkle tree | Compiles; parallel Speck leaves, stored levels, separate audit and proof verification | Pending idle GPU | Pending |
 | Lexer | Pending | Pending | Pending |
 | K-means | Pending | Pending | Pending |
 | Hash tables | Pending | Pending | Pending |
@@ -19,6 +19,8 @@ Goal: add conventional CUDA comparisons for the eleven original workloads still 
 The first Mandelbrot native check was refused by the GPU activity gate before compilation or execution because an unapproved GPU process was active. No workload was stopped or exempted. A separate compile-only check passed, with evidence in `runs/vendor-custom-build-i7n433kf/build.jsonl`. The regression suite passed 71 tests with seven expected skips. Mandelbrot verification compares every escape count with the pinned C implementation, all histogram statistics, and the final original checksum, including the published 4096 × 4096 input. These GPU checks remain pending.
 
 N-Queens compilation passed in `runs/vendor-queens-build-l8ftajs6/build.jsonl`; focused adapter tests passed with native GPU checks skipped. The host expands each legal four-row prefix by three rows, accounting for every visited node, then the GPU searches those independent subtrees with explicit stacks. Verification compares both solution and node counts for every selected prefix with the original recursive C search. Prefix expansion, transfers and final host aggregation remain in complete-process timing.
+
+Merkle compilation passed in `runs/vendor-merkle-build-zhychlbb/build.jsonl`. The adapter builds flat stored tree levels, then performs the original audit recurrence in a separate pass and verifies a proof using stored sibling hashes. Correctness checks compare every leaf, internal hash and audit value with CPU reference calculations, plus the original proof generator and verifier. The compiler reports the pinned upstream renamed `main` has no explicit return; that unused reference entry point is never called. Focused adapter planning tests passed; GPU checks remain pending.
 
 Use [vendor-gpu-custom.toml](vendor-gpu-custom.toml) for the implemented additions. Each new workload must first pass small and published-input output checks; collect one excluded warmup and ten complete-process measurements only after correctness passes. Device-sequence timings are separate from process wall times. Preserve all failed attempts. Check the existing execution lock, blocked services and GPU activity policy before every run, and never edit inputs while a validation using them is queued or active.
 

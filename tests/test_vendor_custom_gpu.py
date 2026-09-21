@@ -11,6 +11,28 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class VendorCustomGPU(unittest.TestCase):
+    @unittest.skipUnless(os.environ.get("BEND_BENCH_VENDOR_GPU_TEST") == "1", "Opt-in real GPU correctness")
+    def test_native_merkle(self):
+        config = load_config(ROOT / "vendor-gpu-custom.toml")
+        with exclusive(config):
+            idle_gpu(config)
+            folder = Path(tempfile.mkdtemp(prefix="vendor-merkle-check-", dir=ROOT / "runs"))
+            stage(config, folder)
+            builds, cases = plan(config, folder)
+            case = next(c for c in cases if c["implementation"] == "conventional-cuda" and c["workload"] == "merkle")
+            command = next(b for b in builds if any(str(x).endswith("vendor-merkle.cu") for x in b))
+            result = execute(command, timeout=180)
+            append(folder / "checks.jsonl", result)
+            self.assertEqual(result["returncode"], 0, result["stderr"])
+            for depth in (0, 4, 12, 22):
+                result = execute([*case["command"], "verify", str(depth)], timeout=180, gpu_policy=config)
+                append(folder / "checks.jsonl", result)
+                self.assertEqual(result["returncode"], 0, result["stderr"])
+                self.assertNotIn("contention_error", result)
+                self.assertIn("FULL_OUTPUT_VERIFIED=", result["stderr"])
+                if depth == 22:
+                    self.assertTrue(correct(case, result), result)
+
     def test_plan(self):
         config = load_config(ROOT / "vendor-gpu-custom.toml")
         with tempfile.TemporaryDirectory() as tmp:
