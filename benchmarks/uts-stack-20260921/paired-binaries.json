@@ -1,0 +1,20 @@
+{
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/2-patched": "5b3357079d5caa88a39627c45b02563a5fe9a9d5bbc31fc3237ec02cf8b811a6",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/2-patched.c": "9860065ec6154fafe64fcbb617f5d71c850de3f0a3f7a43176144abe5e23a267",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/2-patched.gpu": "d9c23d8d437dba44988f0c094a7e8b9be26921f66aa01e0cc3e3cbfe8d95f175",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/2-reference": "a5de8055c4440d01b8cf408682463d3d2f046418417d28facfc888154b195d0f",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/2-reference.c": "36ac99e88bdc876bb1cb5efb4ac0c2cb73b936f3dd89baf018449ec93b7c8964",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/2-reference.gpu": "9eaa00b5bcfd790fec49b046691876c987009a15e69ef5e97524a96d5f68ef53",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/3-patched": "6cf3a719d027b3f56c79dadd4991ee486dad2c6cdfe9c3a2f051f266cf3ec16f",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/3-patched.c": "689cd39fc43715f0ac28d49ef246e7ecc7f22512108c3f29b3ddc8fe178558db",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/3-patched.gpu": "de7da18c646ad827dfcab1bd41111c30ff0134d63566ac4ab79e4752c26ec5ea",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/3-reference": "b8453f2062f26fd4e4d288abb68688950d801b29369c712aa761a89dd66c3819",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/3-reference.c": "a59aeb7811b317be703546c4ca7f4ecd8d247036ee0b2333e116e0d85cb82bd1",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/3-reference.gpu": "222da40c5f568f472c02b6f76c8e99e922809f624d31a2cb734dc929ec7ab7d6",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/4-patched": "e591d651fbb08e7d8148087a2aae5c8c04d90563f5068a52b44895b3adbed2a5",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/4-patched.c": "ac2cca2edcfc40a8d854584a201931d38927bf67e770991b6e8da61e48c3d599",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/4-patched.gpu": "2c845fa1742221dadb238fbfe935f81d9cb6e2c24ef1b910281518769916b7f4",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/4-reference": "7dee2471519da16cd2693ee4f3c5bd8ec6c3a7f4c1ec9f2a244ed549f0539c14",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/4-reference.c": "d1520f6dd42be2f10f71a1b52b16f802a9646f7aae30af98a32a0aeaec3c6e4f",
+  "/code/bend-bench/runs/gpu-stack-regression-xoirpdsc/4-reference.gpu": "67f55804727391420c1f3abd579a33273b1908fc96bed4dcf8c7a5bd9a991159"
+}
