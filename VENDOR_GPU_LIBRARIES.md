@@ -2,7 +2,17 @@
 
 These adapters add conventional GPU comparisons to the existing published-workload suite. The configuration is [vendor-gpu-libraries.toml](vendor-gpu-libraries.toml); baseline selection is explicit through `vendor_gpu`, so existing configurations retain their previous workload selection.
 
-All 21 configurations passed a fresh combined harness correctness check in `runs/182bf42ec81e810fd617`: serial C, Bend and OpenMP at one and 16 threads, Bend GPU and the new GPU library baseline for each workload. Preparation preserved source, compiler, toolkit, installed-library and binary hashes. All three new adapters passed full-output checks on the published input sizes. There are no timing repetitions in this run yet; existing performance tables remain unchanged.
+The three new GPU baselines completed ten measured runs each after one excluded warmup on the RTX 3090. CUB sorting and deduplication finishes 2.9× faster than the previously measured Bend GPU implementation, cuBLAS matrix multiplication finishes 1.4× faster, and cuDF edit distance is roughly tied with Bend. Only the new baselines were timed in this run.
+
+| Published workload | New GPU library | Complete-program median | Previous Bend GPU median | Comparison |
+|---|---|---:|---:|---|
+| Sort and deduplicate 4,194,304 generated 24-bit keys | CUB | 0.197 s | 0.579 s | CUB 2.9× faster |
+| Multiply 384 pairs of 128 × 128 matrices and verify the products | cuBLAS | 0.304 s | 0.411 s | cuBLAS 1.4× faster |
+| Levenshtein distance for 32,768 pairs of 256-symbol sequences | cuDF | 0.321 s | 0.314 s | Roughly tied; cuDF takes 2% longer |
+
+[Saved results and individual measurements](benchmarks/gpu-libraries-20260920/results.json) preserve the new medians and historical comparison sources. Bend GPU times are from the September 17 run `64b53b136d7cfde4ed9e`, using 32 host threads; the new library measurements use one host thread. Both use the published inputs and identical output contracts on the same machine. These are complete-program comparisons including startup, rather than kernel-only comparisons.
+
+All 21 configurations passed a fresh combined harness correctness check in `runs/182bf42ec81e810fd617`: serial C, Bend and OpenMP at one and 16 threads, Bend GPU and the new GPU library baseline for each workload. Preparation preserved source, compiler, toolkit, installed-library and binary hashes. All three new adapters passed full-output checks on the published input sizes. The subsequent restricted runner timed only the three new library cases: all three warmups and 30 measurements passed the correctness and GPU activity gates. The runner and explicit case selection remain beside the raw evidence. Existing scorecard cells and other measurements are unchanged.
 
 The regression suite passed 68 tests with six expected opt-in/environment skips, followed by the added installed-cuDF identity test and focused adapter tests. Native opt-in checks were also run separately, as described below. Both wheel and source distribution builds passed.
 
@@ -16,7 +26,7 @@ Native correctness passed at depths 0, 6, 12 and 22, including the published che
 
 The adapter uses batched INT8-input, INT32-output cuBLAS GEMM for the published 384 products of 128 × 128 matrices. Generated entries are 0–99, so every result is exact in INT32. GPU kernels reproduce the quadtree generators, wrapping-U32 Freivalds verification and published checksum. A failed Freivalds check exits nonzero. Column-major cuBLAS receives the operands in reverse order to compute the required row-major products.
 
-Native correctness passed for 4 × 4, 8 × 8, 32 × 32 and the full published 128 × 128 batch. Small checksums match the actual upstream quadtree C implementation. Every output entry, including all 6,291,456 entries in the full batch, matches conventional CPU multiplication; the full checksum matches the published pin. The installed cuBLAS accepted the integer batched API. Performance remains unmeasured.
+Native correctness passed for 4 × 4, 8 × 8, 32 × 32 and the full published 128 × 128 batch. Small checksums match the actual upstream quadtree C implementation. Every output entry, including all 6,291,456 entries in the full batch, matches conventional CPU multiplication; the full checksum matches the published pin. The installed cuBLAS accepted the integer batched API.
 
 The event interval covers GPU generation, GEMM and Freivalds/checksum kernels. Complete-process timing additionally includes library startup, allocations, result transfers and cleanup. Full CPU multiplication is a correctness-stage check and is excluded from normal timed executions. The harness hashes cuBLAS and cuBLASLt along with its existing toolkit and linked-library evidence.
 
@@ -24,7 +34,11 @@ The event interval covers GPU generation, GEMM and Freivalds/checksum kernels. C
 
 The native C++ adapter uses `nvtext::edit_distance` for the published 32,768 pairs of 256-symbol sequences. It reuses the pinned upstream C sequence generator and maps symbols 0–3 to ASCII A–D, preserving every edit distance. String offsets and characters are uploaded as cuDF column views. Results return to the host for the original wrapping-U32 checksum. Input generation, column construction, transfers, library initialization and cleanup remain inside complete-process timing.
 
-The correctness stage checks every distance against the original rolling-row C dynamic program. Native checks passed for one, 64 and all 32,768 pairs; the full checksum matches the published pin. CUDA events span uploads, library execution and result download, so this interval is a device sequence, not kernel-only time. Performance remains unmeasured.
+The correctness stage checks every distance against the original rolling-row C dynamic program. Native checks passed for one, 64 and all 32,768 pairs; the full checksum matches the published pin. CUDA events span uploads, library execution and result download, so this interval is a device sequence, not kernel-only time.
+
+## Device-sequence timing
+
+Median CUDA-event intervals were 0.413 ms for CUB, 4.451 ms for cuBLAS and 56.810 ms for cuDF. Their boundaries differ: CUB and cuBLAS include GPU input generation and verification but exclude final result transfers; cuDF includes input and output transfers but excludes CPU input generation. They are not isolated library-kernel times. Separate kernel profiling has not been run for these new baselines.
 
 The optional dependency environment pins libcudf/librmm 26.8.0 and all resolved wheel hashes. Its libcudf source revision is `ff5b362d7c06ae5837fd7a7337e2ae20895f324d`, distinct from the development revision inspected during the feasibility audit. Preparation records the installed headers, libraries, distribution metadata and lock hash and verifies the declared libcudf revision. Wheel libraries are linked explicitly so execution resolves their transitive dependencies without changing the shell's library path. Initial failed header-compilation and library-loading checks are retained alongside successful development checks.
 

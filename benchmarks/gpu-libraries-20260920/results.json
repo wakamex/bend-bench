@@ -1,0 +1,180 @@
+{
+  "run": "runs/182bf42ec81e810fd617",
+  "fingerprint": "a5acf42a6d87787112e3e1247b7ca777128bf01982c0028d601c8eb8e434fd63",
+  "repetitions": 10,
+  "warmups": 1,
+  "cases": [
+    {
+      "case": "vendor/tree-radix/cub-cuda/1",
+      "checked": true,
+      "compute_seconds": null,
+      "contract": {
+        "expected_regex": "1998173798",
+        "sources": {
+          "main.bend": "2f9784e5035e75bde271ad919075565156de20720be6186f86f0191e0ac9e802",
+          "main.c": "e1cca8669dd57c9ca65d7e7364eeaef1947c95a079317fa1ca35cfcb7911819a",
+          "main.lean": "6802369ff14713a1fb010a8c56eb52ef51f239c727bcdc318de70308d80c22b9",
+          "main.ts": "039d8ca5c6f9800a75ec8745d43369fe6a67218d2014881a1d897c99604ccce9"
+        },
+        "workload": "tree-radix"
+      },
+      "device_sequence_seconds": 0.00041318400000000003,
+      "efficiency": 1,
+      "end_to_end_seconds": 0.1968588640447706,
+      "host_peak_rss_kb": 135404,
+      "implementation": "cub-cuda",
+      "kernel_seconds": null,
+      "profile_status": "pending",
+      "reason": null,
+      "samples": 10,
+      "speedup": 1,
+      "status": "passed",
+      "threads": 1,
+      "end_to_end_measurements": [
+        0.19525650702416897,
+        0.20360857900232077,
+        0.19104031985625625,
+        0.19614396803081036,
+        0.1940888601820916,
+        0.19582312111742795,
+        0.20068623102270067,
+        0.19757376005873084,
+        0.20116787287406623,
+        0.1977505551185459
+      ],
+      "device_sequence_measurements": [
+        0.000510976,
+        0.00041472,
+        0.000413696,
+        0.000411488,
+        0.000412672,
+        0.000420864,
+        0.000412672,
+        0.00041056,
+        0.000533504,
+        0.00040448
+      ],
+      "historical_bend_case": "vendor/tree-radix/bend-cuda/32",
+      "historical_bend_end_to_end_seconds": 0.5789034640183672,
+      "historical_bend_over_new": 2.9407030606796054
+    },
+    {
+      "case": "vendor/tree-matmul/cublas-cuda/1",
+      "checked": true,
+      "compute_seconds": null,
+      "contract": {
+        "expected_regex": "3797651056",
+        "sources": {
+          "main.bend": "e87baaba955d4dd52224a1bccd7cc2a493999499f42232350a6e89564fb11111",
+          "main.c": "d696d72a7428c51e11314742858946a900470a421283b05f71d055c2a78e9693",
+          "main.lean": "e55265ec54591d6436fe2100db126bdb73baebf79e9b619d2cb936b8146b2dec",
+          "main.ts": "377872c8eefee6557f46cf2b0056fc8ff1d8768dc5362843420353c45b85d243"
+        },
+        "workload": "tree-matmul"
+      },
+      "device_sequence_seconds": 0.004451328,
+      "efficiency": 1,
+      "end_to_end_seconds": 0.30365532252471894,
+      "host_peak_rss_kb": 351816,
+      "implementation": "cublas-cuda",
+      "kernel_seconds": null,
+      "profile_status": "pending",
+      "reason": null,
+      "samples": 10,
+      "speedup": 1,
+      "status": "passed",
+      "threads": 1,
+      "end_to_end_measurements": [
+        0.2858778350055218,
+        0.3023413219489157,
+        0.306073168059811,
+        0.28812734712846577,
+        0.28097246307879686,
+        0.3159265441354364,
+        0.2809257518965751,
+        0.3102999448310584,
+        0.30496932310052216,
+        0.30713270301930606
+      ],
+      "device_sequence_measurements": [
+        0.004434944,
+        0.004497248,
+        0.004071424,
+        0.004197376,
+        0.004322304,
+        0.004467712,
+        0.00448512,
+        0.004598688,
+        0.004525056,
+        0.004289536
+      ],
+      "historical_bend_case": "vendor/tree-matmul/bend-cuda/32",
+      "historical_bend_end_to_end_seconds": 0.41089797008316964,
+      "historical_bend_over_new": 1.3531722963615125
+    },
+    {
+      "case": "vendor/editdist/cudf-cuda/1",
+      "checked": true,
+      "compute_seconds": null,
+      "contract": {
+        "expected_regex": "2229810577",
+        "sources": {
+          "main.bend": "466891a27b87119b5593209eb98aa0d687ff88b6ff28cc2ca339e248907a3959",
+          "main.c": "b26ec20e9e3930f9ae27cc219cd3cc5e2bf15004aa48465deab2705541e19f85",
+          "main.lean": "430d8bb435569a706b3d1506eb9a5406207230d7b4a4c508c3c262299dd990f2",
+          "main.ts": "d683257ef850bce022e0604e2fd85c4d743fc9ee62e43fd6e9c5e65381492d0d"
+        },
+        "workload": "editdist"
+      },
+      "device_sequence_seconds": 0.056809536,
+      "efficiency": 1,
+      "end_to_end_seconds": 0.32084485702216625,
+      "host_peak_rss_kb": 236764,
+      "implementation": "cudf-cuda",
+      "kernel_seconds": null,
+      "profile_status": "pending",
+      "reason": null,
+      "samples": 10,
+      "speedup": 1,
+      "status": "passed",
+      "threads": 1,
+      "end_to_end_measurements": [
+        0.33011859003454447,
+        0.3182983791921288,
+        0.31978936307132244,
+        0.31772988592274487,
+        0.32190035097301006,
+        0.332384031964466,
+        0.3168657850474119,
+        0.325852780835703,
+        0.3315983139909804,
+        0.3144703700672835
+      ],
+      "device_sequence_measurements": [
+        0.058362911,
+        0.056690304,
+        0.056776833,
+        0.056842239,
+        0.056756767,
+        0.056588833,
+        0.057026688,
+        0.057427937,
+        0.05685104,
+        0.054685791
+      ],
+      "historical_bend_case": "vendor/editdist/bend-cuda/32",
+      "historical_bend_end_to_end_seconds": 0.3137726385612041,
+      "historical_bend_over_new": 0.9779575134019568
+    }
+  ],
+  "artifacts": {
+    "provenance.json": "1df82bae45f7a3587e5c439279db16782c2abf1f7685617275d54c9507b353eb",
+    "prepared.json": "5e9cc04324568458333691c29652f9bf8a8c28e7e0dd40d65f560c0fd4f94bef",
+    "plan.json": "c76a2f245e0ce193382bad941fc14957374ce8873c1d7d257b98924a6bc237c8",
+    "samples.jsonl": "f2ffc9b3a6b339de5e2ae919b6c43a3ae78f9003cc4ef4b9b9df4f9db52f99e9",
+    "new-libraries-request.json": "f7be4792c9db6a66444cd4fefb2497573839d0e7656231d1778ab2d2928dff41",
+    "measure-new-libraries.py": "87c35b0347a60cc63f93632d7addb600ccbb1a58a7454808db7166c1fe8570ed"
+  },
+  "historical_bend_summary": "runs/64b53b136d7cfde4ed9e/summary.json",
+  "historical_bend_summary_sha256": "24d7a4c93a712ef1b42406bb2401c0d991a80aa5337c25414d65842fb9b8b68d"
+}

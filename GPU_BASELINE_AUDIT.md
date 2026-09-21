@@ -1,6 +1,6 @@
 # GPU baselines for the 16 published workloads
 
-Implementation update: the three recommended library adapters now pass native and combined-harness correctness checks. See [CUB, cuBLAS and cuDF adapters](VENDOR_GPU_LIBRARIES.md). Performance measurements are still pending; the audit below records the original source review and implementation priorities.
+Implementation update: the three recommended library adapters now pass native and combined-harness correctness checks and ten measured executions each. See [CUB, cuBLAS and cuDF results](VENDOR_GPU_LIBRARIES.md). The audit below records the original source review and implementation priorities.
 
 All 16 workloads already have Bend GPU measurements. Fourteen still need a conventional GPU comparison. The best first additions are CUB sort-and-deduplicate, cuBLAS matrix multiplication and cuDF edit distance: each has an established GPU component that appears compatible with the actual task. Fixed-point Mandelbrot is the simplest useful custom-kernel follow-up.
 
