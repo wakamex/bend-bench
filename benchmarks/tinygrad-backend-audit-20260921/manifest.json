@@ -1,0 +1,62 @@
+{
+  "recorded_at": "2026-09-21T04:57:27.384485+00:00",
+  "purpose": "Read-only Bend/tinygrad AMD backend source assessment; no AMD execution or new performance measurements",
+  "repositories": [
+    {
+      "repository": "https://github.com/tinygrad/tinygrad",
+      "commit": "94ee753065770aff2aa5ba07dcf911aef298d508",
+      "tree": "30f4708dd28f9704cbb44fe9d2c8a990d9252327",
+      "checkout": "sources/tinygrad-20260921",
+      "archive": "sources/tinygrad-94ee753065770aff2aa5ba07dcf911aef298d508.tar.gz",
+      "archive_sha256": "2177beeeea91120eff7496174066799a7bfc9469f0b187a462e15ee0e7d8fe60",
+      "files": {
+        "LICENSE": "00146150f1082f320d608ba481acc3fbfacf8a9914354c2c96b6f44719d5e977",
+        "docs/runtime.md": "9200d331d4d2972a864f039751b8f60a64cb8920f8f13c2f096ab25a966c34e3",
+        "docs/env_vars.md": "d84c15d1e1874e7ef7fc26ebc93e936f2c25909d69d29e6132a38c9ef56dd676",
+        "docs/developer/am.md": "c8746f8c3020204a457c5b2d6dc0d33fcad657a610ec861ca34ed2c33b96b929",
+        "tinygrad/runtime/ops_amd.py": "9a3a3a1460b6acad1ab345892134ab049b83b08dd1a4029b9f37bec360310a81",
+        "tinygrad/runtime/ops_nv.py": "162466e545dca4f2c0196dde2e18fe0ce73260733d76c85d1d52937ace8f103a",
+        "tinygrad/runtime/support/hcq2.py": "0b0e3f25e965553596f393d773e90f12343870bd299079a810c20d27c15916b6",
+        "tinygrad/runtime/support/hcq.py": "3fd5896faf8f06ba32edc56a285cccdfe1b77a651f44861d6efedcdfeecc49e8",
+        "tinygrad/runtime/support/compiler_amd.py": "230b53fbae926583d6a4a1fa4ea085773924e042496ed786aa8fbc2f8aa6ebec",
+        "tinygrad/runtime/support/compiler_llvm.py": "4f4128c0cf88860e5445345139e81d360c7c4189912a67159d6822d2649735e5",
+        "tinygrad/device.py": "55fdb934da54bd06a6065c68f9f725b47dfaa5136975791f0800fe38280a1fd0",
+        "tinygrad/uop/ops.py": "2f4edacde9880e11e46a672f70eb7273bf4b304dfa64c6408a72a293ec88304d",
+        "tinygrad/engine/realize.py": "ab381e85d2d3d40d3e55fdfdd7f66e430961c471e8bfb81c0f8836f22b98de6d",
+        "tinygrad/renderer/cstyle.py": "7deaf440c933682a38b8015dd17b6092d5d1a728eb8126ef49b0231d2b9fc8ec",
+        "tinygrad/renderer/llvmir.py": "f662014141df801a9b42610cee5f655685c2f28307e2124101e511c0b3ac9084",
+        "test/backend/test_custom_kernel.py": "5654ca9ef8e739608932a0471214d340e7c8621d98731e314ce14222a1650c2c",
+        "extra/gptoss_kernels/rmsnorm/__init__.py": "dabc72e035a80119af65b62640adbc296784af02fb92da1b302cfae5dd704dac"
+      }
+    },
+    {
+      "repository": "https://github.com/bendlang/bend",
+      "commit": "75cb8f3e041aeaad2b37e726c0a33ba19dc49df8",
+      "tree": "0518f7c9822fd7d83635f802bb8e27baca8cc35d",
+      "checkout": "sources/bend-current-20260921",
+      "archive": "sources/bend-75cb8f3e041aeaad2b37e726c0a33ba19dc49df8.tar.gz",
+      "archive_sha256": "4f81a9d653bbdf41d96efd3136253ba697d79996b9048a1e93613ea07c835fe7",
+      "files": {
+        "LICENSE": "0beb288abd3d067e231f3fbe7df1f8ee37344061fc67f22018150a19e4b26c35",
+        "bend2/comp.ts": "9f601b0cfd589807b48c548133121cd5da45387d6b0137cae51f22960f27e367",
+        "bend2/main.ts": "f321354f44178b89e70107e045719426173e5f2fa171f74242121d1b5e758d0d",
+        "bend2/bend.ts": "429966632dc6a5ec7fcc7a13515822362819a8d9bffcaecc5b4eb37e99960fed",
+        "guide/GUIDE.md": "9e4643649b8ce8c8a066b60741eeec1a3d902c0e1ed86d1e5bf0340b4fede746"
+      }
+    }
+  ],
+  "documentation": [
+    {
+      "url": "https://rocm.docs.amd.com/en/docs-7.1.0/compatibility/compatibility-matrix.html",
+      "path": "sources/amd-rocm-7.1-compatibility-20260921.md",
+      "sha256": "2b8a4a1900cc2526482236c0fc1d221398b6cb208a0277613ad5feb26c8896c8",
+      "method": "extract_web.py direct HTML to Markdown, explicit //main selection after default extraction omitted reference content"
+    },
+    {
+      "url": "https://rocm.docs.amd.com/projects/rocPRIM/en/docs-7.1.1/device_ops/reduce.html",
+      "path": "sources/rocprim-reduce-20260921.md",
+      "sha256": "b861243fa75940eadb6e494dbdbc09e9cfd5f7ad706626207447d70f7d97ba32",
+      "method": "extract_web.py direct HTML to Markdown, explicit //main selection after default extraction omitted reference content"
+    }
+  ]
+}
