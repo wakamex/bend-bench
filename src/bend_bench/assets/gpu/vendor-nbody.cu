@@ -10,6 +10,10 @@
 #define main upstream_main
 #include "main.c"
 #undef main
+// Match host sqrtf rounding; this Clang/libdevice path defaults to sqrt.approx.
+namespace gpu {
+__device__ float sqrtf(float x) { return __fsqrt_rn(x); }
+}
 #include "vendor-nbody-device.cuh"
 #define CUDA(call) do { auto e=(call); if(e!=cudaSuccess) { fprintf(stderr,"%s: %s\n",#call,cudaGetErrorString(e)); return 2; } } while(0)
 __global__ void systems(uint32_t n,uint32_t steps,uint32_t *stats,uint2 *values) {
