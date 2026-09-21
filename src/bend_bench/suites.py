@@ -222,6 +222,16 @@ def plan(config, work):
                         build([tools["cuda_cxx"], *flags, f"--cuda-path={cuda}", f"--cuda-gpu-arch={config['gpu_arch']}",
                                "-Wno-unknown-cuda-version", work / "baselines/gameoflife-cuda.cu", f"-L{cuda}/lib64", "-lcudart", "-o", gpu_binary])
                     case("vendor", name, "conventional-cuda", 1, gpu_binary, [], expected, gpu_reason)
+                if name == "tree-radix" and name in config.get("vendor_gpu", []):
+                    cccl = Path(config["cccl"]["path"])
+                    gpu_binary = work / "build/tree-radix-cub"
+                    if not gpu_reason:
+                        build([tools["cuda_cxx"], "-std=c++17", *flags, f"--cuda-path={cuda}",
+                               f"--cuda-gpu-arch={config['gpu_arch']}", "-Wno-unknown-cuda-version",
+                               f"-I{cccl}/cub", f"-I{cccl}/thrust", f"-I{cccl}/libcudacxx/include",
+                               work / "gpu/vendor-radix.cu", f"-L{cuda}/lib64", "-lcudart", "-o", gpu_binary])
+                    case("vendor", name, "cub-cuda", 1, gpu_binary, [], expected, gpu_reason)
+                    cases[-1]["check_args"] = ["verify"]
 
     if "uts" in config["suites"]:
         bots = Path(config["bots"]["path"])

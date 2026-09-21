@@ -143,7 +143,7 @@ def load_config(path):
                "cuda", "gpu_heap", "gpu_arch", "uts_inputs", "uts_cutoffs", "blocked_services",
                "bend", "bots", "cccl", "rodinia", "gpu_depths", "hotspot_sizes", "hotspot_steps",
                "hotspot_pyramids", "tools", "vendor", "require_idle_gpu", "gpu_resident",
-               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes"}
+               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu"}
     if unknown := config.keys() - allowed:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     if config.get("schema") != 1:
@@ -165,6 +165,14 @@ def load_config(path):
             raise ValueError("gpu_resident requires require_idle_gpu")
     if not config.get("suites") or set(config["suites"]) - {"vendor", "uts", "cub", "hotspot", "pricing", "mnk", "bfs", "nqueens"}:
         raise ValueError("Unknown or missing suite")
+    config.setdefault("vendor_gpu", [])
+    selected_gpu = config["vendor_gpu"]
+    if (not isinstance(selected_gpu, list) or any(x not in {"tree-radix"} for x in selected_gpu)
+            or len(set(selected_gpu)) != len(selected_gpu)):
+        raise ValueError("vendor_gpu must select unique supported workloads: tree-radix")
+    if selected_gpu and ("vendor" not in config["suites"] or not config.get("cuda")
+                         or not set(selected_gpu) <= set(config.get("vendor", selected_gpu))):
+        raise ValueError("vendor_gpu requires CUDA and matching vendor workloads")
     if "nqueens" in config["suites"]:
         config.setdefault("queens_sizes", [8, 12, 14])
         if (not config["queens_sizes"] or any(type(n) is not int or n not in {4, 8, 12, 14} for n in config["queens_sizes"])
@@ -190,7 +198,8 @@ def load_config(path):
                 raise ValueError(f"BFS requires pinned {key} source")
             continue
         if key not in config and ((key == "bots" and "uts" not in config["suites"]) or
-                                  (key == "cccl" and not set(config["suites"]) & {"cub", "bfs", "pricing"})):
+                                  (key == "cccl" and not set(config["suites"]) & {"cub", "bfs", "pricing"}
+                                   and "tree-radix" not in selected_gpu)):
             continue
         spec = config[key]
         if spec.keys() - {"path", "commit", "allow_patch"}:
