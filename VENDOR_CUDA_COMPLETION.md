@@ -10,7 +10,7 @@ Goal: add conventional CUDA comparisons for the eleven original workloads still 
 | Lexer | Compiles; independent generated lines with ordered token folds and warp reductions | Pending idle GPU | Pending |
 | K-means | Compiles; cached points, parallel assignment and integer centroid reductions | Pending idle GPU | Pending |
 | Hash tables | Compiles; bounded open addressing with original logical bucket accounting | Pending idle GPU | Pending |
-| Batched maze BFS | Pending | Pending | Pending |
+| Batched maze BFS | Compiles; warp-per-maze bit frontiers with bounded batches | Pending idle GPU | Pending |
 | Three-body ensemble | Pending | Pending | Pending |
 | Ray tracing | Pending | Pending | Pending |
 | Terrain | Pending | Pending | Pending |
@@ -27,6 +27,8 @@ Lexer compilation passed in `runs/vendor-lexer-build-ddlwrh_8/build.jsonl`, with
 K-means and all four preceding adapters compiled in `runs/vendor-custom-build-yn1k9j3a/build.jsonl`. The K-means adapter caches the generated points, computes per-block integer sums for eight clusters, and updates all 64 starts over 20 iterations. It retains integer division, lower-index distance ties and unchanged empty clusters. Verification checks the generated point vector and every centroid at every iteration against the original C tree-based calculation. The shared custom-adapter tests now cover every configured workload and provide separate opt-in compilation and GPU-execution checks.
 
 Hash tables and all preceding adapters compiled in `runs/vendor-custom-build-5zd9yrym/build.jsonl`. The CUDA implementation uses 32,768 open-addressed slots for at most 16,384 keys per table, preserving deduplication with atomic insertion. Separate counters retain the original 4,096 logical bucket lengths rather than substituting the CUDA table's physical layout. Verification checks every logical bucket, hit count and per-table checksum against the pinned chain-table reference, including empty and single-key inputs. GPU execution remains pending.
+
+Batched maze BFS uses one warp per independent 32 × 32 maze, with row-bitset frontiers and bounded batches of at most 4,096 mazes. The required ordered distance checksum is retained. Verification compares every cell's distance, including unreachable cells, against the original queue traversal for every maze; this is separate from the existing shared-graph BFS benchmark. GPU correctness and timing remain pending.
 
 Use [vendor-gpu-custom.toml](vendor-gpu-custom.toml) for the implemented additions. Each new workload must first pass small and published-input output checks; collect one excluded warmup and ten complete-process measurements only after correctness passes. Device-sequence timings are separate from process wall times. Preserve all failed attempts. Check the existing execution lock, blocked services and GPU activity policy before every run, and never edit inputs while a validation using them is queued or active.
 
