@@ -140,7 +140,7 @@ def load_config(path):
     path = Path(path).resolve()
     config = tomllib.loads(path.read_text())
     allowed = {"schema", "label", "output", "suites", "threads", "cpus", "repetitions", "warmups", "timeout",
-               "cuda", "gpu_heap", "gpu_arch", "uts_inputs", "uts_cutoffs", "blocked_services",
+               "cuda", "gpu_heap", "gpu_arch", "uts_inputs", "uts_cutoffs", "uts_gpu", "blocked_services",
                "bend", "bots", "cccl", "rodinia", "gpu_depths", "hotspot_sizes", "hotspot_steps",
                "hotspot_pyramids", "tools", "vendor", "require_idle_gpu", "gpu_resident",
                "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu", "cudf"}
@@ -243,6 +243,10 @@ def load_config(path):
     config.setdefault("gpu_arch", "sm_86")
     config.setdefault("uts_inputs", ["test"])
     config.setdefault("uts_cutoffs", [4, 16, 64])
+    config.setdefault("uts_gpu", False)
+    if type(config["uts_gpu"]) is not bool or (config["uts_gpu"] and
+            (not config["cuda"] or "uts" not in config["suites"])):
+        raise ValueError("uts_gpu requires the UTS suite and CUDA")
     config.setdefault("blocked_services", [])
     config.setdefault("label", "default")
     if "cub" in config["suites"]:

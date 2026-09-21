@@ -291,14 +291,29 @@ def plan(config, work):
         optimized = work / "build/uts-cutoff"
         build([cc, "-std=gnu11", *flags, "-fopenmp", work / "baselines/uts-omp.c", bots / "omp-tasks/uts/brg_sha1.c",
                f"-I{bots}/common", "-lm", "-o", optimized])
+        gpu_binary = work / "build/uts-conventional-cuda"
+        if config["uts_gpu"] and not gpu_reason:
+            sha_object = work / "build/uts-sha.o"
+            build([cc, "-std=gnu11", *flags, f"-I{bots}/common", "-c",
+                   bots / "omp-tasks/uts/brg_sha1.c", "-o", sha_object])
+            build([tools["cuda_cxx"], "-std=c++17", *flags, f"--cuda-path={cuda}",
+                   f"--cuda-gpu-arch={config['gpu_arch']}", "-Wno-unknown-cuda-version",
+                   f"-I{bots}/common", f"-I{bots}/omp-tasks/uts", work / "gpu/uts.cu", sha_object,
+                   f"-L{cuda}/lib64", f"-Wl,-rpath,{cuda}/lib64", "-lcudart", "-o", gpu_binary])
         for dataset in config["uts_inputs"]:
             data = bots / "inputs/uts" / f"{dataset}.input"
             parameters = data.read_text().splitlines()[0].split()
             nodes = parameters[5]
             contract = dict(workload="uts-" + dataset, parameters=parameters, expected_nodes=nodes, fuel=1000000)
-            binary = bend_build(work / "ports" / f"uts-{dataset}.bend", "uts-" + dataset)
+            binary = bend_build(work / "ports" / f"uts-{dataset}.bend", "uts-" + dataset, config["uts_gpu"])
             verified = rf"(?=.*Tree size\s*=\s*{nodes}\b).*Verification\s*= successful\s*.*"
             case("uts", dataset, "serial-c", 1, work / "build/uts-serial", ["-f", data, "-c"], verified, contract=contract)
+            if config["uts_gpu"]:
+                case("uts", dataset, "bend-cuda", max(config["threads"]), str(binary) + "-cuda",
+                     ["--threads", max(config["threads"]), "--gpu", config["gpu_heap"]],
+                     re.escape(nodes + " 0"), gpu_reason, contract)
+                case("uts", dataset, "conventional-cuda", 1, gpu_binary, [data], nodes, gpu_reason, contract)
+                cases[-1]["check_args"] = ["verify"]
             for n in config["threads"]:
                 case("uts", dataset, "bend", n, binary, ["--threads", n, "--gpu", "off"], re.escape(nodes + " 0"), contract=contract)
                 case("uts", dataset, "openmp", n, work / "build/uts-omp-tasks", ["-f", data, "-c"], verified, contract=contract)
