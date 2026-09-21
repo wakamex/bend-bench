@@ -16,12 +16,16 @@ for relative, digest in data['source_sha256'].items():
         cases[relative] = {case['case']: case for case in json.loads(path.read_text())['cases']}
 
 for row in data['rows']:
-    for case_id, ms in zip(row.get('cases', []), row['ms']):
+    for column, (case_id, ms) in enumerate(zip(row.get('cases', []), row['ms'])):
         if case_id is None:
             assert ms is None
             continue
         source = row.get('case_sources', {}).get(case_id, row['source'])
         case = cases[source][case_id]
+        if case['status'] == 'failed':
+            assert ms is None and row.get('missing_labels', {}).get(str(column)), case_id
+            assert case['samples'] == 0 and not case['checked'], case_id
+            continue
         assert case['status'] == 'passed' and case['checked'] and case['samples'] >= 10
         assert ms == case['end_to_end_seconds'] * 1000, case_id
 
@@ -85,6 +89,22 @@ assert sorting[0]['case_sources'][sorting[0]['cases'][5]] == 'runs/e930e5a1b9c48
 assert not any(row['name'] == 'Integer sorting' for row in data['rows'])
 uts = [row for row in data['rows'] if row['group'] == 'Irregular recursive search']
 assert len(uts) == 1 and uts[0]['name'] == 'Unbalanced Tree Search' and uts[0]['cases'][0] == 'uts/tiny/bend/1'
+assert uts[0]['cases'][2] == 'uts/tiny/bend-cuda/16' and uts[0]['missing_labels']['2'] == 'Stack limit'
+assert uts[0]['cases'][5] == 'uts/tiny/conventional-cuda/1'
+uts_source = 'benchmarks/uts-gpu-20260921/summary.json'
+uts_samples = [json.loads(line) for line in (ROOT / uts_source).with_name('samples.jsonl').read_text().splitlines()]
+for dataset in ('test', 'tiny'):
+    failed_id = f'uts/{dataset}/bend-cuda/16'
+    failed = [r for r in uts_samples if r['case'] == failed_id]
+    assert len(failed) == 1 and failed[0]['phase'] == 'check' and failed[0]['returncode'] == 1
+    assert not failed[0]['correct'] and not failed[0].get('contention_error')
+    assert 'memory fault (machine stack overflow?)' in failed[0]['stderr']
+    cuda_id = f'uts/{dataset}/conventional-cuda/1'
+    successful = [r for r in uts_samples if r['case'] == cuda_id]
+    assert len(successful) == 12 and all(r['correct'] for r in successful)
+    measured = [r for r in successful if r['phase'] == 'measure']
+    assert sorted(r['rep'] for r in measured) == list(range(10))
+    assert statistics.median(r['end_to_end_seconds'] for r in measured) == cases[uts_source][cuda_id]['end_to_end_seconds']
 assert len(data['rows']) == 21 + len(summation)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
 published = [row for row in data['rows'] if row['group'] == 'Published workloads']

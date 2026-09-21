@@ -30,6 +30,8 @@ For alpha-beta game search, Bend GPU is 1.9× faster than Bend on 16 CPU threads
 
 Irregular work is harder. Bend gains no CPU speedup on either UTS input. [UTS results](/code/bend-bench/PERFORMANCE.md#uts-irregular-search).
 
+On GPU, the unchanged Bend UTS port reaches the runtime's stack limit on both inputs. Our CUDA implementation completes the larger tree 6.5× faster than BOTS OpenMP on 16 CPU threads. [UTS GPU results](UTS_GPU.md).
+
 Rodinia’s CUDA implementation finishes HotSpot sooner than Bend GPU. Gunrock also finishes BFS sooner on the two larger graphs, while Bend finishes sooner on the smallest. HotSpot comparison (GPU_COMPARISON.md), BFS results (BFS_RESULTS.md).
 
 ## Takeaways

@@ -8,6 +8,8 @@ The 22 rows cover all 16 published workloads, with CUB added to the bitonic-sort
 
 All sixteen published rows now have a conventional GPU comparison. Eleven cells use the September 21 [custom CUDA results](../../VENDOR_CUDA_COMPLETION.md); three use the September 20 [CUB, cuBLAS and cuDF results](../../VENDOR_GPU_LIBRARIES.md). Game of Life and bitonic-sort comparisons retain their earlier sources. Existing Bend and CPU measurements are unchanged. Per-case source overrides and hashes preserve these separate runs.
 
+The larger UTS row includes the September 21 [CUDA traversal result](../../UTS_GPU.md). Bend GPU is labeled “Stack limit” because its correctness check failed; no failure duration is presented as a benchmark time. The archived failed case is verified alongside the successful CUDA samples.
+
 Rebuild the HTML after editing the data or template:
 
 ```sh

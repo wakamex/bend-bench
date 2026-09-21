@@ -461,26 +461,33 @@
       "group": "Irregular recursive search",
       "name": "Unbalanced Tree Search",
       "detail": "30,399,117 nodes",
-      "baseline": "BOTS serial C / canonical OpenMP",
+      "baseline": "BOTS serial / BOTS OpenMP tasks / project CUDA",
       "ms": [
         7368.097013910301,
         7796.652630553581,
         null,
         3071.482406114228,
         2263.227081624791,
-        null
+        348.21048052981496
       ],
       "cases": [
         "uts/tiny/bend/1",
         "uts/tiny/bend/16",
-        null,
+        "uts/tiny/bend-cuda/16",
         "uts/tiny/serial-c/1",
         "uts/tiny/openmp/16",
-        null
+        "uts/tiny/conventional-cuda/1"
       ],
-      "link": "../../PERFORMANCE.md#uts-irregular-search",
+      "link": "../../UTS_GPU.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "missing_labels": {
+        "2": "Stack limit"
+      },
+      "case_sources": {
+        "uts/tiny/bend-cuda/16": "benchmarks/uts-gpu-20260921/summary.json",
+        "uts/tiny/conventional-cuda/1": "benchmarks/uts-gpu-20260921/summary.json"
+      }
     },
     {
       "group": "GPU primitives",
@@ -599,6 +606,7 @@
     "runs/mnk-sustained-20260918-160439/report.md": "d924404c40e1eae71ba3853873a387b8a24b0338203ec5bcdbdc3bf2d8a4a8ff",
     "runs/summation-scaling-20260920/summary.json": "67d2ad36468ed9bd0516d0df2d8344888b76203f304eb2b0a7c820869d665c96",
     "benchmarks/vendor-cuda-20260921/summary.json": "9892387d5f9ae6fa27813d7c4d63db8a19ebe74ff09c1aeb998e82c13cb858bb",
-    "runs/182bf42ec81e810fd617/summary.json": "3c3d2557033fceb69d3e93305b80e409a52193780b3c72c1471b152157e6066f"
+    "runs/182bf42ec81e810fd617/summary.json": "3c3d2557033fceb69d3e93305b80e409a52193780b3c72c1471b152157e6066f",
+    "benchmarks/uts-gpu-20260921/summary.json": "ff10f54cd7fed91a2577a651086a4792f54e490436f1babf82919388934d4d33"
   }
 }
