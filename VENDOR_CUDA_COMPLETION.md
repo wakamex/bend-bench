@@ -14,7 +14,7 @@ Goal: add conventional CUDA comparisons for the eleven original workloads still 
 | Three-body ensemble | Compiles; original arithmetic compiled for CUDA with independent system lanes | Pending idle GPU | Pending |
 | Ray tracing | Compiles; pixel-parallel original intersections, shading and reflections | Pending idle GPU | Pending |
 | Terrain | Compiles; exact Gauss-Seidel wavefronts and parallel weighted height fold | Pending idle GPU | Pending |
-| Symbolic regression | Pending | Pending | Pending |
+| Symbolic regression | Compiles; warp-per-candidate evaluation, ordered tournament and hill climbing | Pending idle GPU | Pending |
 
 The first Mandelbrot native check was refused by the GPU activity gate before compilation or execution because an unapproved GPU process was active. No workload was stopped or exempted. A separate compile-only check passed, with evidence in `runs/vendor-custom-build-i7n433kf/build.jsonl`. The regression suite passed 71 tests with seven expected skips. Mandelbrot verification compares every escape count with the pinned C implementation, all histogram statistics, and the final original checksum, including the published 4096 × 4096 input. These GPU checks remain pending.
 
@@ -35,6 +35,8 @@ Three-body simulation and all preceding adapters compiled in `runs/vendor-custom
 Ray tracing retains the original sphere intersections, nearest-hit order, shadows, depth-four reflections and four subpixel samples, with independent pixels mapped to CUDA lanes. Staging changes function qualifiers and places the nine-sphere scene in device constant memory; tests reverse these annotations and compare the remaining source exactly with upstream. Verification checks every quantized pixel against the host reference and the published image checksum. GPU agreement remains pending.
 
 Terrain uses 64-thread diagonal wavefronts within each tile, keeping the five original in-place sweeps and their descending pass salts. The additive height fold is expanded into an exact wrapping-U32 weighted sum; the 64-bin XOR histogram fold stays ordered. A CPU counterfactual checks diagonal execution and weighted folding against the actual pinned serial implementation across 256 tile positions and zero through five sweeps. GPU verification compares every final height and tile result. Native GPU checks and timings remain pending.
+
+All eleven adapters compiled in `runs/vendor-custom-build-2c5jak6b/build.jsonl`. Symbolic regression builds each fixed-depth expression's seed tree in shared memory, evaluates independent input points across a warp, then performs the original right-biased tournament and strict-improvement hill climb. Verification checks every candidate and tournament node against the original AST evaluator, plus every hill-climb candidate and the final result. Zero-point inputs exercise tournament ties; small cases also check the original recursive population traversal. Native GPU execution remains pending.
 
 Use [vendor-gpu-custom.toml](vendor-gpu-custom.toml) for the implemented additions. Each new workload must first pass small and published-input output checks; collect one excluded warmup and ten complete-process measurements only after correctness passes. Device-sequence timings are separate from process wall times. Preserve all failed attempts. Check the existing execution lock, blocked services and GPU activity policy before every run, and never edit inputs while a validation using them is queued or active.
 

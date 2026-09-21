@@ -242,7 +242,7 @@ def plan(config, work):
                     case("vendor", name, "cub-cuda", 1, gpu_binary, [], expected, gpu_reason)
                     cases[-1]["check_args"] = ["verify"]
 
-                if name in {"mandelbrot", "queens", "merkle", "lexer", "kmeans", "hashmap", "bfs", "nbody", "raytrace", "terrain"} and name in config.get("vendor_gpu", []):
+                if name in {"mandelbrot", "queens", "merkle", "lexer", "kmeans", "hashmap", "bfs", "nbody", "raytrace", "terrain", "symreg"} and name in config.get("vendor_gpu", []):
                     gpu_binary = work / "build" / f"{name}-conventional-cuda"
                     if not gpu_reason:
                         build([tools["cuda_cxx"], "-std=c++17", *flags, f"--cuda-path={cuda}",
