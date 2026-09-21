@@ -12,6 +12,28 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class VendorCustomGPU(unittest.TestCase):
     @unittest.skipUnless(os.environ.get("BEND_BENCH_VENDOR_GPU_TEST") == "1", "Opt-in real GPU correctness")
+    def test_native_lexer(self):
+        config = load_config(ROOT / "vendor-gpu-custom.toml")
+        with exclusive(config):
+            idle_gpu(config)
+            folder = Path(tempfile.mkdtemp(prefix="vendor-lexer-check-", dir=ROOT / "runs"))
+            stage(config, folder)
+            builds, cases = plan(config, folder)
+            case = next(c for c in cases if c["implementation"] == "conventional-cuda" and c["workload"] == "lexer")
+            command = next(b for b in builds if any(str(x).endswith("vendor-lexer.cu") for x in b))
+            result = execute(command, timeout=180)
+            append(folder / "checks.jsonl", result)
+            self.assertEqual(result["returncode"], 0, result["stderr"])
+            for depth in (0, 6, 12, 23):
+                result = execute([*case["command"], "verify", str(depth)], timeout=180, gpu_policy=config)
+                append(folder / "checks.jsonl", result)
+                self.assertEqual(result["returncode"], 0, result["stderr"])
+                self.assertNotIn("contention_error", result)
+                self.assertIn("FULL_OUTPUT_VERIFIED=", result["stderr"])
+                if depth == 23:
+                    self.assertTrue(correct(case, result), result)
+
+    @unittest.skipUnless(os.environ.get("BEND_BENCH_VENDOR_GPU_TEST") == "1", "Opt-in real GPU correctness")
     def test_native_merkle(self):
         config = load_config(ROOT / "vendor-gpu-custom.toml")
         with exclusive(config):

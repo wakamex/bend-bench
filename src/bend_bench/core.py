@@ -167,9 +167,9 @@ def load_config(path):
         raise ValueError("Unknown or missing suite")
     config.setdefault("vendor_gpu", [])
     selected_gpu = config["vendor_gpu"]
-    if (not isinstance(selected_gpu, list) or any(x not in {"tree-radix", "tree-matmul", "editdist", "mandelbrot", "queens", "merkle"} for x in selected_gpu)
+    if (not isinstance(selected_gpu, list) or any(x not in {"tree-radix", "tree-matmul", "editdist", "mandelbrot", "queens", "merkle", "lexer"} for x in selected_gpu)
             or len(set(selected_gpu)) != len(selected_gpu)):
-        raise ValueError("vendor_gpu must select unique supported workloads: tree-radix, tree-matmul, editdist, mandelbrot, queens, merkle")
+        raise ValueError("vendor_gpu must select unique supported workloads: tree-radix, tree-matmul, editdist, mandelbrot, queens, merkle, lexer")
     if selected_gpu and ("vendor" not in config["suites"] or not config.get("cuda")
                          or not set(selected_gpu) <= set(config.get("vendor", selected_gpu))):
         raise ValueError("vendor_gpu requires CUDA and matching vendor workloads")

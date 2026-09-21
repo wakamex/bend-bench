@@ -7,7 +7,7 @@ Goal: add conventional CUDA comparisons for the eleven original workloads still 
 | Mandelbrot | Compiles; pixel-parallel fixed-point escape counts and weighted histogram reduction | Pending idle GPU | Pending |
 | N-Queens | Compiles; split selected prefixes into smaller subtrees, iterative device search | Pending idle GPU | Pending |
 | Merkle tree | Compiles; parallel Speck leaves, stored levels, separate audit and proof verification | Pending idle GPU | Pending |
-| Lexer | Pending | Pending | Pending |
+| Lexer | Compiles; independent generated lines with ordered token folds and warp reductions | Pending idle GPU | Pending |
 | K-means | Pending | Pending | Pending |
 | Hash tables | Pending | Pending | Pending |
 | Batched maze BFS | Pending | Pending | Pending |
@@ -21,6 +21,8 @@ The first Mandelbrot native check was refused by the GPU activity gate before co
 N-Queens compilation passed in `runs/vendor-queens-build-l8ftajs6/build.jsonl`; focused adapter tests passed with native GPU checks skipped. The host expands each legal four-row prefix by three rows, accounting for every visited node, then the GPU searches those independent subtrees with explicit stacks. Verification compares both solution and node counts for every selected prefix with the original recursive C search. Prefix expansion, transfers and final host aggregation remain in complete-process timing.
 
 Merkle compilation passed in `runs/vendor-merkle-build-zhychlbb/build.jsonl`. The adapter builds flat stored tree levels, then performs the original audit recurrence in a separate pass and verifies a proof using stored sibling hashes. Correctness checks compare every leaf, internal hash and audit value with CPU reference calculations, plus the original proof generator and verifier. The compiler reports the pinned upstream renamed `main` has no explicit return; that unused reference entry point is never called. Focused adapter planning tests passed; GPU checks remain pending.
+
+Lexer compilation passed in `runs/vendor-lexer-build-ddlwrh_8/build.jsonl`, with the same unused-reference-entry warning. Each lane generates and scans a complete line, preserving identifier hashing, decimal parsing and token order; warp sums combine the independent line results. Verification checks every line's result against the upstream generator and scanner, including all 2^23 published lines. Focused planning tests passed; native correctness and timing remain pending.
 
 Use [vendor-gpu-custom.toml](vendor-gpu-custom.toml) for the implemented additions. Each new workload must first pass small and published-input output checks; collect one excluded warmup and ten complete-process measurements only after correctness passes. Device-sequence timings are separate from process wall times. Preserve all failed attempts. Check the existing execution lock, blocked services and GPU activity policy before every run, and never edit inputs while a validation using them is queued or active.
 
