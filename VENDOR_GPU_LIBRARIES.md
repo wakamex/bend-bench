@@ -2,6 +2,10 @@
 
 These adapters add conventional GPU comparisons to the existing published-workload suite. The configuration is [vendor-gpu-libraries.toml](vendor-gpu-libraries.toml); baseline selection is explicit through `vendor_gpu`, so existing configurations retain their previous workload selection.
 
+All 21 configurations passed a fresh combined harness correctness check in `runs/182bf42ec81e810fd617`: serial C, Bend and OpenMP at one and 16 threads, Bend GPU and the new GPU library baseline for each workload. Preparation preserved source, compiler, toolkit, installed-library and binary hashes. All three new adapters passed full-output checks on the published input sizes. There are no timing repetitions in this run yet; existing performance tables remain unchanged.
+
+The regression suite passed 68 tests with six expected opt-in/environment skips, followed by the added installed-cuDF identity test and focused adapter tests. Native opt-in checks were also run separately, as described below. Both wheel and source distribution builds passed.
+
 ## CUB radix sort and deduplication
 
 The adapter generates the published 2^22 24-bit keys, calls CUB radix sort and consecutive-duplicate removal, checks strict ordering and computes the published checksum. The correctness stage additionally copies every unique key back and compares the entire vector with CPU sort-and-deduplicate. Normal timing includes GPU generation, sorting, deduplication, checksum reduction, required result transfers, startup and cleanup. CUDA events separately cover generation through checksum reduction, excluding startup and result transfers.

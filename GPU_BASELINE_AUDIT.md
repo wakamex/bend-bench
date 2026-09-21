@@ -1,5 +1,7 @@
 # GPU baselines for the 16 published workloads
 
+Implementation update: the three recommended library adapters now pass native and combined-harness correctness checks. See [CUB, cuBLAS and cuDF adapters](VENDOR_GPU_LIBRARIES.md). Performance measurements are still pending; the audit below records the original source review and implementation priorities.
+
 All 16 workloads already have Bend GPU measurements. Fourteen still need a conventional GPU comparison. The best first additions are CUB sort-and-deduplicate, cuBLAS matrix multiplication and cuDF edit distance: each has an established GPU component that appears compatible with the actual task. Fixed-point Mandelbrot is the simplest useful custom-kernel follow-up.
 
 Filling every cell is feasible in principle, but most need custom CUDA rather than an existing suite dropped into the harness. This audit checked the pinned C workload contracts against primary library APIs and example sources. It adds no measurements and changes no scorecard cells.
@@ -72,4 +74,3 @@ Start with a small correctness and build probe for each library before integrati
 The evaluation reference is Bend commit `b9d1352c9f45632447f40a2e927355c92f2be58c`. Candidate repository files were fetched at exact commits, not retained as moving-branch links. [The source manifest](benchmarks/gpu-baseline-audit-20260920/manifest.json) records URLs, revisions and SHA-256 hashes for the archived files and workload contracts.
 
 Original candidate sources are saved locally in `sources/gpu-baseline-audit-20260920/`. Existing CCCL headers remain in `sources/cccl-clang/`; the immutable Bend contracts remain in `/code/bend2/upstream/`. These source directories are local evidence, not bundled dependencies. The cuBLAS original HTML is retained alongside a convenience Markdown extraction; the extraction omits introductory material and is not a complete replacement for the original page.
-
