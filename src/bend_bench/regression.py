@@ -1,4 +1,4 @@
-"""Portable GPU result snapshots and readable regression comparisons."""
+"""Shared portable CPU/GPU snapshots and readable regression comparisons."""
 import json
 import math
 from pathlib import Path
@@ -9,28 +9,41 @@ from .experiment import summarize
 
 RESULT_SCHEMA = 'bend-bench-gpu-result-v1'
 COMPARISON_SCHEMA = 'bend-bench-gpu-comparison-v1'
+CPU_RESULT_SCHEMA = 'bend-bench-cpu-result-v1'
+CPU_COMPARISON_SCHEMA = 'bend-bench-cpu-comparison-v1'
+
+
+def target(result):
+    return 'CPU' if result['schema'] == CPU_RESULT_SCHEMA else 'GPU'
 
 
 def snapshot(summary):
     p = summary['provenance']
     config = p['config']
+    cpu = config['suites'] == ['cpu-regression']
     policy = {k: config.get(k) for k in ('threads', 'cpus', 'repetitions', 'warmups',
               'gpu_heap', 'gpu_arch', 'require_idle_gpu', 'gpu_resident')}
-    return dict(schema=RESULT_SCHEMA, fingerprint=summary['fingerprint'],
+    host, tools, toolkit = p['host'], p['tools'], p['toolkit']
+    if cpu:
+        host = {k: v for k, v in host.items() if k != 'gpu'}
+        tools = {k: v for k, v in tools.items() if k in ('cc', 'bun')}
+        toolkit = None
+        policy = {k: config.get(k) for k in ('threads', 'cpus', 'repetitions', 'warmups')}
+    return dict(schema=CPU_RESULT_SCHEMA if cpu else RESULT_SCHEMA, fingerprint=summary['fingerprint'],
                 revision=p['sources']['bend']['commit'],
                 patch_sha256=fingerprint(p['sources']['bend'].get('patch', '')),
-                compatibility={k: fingerprint(v) for k, v in dict(host=p['host'], policy=policy,
-                               tools=p['tools'], toolkit=p['toolkit'], environment=p['environment']).items()},
+                compatibility={k: fingerprint(v) for k, v in dict(host=host, policy=policy,
+                               tools=tools, toolkit=toolkit, environment=p['environment']).items()},
                 preparation=summary['preparation_status'],
                 cases=[dict(case=r['case'], contract_sha256=fingerprint(r['contract']),
                             status=r['status'], checked=r['checked'], samples=r['samples'],
                             seconds=r['end_to_end_seconds'], reason=r.get('reason'))
-                       for r in summary['cases'] if r['implementation'] == 'bend-cuda'])
+                       for r in summary['cases'] if r['implementation'] == ('bend' if cpu else 'bend-cuda')])
 
 
 def validate_result(value):
-    if value.get('schema') != RESULT_SCHEMA or not value.get('cases'):
-        raise ValueError('Expected a GPU result with at least one Bend CUDA case')
+    if value.get('schema') not in (RESULT_SCHEMA, CPU_RESULT_SCHEMA) or not value.get('cases'):
+        raise ValueError('Expected a CPU or GPU result with at least one Bend case')
     if set(value.get('compatibility', {})) != {'host', 'policy', 'tools', 'toolkit', 'environment'}:
         raise ValueError('Incomplete comparison compatibility metadata')
     if not isinstance(value.get('revision'), str) or 'fingerprint' not in value or 'patch_sha256' not in value:
@@ -65,7 +78,7 @@ def load_result(path):
                                  'process exit ' + str(sample['returncode']) if sample['returncode'] else 'output check failed')
         return validate_result(result)
     value = json.loads(path.read_text())
-    if value.get('schema') == COMPARISON_SCHEMA:
+    if value.get('schema') in (COMPARISON_SCHEMA, CPU_COMPARISON_SCHEMA):
         value = value['candidate']
     elif 'provenance' in value and 'cases' in value:
         value = snapshot(value)
@@ -77,6 +90,8 @@ def comparison(before, after, threshold=10):
         raise ValueError('Regression threshold must be a finite positive percentage')
     validate_result(before)
     validate_result(after)
+    if target(before) != target(after):
+        raise ValueError('CPU and GPU profiles require separate baselines')
     left = {r['case']: r for r in before['cases']}
     right = {r['case']: r for r in after['cases']}
     changed = [k for k, v in before['compatibility'].items() if after['compatibility'][k] != v]
@@ -102,27 +117,60 @@ def comparison(before, after, threshold=10):
                             after_seconds=b['seconds'] if b else None, speed_ratio=ratio,
                             time_change_percent=change, issues=issues,
                             regression=change is not None and change > threshold))
+    overall = aggregate(results)
+    groups = {str(n): aggregate([r for r in results if r['case'].endswith('/'+str(n))]) for n in (1, 16)} if target(after) == 'CPU' else {}
+    return dict(schema=CPU_COMPARISON_SCHEMA if target(after) == 'CPU' else COMPARISON_SCHEMA,
+                baseline=before, candidate=after, threshold_percent=threshold,
+                overall=overall, thread_groups=groups, scaling=scaling(before, after, results),
+                cases=results, concerns=bool(overall['regressions'] or overall['uncomparable']))
+
+
+def aggregate(results):
     ratios = [r['speed_ratio'] for r in results if r['speed_ratio'] is not None]
-    overall = dict(matched=len(ratios), total=len(results),
+    return dict(matched=len(ratios), total=len(results),
                    geometric_mean=statistics.geometric_mean(ratios) if ratios else None,
                    minimum=min(ratios) if ratios else None, maximum=max(ratios) if ratios else None,
                    faster=sum(r > 1 for r in ratios), slower=sum(r < 1 for r in ratios),
                    regressions=sum(r['regression'] for r in results),
                    uncomparable=sum(bool(r['issues']) for r in results))
-    return dict(schema=COMPARISON_SCHEMA, baseline=before, candidate=after, threshold_percent=threshold,
-                overall=overall, cases=results, concerns=bool(overall['regressions'] or overall['uncomparable']))
+
+
+def scaling(before, after, comparisons=None):
+    if target(after) != 'CPU':
+        return []
+    def pairs(result):
+        rows = {r['case']: r for r in result['cases']} if result else {}
+        values = {}
+        for key, one in rows.items():
+            if not key.endswith('/1'):
+                continue
+            prefix = key.rsplit('/', 1)[0]
+            many = rows.get(prefix+'/16')
+            valid = many and one['status'] == many['status'] == 'passed' and one['contract_sha256'] == many['contract_sha256']
+            values[prefix] = one['seconds']/many['seconds'] if valid else None
+        return values
+    a, b = pairs(before), pairs(after)
+    issues = {r['case'] for r in comparisons or [] if r['issues']}
+    return [dict(case=k+'/16', before=a.get(k), after=b.get(k),
+                 change_percent=100*(b[k]/a[k]-1) if a.get(k) is not None and b.get(k) is not None
+                 and not {k+'/1', k+'/16'} & issues else None)
+            for k in sorted(a.keys() | b.keys())]
 
 
 def label(case):
     name = case.split('/')[1]
-    return {'bfs': 'Batched maze BFS', 'editdist': 'Edit distance', 'gameoflife': 'Game of Life',
+    text = {'bfs': 'Batched maze BFS', 'editdist': 'Edit distance', 'gameoflife': 'Game of Life',
             'hashmap': 'Independent hash tables', 'kmeans': 'K-means', 'lexer': 'Lexer',
             'mandelbrot': 'Mandelbrot', 'merkle': 'Merkle tree and proof', 'nbody': 'Three-body ensemble',
             'queens': 'N-Queens', 'raytrace': 'Ray tracing', 'symreg': 'Symbolic regression',
             'terrain': 'Terrain', 'tree-bitonic': 'Tree bitonic sort', 'tree-matmul': 'Tree matrix multiplication',
             'tree-radix': 'Tree radix sort + deduplication', 'uts-compact': 'Unbalanced Tree Search (compact)',
             'summation': 'Integer summation', 'hotspot': 'Rodinia HotSpot', 'bfs-shared': 'Shared-graph BFS',
+            'uts-test': 'Unbalanced Tree Search (4.1M nodes)',
             'pricing': 'Option pricing (32 requests)', 'game-search': 'Game search (one full batch)'}.get(name, name)
+    if case.startswith('cpu-regression/'):
+        text = text.replace('32 requests', 'one request') + ' · CPU' + case.rsplit('/', 1)[1]
+    return text
 
 
 def duration(value):
@@ -149,8 +197,9 @@ def aligned_tables(lines):
 
 def render(result, compared=None):
     passed = sum(r['status'] == 'passed' for r in result['cases'])
-    lines = ['# Bend GPU regression results', '',
-             f"Bend `{result['revision'][:12]}` · {passed}/{len(result['cases'])} workloads complete.", '']
+    unit = 'configurations' if target(result) == 'CPU' else 'workloads'
+    lines = [f'# Bend {target(result)} regression results', '',
+             f"Bend `{result['revision'][:12]}` · {passed}/{len(result['cases'])} {unit} complete.", '']
     if compared is None:
         failures = [r for r in result['cases'] if r['status'] in {'failed', 'unsupported'}]
         if failures:
@@ -162,12 +211,15 @@ def render(result, compared=None):
         lines += [f"| {label(r['case'])} | {duration(r['seconds'])} | {r['samples']} | {r['status']}" + (': '+r['reason'] if r.get('reason') else '') + ' |' for r in result['cases']]
     else:
         o = compared['overall']
-        lines += [f"Baseline: `{compared['baseline']['revision'][:12]}`. Matched {o['matched']}/{o['total']} workloads.", '']
-        if o['geometric_mean'] is not None:
+        lines += [f"Baseline: `{compared['baseline']['revision'][:12]}`. Matched {o['matched']}/{o['total']} {unit}.", '']
+        if o['geometric_mean'] is not None and target(result) == 'GPU':
             prefix = 'Matched subset' if o['uncomparable'] else 'Overall'
             delta = 100*(1/o['geometric_mean']-1)
             verdict = 'unchanged' if abs(delta) < .05 else f"{abs(delta):.1f}% {'more' if delta > 0 else 'less'} time"
             lines += [f"{prefix}: {verdict}. Speed ratio {o['geometric_mean']:.3f}× (geometric mean; higher is faster). Range {o['minimum']:.3f}–{o['maximum']:.3f}×. {o['faster']} faster, {o['slower']} slower.", '']
+        for threads, group in compared.get('thread_groups', {}).items():
+            if group['geometric_mean'] is not None:
+                lines += [f"CPU{threads}: {group['geometric_mean']:.3f}× speed ratio; range {group['minimum']:.3f}–{group['maximum']:.3f}×; {group['matched']}/{group['total']} comparable cases.", '']
         lines += ['## Areas of concern', '']
         concerns = [r for r in compared['cases'] if r['issues'] or r['regression']]
         if not concerns:
@@ -181,6 +233,15 @@ def render(result, compared=None):
             gate = '; '.join(r['issues']) or ('REGRESSION' if r['regression'] else 'comparable')
             lines.append(f"| {label(r['case'])} | {duration(r['before_seconds'])} | {duration(r['after_seconds'])} | {change} | {gate} |")
         lines += ['', f"The {compared['threshold_percent']:g}% slowdown threshold is a screening rule, not a statistical significance test. The geometric mean gives each matched workload equal weight. Failed or incompatible cases are excluded from ratios and remain listed above."]
+    if target(result) == 'CPU':
+        lines += ['', '## Thread scaling', '', 'CPU1 time divided by CPU16 time. A smaller speedup can also result from improved single-thread code; it is not independently a slowdown flag.', '',
+                  '| Workload | Baseline speedup | Candidate speedup | Scaling change |', '|---|---:|---:|---:|']
+        values = compared['scaling'] if compared else scaling(None, result)
+        for row in values:
+            a = '-' if row['before'] is None else f"{row['before']:.2f}×"
+            b = '-' if row['after'] is None else f"{row['after']:.2f}×"
+            change = '-' if row['change_percent'] is None else f"{row['change_percent']:+.1f}%"
+            lines.append(f"| {label(row['case']).rsplit(' · CPU', 1)[0]} | {a} | {b} | {change} |")
     lines += ['', 'Times are complete-process medians from correctness-gated runs. These are separate from scorecard request-latency measurements.',
               f"Candidate result identity: `{result['fingerprint']}`. Compiler patch identity: `{result['patch_sha256']}`.", '']
     return aligned_tables(lines)

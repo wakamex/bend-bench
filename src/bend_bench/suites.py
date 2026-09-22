@@ -31,8 +31,8 @@ def stage(config, work, *, mnk_count=16):
         if key in config and not (work / name).exists():
             (work / name).symlink_to(config[key]["path"], target_is_directory=True)
     (work / "build").mkdir(exist_ok=True)
-    if "gpu-regression" in config["suites"]:
-        from .fast_gpu import stage_fixtures
+    if set(config['suites']) & {'gpu-regression', 'cpu-regression'}:
+        from .fast import stage_fixtures
         stage_fixtures(config, work)
     if "nqueens" in config["suites"]:
         for size in config["queens_sizes"]:
@@ -131,8 +131,8 @@ def plan(config, work):
             build([str(binary) + "-cuda", "--gpu-build"])
         return binary
 
-    if "gpu-regression" in config['suites']:
-        from .fast_gpu import plan_fixtures
+    if set(config['suites']) & {'gpu-regression', 'cpu-regression'}:
+        from .fast import plan_fixtures
         plan_fixtures(config, work, bend_build, case, cases, gpu_reason)
 
     if set(config['suites']) & {'pricing', 'mnk', 'bfs'}:

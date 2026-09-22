@@ -1,0 +1,17 @@
+{
+  "uts-compact": {
+    "name": "uts-test",
+    "cpu_source": "uts-test.bend",
+    "expected_regex": "4112897 0",
+    "contract": {"workload": "uts-test", "nodes": 4112897, "root": 2000, "probability": "0.124875", "branching": 8, "seed": 42}
+  },
+  "summation": {
+    "replacements": [["sum!(31n,", "sum!(28n,"]],
+    "expected_regex": "1982277632",
+    "contract": {"workload": "summation", "integers": 268435456}
+  },
+  "pricing": {
+    "replacements": [["repeat(32n, 0)", "repeat(1n, 0)"]],
+    "contract": {"workload": "pricing", "requests": 1, "paths": 262144, "observations": 256}
+  }
+}

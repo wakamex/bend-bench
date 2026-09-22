@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 from bend_bench.core import correct, load_config
-from bend_bench.fast_gpu import ASSETS
+from bend_bench.fast import ASSETS
 from bend_bench.suites import plan, stage
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +21,14 @@ class FastGPU(unittest.TestCase):
         result = subprocess.run([sys.executable, '-m', 'bend_bench', 'fast-gpu', '--help'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--plan', result.stdout)
+
+    def test_shared_runner_preserves_gpu_contracts(self):
+        archived = ROOT/'runs/672916fc95e4c1fefa0e/plan.json'
+        if not archived.exists():
+            self.skipTest('Original fast GPU plan unavailable')
+        _, cases = plan(self.config, ROOT/'runs/fast-plan-only')
+        before = {c['id']: c['contract'] for c in json.loads(archived.read_text())['cases']}
+        self.assertEqual(before, {c['id']: c['contract'] for c in cases})
 
     def test_plan_is_gpu_only_and_fixed(self):
         with tempfile.TemporaryDirectory() as tmp:

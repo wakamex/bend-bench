@@ -46,7 +46,13 @@ For compiler changes, [fast GPU regression testing](FAST_GPU.md) runs Bend GPU a
 uv run --locked bend-bench fast-gpu
 ```
 
-Edit `fast-gpu.toml` to pin the compiler checkout and revision. Add `--baseline runs/BASELINE_ID` or pass a saved `regression.json` to get an overall speed comparison and flagged slowdowns. `bend-bench gpu-report runs/CANDIDATE_ID --baseline runs/BASELINE_ID` compares existing results without rerunning them. Results are separate from the scorecard.
+The [CPU regression profile](FAST_CPU.md) covers the same workload families at one and 16 threads with CPU-appropriate input sizes:
+
+```sh
+uv run --locked bend-bench fast-cpu
+```
+
+Edit `fast-gpu.toml` or `fast-cpu.toml` to pin the compiler checkout and revision. Add `--baseline runs/BASELINE_ID` or pass a saved `regression.json` to get speed comparisons and flagged slowdowns. `bend-bench regression-report runs/CANDIDATE_ID --baseline runs/BASELINE_ID` compares existing results without rerunning them. CPU reports separate single-thread performance, multicore performance and thread scaling. Results are separate from the scorecard.
 
 Requirements: Linux, uv, Git, `taskset`, GNU time, Bun, Clang and an OpenMP-enabled C++ compiler. GPU runs additionally require a compatible CUDA toolchain and NVIDIA GPU; kernel profiling requires Nsight Systems.
 

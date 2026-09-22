@@ -1,5 +1,7 @@
 # Fast Bend GPU regression benchmark
 
+The [CPU profile](FAST_CPU.md) uses the same harness and reporting code, with one- and 16-thread measurements and three CPU-specific input overrides.
+
 Run the 22 workload families from the scorecard against a pinned Bend compiler, without rebuilding or measuring conventional implementations or CPU backends:
 
 ```sh

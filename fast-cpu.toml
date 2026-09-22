@@ -1,0 +1,28 @@
+schema = 1
+label = "fast-cpu-v1"
+output = "runs"
+suites = ["cpu-regression"]
+threads = [1, 16]
+cpus = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+repetitions = 10
+warmups = 1
+timeout = 60
+cuda = false
+require_idle_gpu = false
+blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-applications.service", "bend-bench-gpu.service", "bend-bench-vendor-cuda.service", "bend-bench-uts-compact.service", "bend-bench-fast-gpu.service"]
+
+[bend]
+path = "../bend"
+commit = "19fa5ae3643241c70bcfbf1bde67d8eb0d4cca30"
+
+[rodinia]
+path = "../bend2/rodinia/rodinia_3.1"
+archive = "../bend2/sources/rodinia_3.1.tar.bz2"
+sha256 = "faebac7c11ed8f8fcf6bf2d7e85c3086fc2d11f72204d6dfc28dc5b2e8f2acfd"
+
+[tools]
+bun = "../bend2/tools/bun-linux-x64/bun"
+cc = "/usr/bin/clang"
+cxx = "/usr/bin/g++"
+cuda_cxx = "/usr/bin/clang++"
+cuda_path = "/usr/local/cuda-13.1"

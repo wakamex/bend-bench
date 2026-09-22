@@ -20,18 +20,20 @@ def main(argv=None):
     comparison = commands.add_parser("compare")
     comparison.add_argument("before", type=Path)
     comparison.add_argument("after", type=Path)
-    fast = commands.add_parser('fast-gpu', help='Check and measure the fixed Bend GPU regression portfolio')
-    fast.add_argument('experiment', type=Path, nargs='?', default=Path('fast-gpu.toml'))
-    fast.add_argument('--plan', action='store_true', help='Preview the fixed 22 cases without running them')
-    fast.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
-    fast.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
-    gpu_report = commands.add_parser('gpu-report', help='Readable GPU results and optional regression comparison')
-    gpu_report.add_argument('run', type=Path)
-    gpu_report.add_argument('--baseline', type=Path)
-    gpu_report.add_argument('--threshold', type=float, default=10)
+    for target in ('cpu', 'gpu'):
+        fast = commands.add_parser('fast-'+target, help=f'Check and measure the fixed Bend {target.upper()} regression portfolio')
+        fast.add_argument('experiment', type=Path, nargs='?', default=Path(f'fast-{target}.toml'))
+        fast.add_argument('--plan', action='store_true', help='Preview the fixed portfolio without running it')
+        fast.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
+        fast.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
+    for name in ('regression-report', 'gpu-report', 'cpu-report'):
+        regression_report = commands.add_parser(name, help='Readable results and optional regression comparison')
+        regression_report.add_argument('run', type=Path)
+        regression_report.add_argument('--baseline', type=Path)
+        regression_report.add_argument('--threshold', type=float, default=10)
     args = parser.parse_args(argv)
     try:
-        if args.command == 'gpu-report':
+        if args.command in ('gpu-report', 'cpu-report', 'regression-report'):
             from .regression import comparison, load_result, publish, render
             if args.run.is_dir():
                 text, concerns = publish(args.run, args.baseline, args.threshold)
@@ -48,11 +50,15 @@ def main(argv=None):
             print(json.dumps(compare(args.before, args.after), indent=2))
         else:
             config = load_config(args.experiment)
-            if args.command == 'fast-gpu' and not args.plan:
-                from .fast_gpu import run as fast_run
+            if args.command in ('fast-gpu', 'fast-cpu'):
+                expected_suite = args.command.removeprefix('fast-') + '-regression'
+                if config['suites'] != [expected_suite]:
+                    raise ValueError(f'{args.command} requires suites = ["{expected_suite}"]')
+            if args.command in ('fast-gpu', 'fast-cpu') and not args.plan:
+                from .fast import run as fast_run
                 folder, failed = fast_run(config, args.baseline, args.threshold)
                 return int(failed)
-            elif args.command == "plan" or args.command == 'fast-gpu':
+            elif args.command == "plan" or args.command in ('fast-gpu', 'fast-cpu'):
                 run = directory(config, provenance(config))
                 builds, cases = plan(config, run / "work")
                 print(json.dumps(dict(run=str(run), builds=builds, cases=cases), indent=2))

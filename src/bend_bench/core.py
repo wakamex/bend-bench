@@ -163,7 +163,7 @@ def load_config(path):
             raise ValueError("gpu_resident requires a pinned pid, start_ticks and boot_id")
         if not config.get("require_idle_gpu"):
             raise ValueError("gpu_resident requires require_idle_gpu")
-    if not config.get("suites") or set(config["suites"]) - {"vendor", "uts", "cub", "hotspot", "pricing", "mnk", "bfs", "nqueens", "gpu-regression"}:
+    if not config.get("suites") or set(config["suites"]) - {"vendor", "uts", "cub", "hotspot", "pricing", "mnk", "bfs", "nqueens", "gpu-regression", "cpu-regression"}:
         raise ValueError("Unknown or missing suite")
     config.setdefault("vendor_gpu", [])
     selected_gpu = config["vendor_gpu"]
@@ -214,7 +214,7 @@ def load_config(path):
         spec["path"] = str((path.parent / spec["path"]).resolve())
         if not re.fullmatch(r"[0-9a-f]{40}", spec["commit"]):
             raise ValueError(f"{key}.commit must be a full Git SHA")
-    if set(config["suites"]) & {"hotspot", "gpu-regression"}:
+    if set(config["suites"]) & {"hotspot", "gpu-regression", "cpu-regression"}:
         spec = config["rodinia"]
         if set(spec) != {"path", "archive", "sha256"} or not re.fullmatch(r"[0-9a-f]{64}", spec["sha256"]):
             raise ValueError("rodinia requires path, archive and sha256")
@@ -372,7 +372,7 @@ def correct(case, result):
     if result["returncode"] or result["timeout"] or result.get("contention_error"):
         return False
     if 'regression_kind' in case:
-        from .fast_gpu import correct_special
+        from .fast import correct_special
         return correct_special(case, result)
     if 'expected_vector' in case:
         try:
