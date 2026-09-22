@@ -112,9 +112,13 @@ def run(config, baseline=None, threshold=10, *, wait_for_idle=False):
     if cpu:
         if config['cuda'] or config['require_idle_gpu'] or config['threads'] != [1, 16]:
             raise ValueError('fast-cpu requires CUDA and GPU monitoring disabled and threads = [1, 16]')
-    elif config['suites'] != ['gpu-regression'] or not config['cuda'] or not config['require_idle_gpu']:
-        raise ValueError('fast-gpu requires the GPU-only regression preset and GPU activity gates')
-    if not cpu and not wait_for_idle:
+    elif config['suites'] != ['gpu-regression'] or not config['cuda']:
+        raise ValueError('fast-gpu requires the GPU-only regression preset')
+    if wait_for_idle and not config['require_idle_gpu']:
+        raise ValueError('Idle waiting requires exclusive GPU mode')
+    if not cpu:
+        print('GPU mode: ' + ('exclusive' if config['require_idle_gpu'] else 'shared (other GPU activity is allowed)'), flush=True)
+    if not cpu and config['require_idle_gpu'] and not wait_for_idle:
         print('Checking GPU activity before preparation...', flush=True)
         idle_gpu(config)
     evidence = provenance(config)

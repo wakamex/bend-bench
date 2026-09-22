@@ -46,6 +46,8 @@ For compiler changes, [fast GPU regression testing](FAST_GPU.md) runs Bend GPU a
 uv run --locked bend-bench gpu fast
 ```
 
+GPU sharing is allowed by default. Add `--exclusive-gpu` to reject other GPU activity, or `--wait-idle` to wait for an idle GPU and then run exclusively. Use `--repetitions N` for more measurements.
+
 The [CPU regression profile](FAST_CPU.md) covers the same workload families at one and 16 threads with CPU-appropriate input sizes:
 
 ```sh

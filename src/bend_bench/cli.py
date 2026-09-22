@@ -17,6 +17,7 @@ def fast_arguments(parser, target):
     parser.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
     parser.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
     if target == 'gpu':
+        parser.add_argument('--exclusive-gpu', action='store_true', help='Reject other GPU processes and overlapping GPU activity')
         parser.add_argument('--wait-idle', action='store_true', help='Wait for 120 seconds of GPU inactivity before preparing the run')
 
 
@@ -64,6 +65,9 @@ def main(argv=None):
                 expected_suite = args.command.removeprefix('fast-') + '-regression'
                 if config['suites'] != [expected_suite]:
                     raise ValueError(f'{args.command} requires suites = ["{expected_suite}"]')
+                if args.command == 'fast-gpu' and (args.exclusive_gpu or args.wait_idle):
+                    config['require_idle_gpu'] = True
+                    config.pop('gpu_resident', None)
                 if args.repetitions is not None:
                     if args.repetitions < 1:
                         raise ValueError('--repetitions must be at least 1')

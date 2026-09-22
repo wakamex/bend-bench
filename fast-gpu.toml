@@ -10,11 +10,8 @@ timeout = 60
 cuda = true
 gpu_heap = "4GB"
 gpu_arch = "sm_86"
-require_idle_gpu = true
+require_idle_gpu = false
 blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-applications.service", "bend-bench-gpu.service", "bend-bench-vendor-cuda.service", "bend-bench-uts-compact.service"]
-
-[gpu_resident]
-cgroup = "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service"
 
 [bend]
 path = "../bend"

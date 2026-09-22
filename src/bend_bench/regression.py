@@ -35,6 +35,7 @@ def snapshot(summary):
                 compatibility={k: fingerprint(v) for k, v in dict(host=host, policy=policy,
                                tools=tools, toolkit=toolkit, environment=p['environment']).items()},
                 preparation=summary['preparation_status'], required_samples=config['repetitions'],
+                gpu_mode=None if cpu else ('exclusive' if config.get('require_idle_gpu') else 'shared'),
                 cases=[dict(case=r['case'], contract_sha256=fingerprint(r['contract']),
                             status=r['status'], checked=r['checked'], samples=r['samples'],
                             seconds=r['end_to_end_seconds'], reason=r.get('reason'))
@@ -205,6 +206,8 @@ def render(result, compared=None):
              f"Bend `{result['revision'][:12]}` · {passed}/{len(result['cases'])} {unit} complete.", '']
     if result.get('required_samples', 10) < 10:
         lines += [f"Quick screen: {result['required_samples']} measured execution(s) per configuration, after a separate correctness check and warmup. Confirm suspected regressions with --repetitions 10.", '']
+    if target(result) == 'GPU':
+        lines += [f"GPU mode: {result.get('gpu_mode', 'not recorded')}." + (' Other GPU work may affect these timings.' if result.get('gpu_mode') == 'shared' else ''), '']
     if compared is None:
         failures = [r for r in result['cases'] if r['status'] in {'failed', 'unsupported'}]
         if failures:
