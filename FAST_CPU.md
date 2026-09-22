@@ -51,4 +51,6 @@ journalctl --user -u bend-bench-fast-cpu -f
 
 ## Shared implementation
 
+[Reusable builds](BUILDS.md) separate compilation from measurement: `cpu fast --build-only --output builds/cpu`, then `cpu fast --build builds/cpu`. Reuse verifies the saved artifact and runtime compatibility without consulting source checkouts or compiler tools.
+
 CPU and GPU commands use the same fixture staging, build planning, special-output validation, execution, report generation, portable snapshots and comparison code. CPU-specific data consists of three input overrides and the existing UTS source snapshot. The GPU workload contracts remain unchanged by this refactor. Broad core-count and size sweeps remain separate follow-ups for investigating a regression or assessing a release.

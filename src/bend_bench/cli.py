@@ -11,7 +11,11 @@ from .suites import plan
 
 def fast_arguments(parser, target):
     parser.set_defaults(command='fast-'+target)
-    parser.add_argument('experiment', type=Path, nargs='?', default=Path(f'fast-{target}.toml'))
+    parser.add_argument('experiment', type=Path, nargs='?')
+    builds = parser.add_mutually_exclusive_group()
+    builds.add_argument('--build-only', action='store_true', help='Compile a reusable artifact without running benchmarks; requires --output')
+    builds.add_argument('--build', type=Path, help='Run a saved build without compiler tools or source checkouts')
+    parser.add_argument('--output', type=Path, help='Build artifact directory with --build-only, or runs directory with --build')
     parser.add_argument('--plan', action='store_true', help='Preview the fixed portfolio without running it')
     parser.add_argument('--repetitions', type=int, help='Measured executions per configuration (positive integer; overrides TOML)')
     parser.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
@@ -61,7 +65,23 @@ def main(argv=None):
         elif args.command == "compare":
             print(json.dumps(compare(args.before, args.after), indent=2))
         else:
-            config = load_config(args.experiment)
+            fast_command = args.command in ('fast-gpu', 'fast-cpu')
+            if fast_command:
+                if (args.build_only or args.build) and args.plan:
+                    raise ValueError('Build options cannot be combined with --plan')
+                if args.build_only and (not args.output or args.resume or args.baseline):
+                    raise ValueError('--build-only requires --output and cannot use --resume or --baseline')
+                if args.output and not (args.build_only or args.build):
+                    raise ValueError('--output requires --build-only or --build')
+                if args.build and args.experiment:
+                    raise ValueError('--build uses the saved configuration; omit the experiment file')
+            if fast_command and args.build:
+                from .builds import config_from_build
+                config = config_from_build(args.build, args.command.removeprefix('fast-'))
+                if args.output:
+                    config['output'] = str(args.output.resolve())
+            else:
+                config = load_config(args.experiment or Path(args.command + '.toml'))
             if args.command in ('fast-gpu', 'fast-cpu'):
                 if args.plan and args.resume:
                     raise ValueError('--plan and --resume cannot be combined')
@@ -79,7 +99,11 @@ def main(argv=None):
                 from .fast import run as fast_run
                 started = time.perf_counter()
                 try:
-                    folder, failed = fast_run(config, args.baseline, args.threshold, wait_for_idle=getattr(args, 'wait_idle', False), resume=args.resume)
+                    if args.build_only:
+                        from .builds import create
+                        folder, failed = create(config, args.output), False
+                    else:
+                        folder, failed = fast_run(config, args.baseline, args.threshold, wait_for_idle=getattr(args, 'wait_idle', False), resume=args.resume)
                 finally:
                     elapsed = time.perf_counter() - started
                     minutes, seconds = divmod(round(elapsed), 60)

@@ -2,5 +2,6 @@
 __pycache__/
 dist/
 runs/
+builds/
 sources/
 *.egg-info/

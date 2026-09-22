@@ -276,6 +276,9 @@ def load_config(path):
 
 
 def provenance(config):
+    if '_build_artifact' in config:
+        from .builds import runtime_provenance
+        return runtime_provenance(config)
     sources = {key: repository(config[key]) for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu") if key in config}
     if "cudf" in config:
         spec = config["cudf"]
@@ -298,9 +301,25 @@ def provenance(config):
         sources["rodinia"] = {**spec, "files": hashes, "patch": ""}
     tools = {key: dict(path=value, sha256=hash_file(value), version=output([value, "--version"]))
              for key, value in config["tools"].items() if key != "cuda_path"}
+    host = host_info()
+    toolkit = {}
+    if config["cuda"]:
+        root = Path(config["tools"]["cuda_path"])
+        for pattern in ("version.json", "include/*.h", "lib64/libnvrtc.so*", "lib64/libnvrtc-builtins.so*", "lib64/libcudart.so*", "lib64/libcublas.so*", "lib64/libcublasLt.so*"):
+            for file in sorted(root.glob(pattern)):
+                if file.is_file():
+                    toolkit[str(file)] = hash_file(file)
+    return dict(config=config, sources=sources, tools=tools, harness=harness_info(), host=host,
+                toolkit=toolkit, environment=environment())
+
+
+def harness_info():
     package = Path(__file__).parent
-    harness = {str(p.relative_to(package)): hash_file(p) for p in sorted(package.rglob("*"))
-               if p.is_file() and "__pycache__" not in p.parts}
+    return {str(p.relative_to(package)): hash_file(p) for p in sorted(package.rglob("*"))
+            if p.is_file() and "__pycache__" not in p.parts}
+
+
+def host_info():
     gpu = execute(["nvidia-smi", "--query-gpu=name,uuid,driver_version,memory.total", "--format=csv,noheader"]) if shutil.which("nvidia-smi") else None
     cpu = json.loads(output(["lscpu", "--json"]))["lscpu"]
     # Instantaneous clock utilization changes during otherwise identical runs.
@@ -309,15 +328,7 @@ def provenance(config):
     host = dict(platform=platform.platform(), cpu=cpu, governors=governors,
                 topology=json.loads(output(["lscpu", "--json", "--extended=CPU,CORE,SOCKET,NODE"])),
                 gpu=gpu["stdout"] if gpu else None, affinity=sorted(os.sched_getaffinity(0)))
-    toolkit = {}
-    if config["cuda"]:
-        root = Path(config["tools"]["cuda_path"])
-        for pattern in ("version.json", "include/*.h", "lib64/libnvrtc.so*", "lib64/libnvrtc-builtins.so*", "lib64/libcudart.so*", "lib64/libcublas.so*", "lib64/libcublasLt.so*"):
-            for file in sorted(root.glob(pattern)):
-                if file.is_file():
-                    toolkit[str(file)] = hash_file(file)
-    return dict(config=config, sources=sources, tools=tools, harness=harness, host=host,
-                toolkit=toolkit, environment=environment())
+    return host
 
 
 @contextmanager

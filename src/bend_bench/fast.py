@@ -2,6 +2,7 @@
 import gzip
 import json
 import math
+import shutil
 from pathlib import Path
 import struct
 import time
@@ -27,9 +28,19 @@ def fixtures(config):
 
 
 def stage_fixtures(config, work):
+    rodinia = config['rodinia']['path']
+    if config.get('_portable_build'):
+        target = work / 'inputs/rodinia/data/hotspot'
+        target.mkdir(parents=True, exist_ok=True)
+        for name in ('temp_1024', 'power_1024'):
+            shutil.copy2(Path(rodinia) / 'data/hotspot' / name, target / name)
+        rodinia = 'inputs/rodinia'
     for source in ASSETS.glob('*.bend'):
-        text = source.read_text().replace('@RODINIA@', config['rodinia']['path'])
+        text = source.read_text().replace('@RODINIA@', rodinia)
         (work / 'ports' / source.name).write_text(text)
+    if config.get('_portable_build'):
+        for source in ASSETS.glob('*.json'):
+            shutil.copy2(source, work / 'ports' / source.name)
     for source in ASSETS.glob('*.gz'):
         (work / 'ports' / source.stem).write_bytes(gzip.decompress(source.read_bytes()))
     if is_cpu(config):
@@ -68,6 +79,8 @@ def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
             if 'regression_kind' in fixture:
                 cases[-1]['regression_kind'] = fixture['regression_kind']
                 cases[-1]['regression_reference'] = str(ASSETS / (name + '.json'))
+                if config.get('_portable_build'):
+                    cases[-1]['regression_reference'] = str(work / 'ports' / (name + '.json'))
                 if cpu and name == 'pricing':
                     cases[-1]['regression_requests'] = 1
 

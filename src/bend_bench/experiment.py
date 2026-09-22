@@ -11,16 +11,24 @@ from .suites import plan, stage
 
 
 def directory(config, evidence):
+    if '_build_directory' in config:
+        return Path(config['_build_directory'])
     return Path(config["output"]) / fingerprint(evidence)[:20]
 
 
 def artifacts(work):
-    return {str(p.relative_to(work)): hash_file(p) for folder in ("build", "baselines", "ports", "gpu")
+    folders = ("build", "baselines", "ports", "gpu")
+    if (work / 'inputs/rodinia').exists():
+        folders += ('inputs/rodinia',)
+    return {str(p.relative_to(work)): hash_file(p) for folder in folders
             for p in sorted((work / folder).rglob("*")) if p.is_file()}
 
 
 def prepare(config):
     with exclusive(config):
+        if '_build_artifact' in config:
+            from .builds import prepare_run
+            return prepare_run(config)
         evidence = provenance(config)
         run = directory(config, evidence)
         if (run / "prepared.json").exists():

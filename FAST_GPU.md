@@ -50,6 +50,8 @@ Each run prints its directory and writes `report.md`, `summary.json`, commands, 
 
 ## Workloads and runtime
 
+[Reusable builds](BUILDS.md) separate compilation from measurement: `gpu fast --build-only --output builds/gpu`, then `gpu fast --build builds/gpu`. Binaries, GPU sidecars, inputs and correctness references are bundled together and checked before reuse.
+
 | Workloads | Fast profile |
 |---|---|
 | Original 16 workloads | Unchanged published inputs, fixed source snapshots |

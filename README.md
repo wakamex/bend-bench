@@ -50,6 +50,8 @@ GPU sharing is allowed by default. Add `--exclusive-gpu` to reject other GPU act
 
 Fast commands collect fresh measurements and save a new run directory each time. `--baseline runs/<id>` compares the new measurements with a saved run; `--resume runs/<id>` explicitly continues an existing run instead.
 
+To compile once and reuse binaries, use `--build-only --output builds/my-build`, then `--build builds/my-build`. See [reusable builds](BUILDS.md) for CPU/GPU examples and integrity checks.
+
 The [CPU regression profile](FAST_CPU.md) covers the same workload families at one and 16 threads with CPU-appropriate input sizes:
 
 ```sh

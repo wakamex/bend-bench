@@ -28,7 +28,7 @@ def stage(config, work, *, mnk_count=16):
     assets = Path(__file__).parent / "assets"
     shutil.copytree(assets, work, dirs_exist_ok=True)
     for name, key in (("upstream", "bend"), ("bots", "bots")):
-        if key in config and not (work / name).exists():
+        if key in config and not config.get('_portable_build') and not (work / name).exists():
             (work / name).symlink_to(config[key]["path"], target_is_directory=True)
     (work / "build").mkdir(exist_ok=True)
     if set(config['suites']) & {'gpu-regression', 'cpu-regression'}:
