@@ -65,9 +65,14 @@ def correct_special(case, result):
         return False
 
 
-def run(config):
+def run(config, baseline=None, threshold=10):
     from .experiment import directory, measure, prepare, report
     from .gpu_activity import idle_snapshot
+    from .regression import load_result, publish
+    if not math.isfinite(threshold) or threshold <= 0:
+        raise ValueError('Regression threshold must be a finite positive percentage')
+    if baseline is not None:
+        baseline = load_result(baseline)  # Freeze the comparison input before waiting or executing.
     if config['suites'] != ['gpu-regression'] or not config['cuda'] or not config['require_idle_gpu']:
         raise ValueError('fast-gpu requires the GPU-only regression preset and GPU activity gates')
     evidence = provenance(config)
@@ -97,6 +102,8 @@ def run(config):
         _, failed = measure(config, checking=True)
         # Retain failed cases while still exercising the rest of the portfolio.
         _, measured_failed = measure(config)
-        return folder, failed or measured_failed
     finally:
         report(folder)
+        text, concerns = publish(folder, baseline, threshold)
+        print(text, flush=True)
+    return folder, failed or measured_failed or concerns

@@ -14,6 +14,30 @@ uv run --locked bend-bench fast-gpu candidate.toml
 uv run --locked bend-bench compare runs/BASELINE_ID runs/CANDIDATE_ID
 ```
 
+## Readable regression comparisons
+
+Pass a baseline when running a new compiler:
+
+```sh
+uv run --locked bend-bench fast-gpu candidate.toml --baseline runs/BASELINE_ID
+```
+
+The terminal report leads with overall performance, using the geometric mean of baseline/candidate time ratios, their range, and counts of faster and slower workloads. A compact table shows baseline time, candidate time and percentage change. Slowdowns above 10% appear under areas of concern. This is a screening threshold, not a statistical significance test; investigate flagged cases with repeated matched runs before attributing a close change to the compiler.
+
+You can compare completed runs without running any benchmarks, or share the self-contained JSON result files:
+
+```sh
+uv run --locked bend-bench gpu-report runs/CANDIDATE_ID --baseline runs/BASELINE_ID
+uv run --locked bend-bench gpu-report candidate-regression.json --baseline baseline-regression.json
+uv run --locked bend-bench fast-gpu candidate.toml --baseline baseline-regression.json --threshold 5
+```
+
+Baseline inputs may be a run directory, its `summary.json`, the compact `regression.json`, or a previous `comparison.json`. Passing a previous comparison uses its candidate result as the next baseline. Directory inputs are read from the underlying evidence rather than trusting a possibly stale report. JSON snapshots are portable reports of recorded gates and timings; retain raw samples for auditing.
+
+A run writes `regression.json` and prints the readable report. Without a baseline it saves `regression.md`; with a baseline it saves `comparison.md` and `comparison.json`, including both result snapshots. `gpu-report` updates these files when given a run directory; when given a JSON file it only prints the report. Existing machine-readable `bend-bench compare` output remains unchanged.
+
+The checker refuses timing ratios across changed hardware, compiler tools, CUDA toolkit, environment, execution policy or workload contracts. The Bend revision and patch are intentionally allowed to differ. Failed, missing and incompatible workloads remain listed and excluded from the geometric mean; a partial mean is labeled as a matched subset. Exit status is 0 for a complete result with no flagged concerns, 1 for failed/incomplete comparisons or a slowdown above the threshold, and 2 for invalid input or execution errors. A mean near one cannot conceal a failed workload or an individual regression.
+
 Each run prints its directory and writes `report.md`, `summary.json`, commands, generated sources, binaries, source and library hashes, correctness results and individual timing samples. Comparison reports baseline-time / candidate-time for each compatible, passed workload: values above one mean the candidate is faster. Missing, failed or changed-contract results receive an explanation instead of a ratio. A repeated command resumes successful samples and does not retry failed ones.
 
 ## Workloads and runtime

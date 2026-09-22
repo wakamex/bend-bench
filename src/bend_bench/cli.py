@@ -23,9 +23,26 @@ def main(argv=None):
     fast = commands.add_parser('fast-gpu', help='Check and measure the fixed Bend GPU regression portfolio')
     fast.add_argument('experiment', type=Path, nargs='?', default=Path('fast-gpu.toml'))
     fast.add_argument('--plan', action='store_true', help='Preview the fixed 22 cases without running them')
+    fast.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
+    fast.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
+    gpu_report = commands.add_parser('gpu-report', help='Readable GPU results and optional regression comparison')
+    gpu_report.add_argument('run', type=Path)
+    gpu_report.add_argument('--baseline', type=Path)
+    gpu_report.add_argument('--threshold', type=float, default=10)
     args = parser.parse_args(argv)
     try:
-        if args.command == "report":
+        if args.command == 'gpu-report':
+            from .regression import comparison, load_result, publish, render
+            if args.run.is_dir():
+                text, concerns = publish(args.run, args.baseline, args.threshold)
+            else:
+                result = load_result(args.run)
+                compared = comparison(load_result(args.baseline), result, args.threshold) if args.baseline else None
+                text = render(result, compared)
+                concerns = any(r['status'] != 'passed' for r in result['cases']) or (compared and compared['concerns'])
+            print(text)
+            return int(bool(concerns))
+        elif args.command == "report":
             print(report(args.run))
         elif args.command == "compare":
             print(json.dumps(compare(args.before, args.after), indent=2))
@@ -33,8 +50,7 @@ def main(argv=None):
             config = load_config(args.experiment)
             if args.command == 'fast-gpu' and not args.plan:
                 from .fast_gpu import run as fast_run
-                folder, failed = fast_run(config)
-                print(report(folder))
+                folder, failed = fast_run(config, args.baseline, args.threshold)
                 return int(failed)
             elif args.command == "plan" or args.command == 'fast-gpu':
                 run = directory(config, provenance(config))
