@@ -326,7 +326,8 @@ def exclusive(config):
         if (service_state(service) in {"active", "activating", "reloading", "deactivating"}
                 and not service_contains_current_process(service)):
             raise ValueError(f"Wait for {service} to finish; no overlapping preparation or measurement")
-    lock = Path(tempfile.gettempdir()) / f"bend-bench-{os.getuid()}.lock"
+    # Keep the historical shared location even when compiler TMPDIR is changed.
+    lock = Path('/tmp') / f"bend-bench-{os.getuid()}.lock"
     with lock.open("a") as stream:
         try:
             fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
