@@ -34,7 +34,7 @@ def snapshot(summary):
                 patch_sha256=fingerprint(p['sources']['bend'].get('patch', '')),
                 compatibility={k: fingerprint(v) for k, v in dict(host=host, policy=policy,
                                tools=tools, toolkit=toolkit, environment=p['environment']).items()},
-                preparation=summary['preparation_status'],
+                preparation=summary['preparation_status'], required_samples=config['repetitions'],
                 cases=[dict(case=r['case'], contract_sha256=fingerprint(r['contract']),
                             status=r['status'], checked=r['checked'], samples=r['samples'],
                             seconds=r['end_to_end_seconds'], reason=r.get('reason'))
@@ -49,6 +49,9 @@ def validate_result(value):
     if not isinstance(value.get('revision'), str) or 'fingerprint' not in value or 'patch_sha256' not in value:
         raise ValueError('Missing result identity')
     seen = set()
+    required = value.get('required_samples', 10)
+    if type(required) is not int or required < 1:
+        raise ValueError('Invalid required sample count')
     for row in value['cases']:
         if row['case'] in seen or not row.get('contract_sha256'):
             raise ValueError('Duplicate case or missing workload contract')
@@ -59,7 +62,7 @@ def validate_result(value):
             raise ValueError('Invalid sample count or correctness gate')
         seconds = row['seconds']
         if row['status'] == 'passed':
-            if (value['preparation'] != 'passed' or not row['checked'] or row['samples'] < 10
+            if (value['preparation'] != 'passed' or not row['checked'] or row['samples'] < required
                     or type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds <= 0):
                 raise ValueError('Passed timing lacks successful gates or a finite positive time')
         elif seconds is not None:
@@ -200,6 +203,8 @@ def render(result, compared=None):
     unit = 'configurations' if target(result) == 'CPU' else 'workloads'
     lines = [f'# Bend {target(result)} regression results', '',
              f"Bend `{result['revision'][:12]}` · {passed}/{len(result['cases'])} {unit} complete.", '']
+    if result.get('required_samples', 10) < 10:
+        lines += [f"Quick screen: {result['required_samples']} measured execution(s) per configuration, after a separate correctness check and warmup. Confirm suspected regressions with --repetitions 10.", '']
     if compared is None:
         failures = [r for r in result['cases'] if r['status'] in {'failed', 'unsupported'}]
         if failures:

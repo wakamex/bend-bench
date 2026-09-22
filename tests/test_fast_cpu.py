@@ -40,6 +40,17 @@ class FastCPU(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('--baseline', result.stdout)
 
+    def test_repetition_override(self):
+        self.assertEqual(self.config['repetitions'], 1)
+        from unittest.mock import patch
+        from bend_bench.cli import main
+        with patch('bend_bench.fast.run', return_value=(ROOT, False)) as run:
+            self.assertEqual(main(['fast-cpu', str(ROOT/'fast-cpu.toml'), '--repetitions', '3']), 0)
+            self.assertEqual(run.call_args.args[0]['repetitions'], 3)
+        with patch('bend_bench.fast.run') as run:
+            self.assertEqual(main(['fast-cpu', str(ROOT/'fast-cpu.toml'), '--repetitions', '0']), 2)
+            run.assert_not_called()
+
     def test_cpu_report_from_archived_native_timings(self):
         path = ROOT/'runs/64b53b136d7cfde4ed9e/summary.json'
         if not path.exists():
@@ -48,6 +59,15 @@ class FastCPU(unittest.TestCase):
         data['provenance']['config']['suites'] = ['cpu-regression']
         data['cases'] = [r for r in data['cases'] if r['implementation'] == 'bend' and r['threads'] in (1, 16)]
         result = validate_result(snapshot(data))
+        quick = json.loads(json.dumps(result))
+        quick['required_samples'] = 1
+        for row in quick['cases']:
+            row['samples'] = 1
+        validate_result(quick)
+        self.assertIn('Quick screen', render(quick))
+        quick['required_samples'] = 3
+        with self.assertRaises(ValueError):
+            validate_result(quick)
         compared = comparison(result, result)
         self.assertEqual(compared['thread_groups']['1']['geometric_mean'], 1)
         self.assertEqual(compared['thread_groups']['16']['geometric_mean'], 1)

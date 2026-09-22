@@ -24,6 +24,7 @@ def main(argv=None):
         fast = commands.add_parser('fast-'+target, help=f'Check and measure the fixed Bend {target.upper()} regression portfolio')
         fast.add_argument('experiment', type=Path, nargs='?', default=Path(f'fast-{target}.toml'))
         fast.add_argument('--plan', action='store_true', help='Preview the fixed portfolio without running it')
+        fast.add_argument('--repetitions', type=int, help='Measured executions per configuration (positive integer; overrides TOML)')
         fast.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
         fast.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
     for name in ('regression-report', 'gpu-report', 'cpu-report'):
@@ -54,6 +55,10 @@ def main(argv=None):
                 expected_suite = args.command.removeprefix('fast-') + '-regression'
                 if config['suites'] != [expected_suite]:
                     raise ValueError(f'{args.command} requires suites = ["{expected_suite}"]')
+                if args.repetitions is not None:
+                    if args.repetitions < 1:
+                        raise ValueError('--repetitions must be at least 1')
+                    config['repetitions'] = args.repetitions
             if args.command in ('fast-gpu', 'fast-cpu') and not args.plan:
                 from .fast import run as fast_run
                 folder, failed = fast_run(config, args.baseline, args.threshold)

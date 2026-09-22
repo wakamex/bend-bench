@@ -5,6 +5,8 @@ Run the same 22 workload families as the GPU profile at one and 16 CPU threads:
 ```sh
 uv run --locked bend-bench fast-cpu --plan
 uv run --locked bend-bench fast-cpu
+uv run --locked bend-bench fast-cpu --repetitions 3
+uv run --locked bend-bench fast-cpu --repetitions 10
 uv run --locked bend-bench fast-cpu candidate.toml --baseline runs/BASELINE_ID
 ```
 
@@ -22,7 +24,7 @@ The default [fast-cpu.toml](fast-cpu.toml) pins the compiler checkout, revision 
 | HotSpot | 1,024 × 1,024 grid, 100 steps | Preserve the larger memory-access workload |
 | Shared-graph BFS | 262,144 vertices | Preserve the larger irregular shared-graph workload |
 
-Input sizes are fixed, not adapted to the candidate compiler. The historical measurements guide these choices; the native CPU checks verify the changed summation, pricing and UTS variants at both thread counts, alongside game search. Some original single-thread workloads take 7–14 seconds. These are deliberate exceptions to the shorter target because preserving meaningful parallel work is more useful than enforcing a universal five-second limit. Budget roughly 30–40 minutes for all 44 configurations on the current host; the first full baseline will establish the actual duration.
+Input sizes are fixed, not adapted to the candidate compiler. The historical measurements guide these choices; the native CPU checks verify the changed summation, pricing and UTS variants at both thread counts, alongside game search. Some original single-thread workloads take 7–14 seconds. Budget roughly 9–10 minutes for all 44 configurations with the default one measured repetition, or about 15 minutes with three. These estimates use the completed ten-repetition baseline, which took 34 minutes 45 seconds.
 
 ## Single-thread, multicore and scaling results
 
@@ -34,7 +36,7 @@ uv run --locked bend-bench cpu-report runs/CANDIDATE_ID --baseline baseline-regr
 
 `regression-report` is the shared CPU/GPU report command; `cpu-report` and `gpu-report` are aliases. Both profiles accept run directories, `summary.json`, portable `regression.json`, or a previous `comparison.json`. CPU and GPU results require separate baselines. Reports and exit statuses follow the [shared comparison rules](FAST_GPU.md#readable-regression-comparisons), including the configurable 10% slowdown flag, visible missing or failed cases, and explicit incompatibility when workloads or measurement policies change. GPU driver/toolkit metadata does not determine compatibility for a CPU-only run; host CPU metadata, used compiler tools, environment and execution policy do.
 
-Every configuration receives a correctness run, one excluded warmup and ten measured complete-process executions. Pricing measures a full process returning one quote, rather than the scorecard's sustained-request boundary. Correctness checks use the same independent saved references as the GPU profile, with the matching first quote for CPU pricing, the saved scalar summation result for the smaller input, and the original BOTS node-count contract for UTS. Full HotSpot grids, BFS distance vectors and game-search answers remain checked.
+Every configuration receives a correctness run, one excluded warmup and one measured complete-process execution by default. Use `--repetitions N` to override the TOML count, including `--repetitions 10` to confirm a suspected regression. Reports label runs with fewer than ten measurements as quick screens and retain the requested sample count in saved results. Comparisons require matching repetition policies; use the same count for baseline and candidate. Pricing measures a full process returning one quote, rather than the scorecard's sustained-request boundary. Correctness checks use the same independent saved references as the GPU profile, with the matching first quote for CPU pricing, the saved scalar summation result for the smaller input, and the original BOTS node-count contract for UTS. Full HotSpot grids, BFS distance vectors and game-search answers remain checked.
 
 For a run that survives terminal disconnection:
 

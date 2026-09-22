@@ -189,8 +189,9 @@ def load_config(path):
             raise ValueError("The N-Queens baseline comparison currently supports CPU only")
     for key, default in (("repetitions", 10), ("warmups", 1), ("timeout", 180)):
         config.setdefault(key, default)
-        if type(config[key]) is not int or config[key] < (10 if key == "repetitions" else 1):
-            raise ValueError(f"Invalid {key}; require >= {10 if key == 'repetitions' else 1}")
+        minimum = 10 if key == 'repetitions' and config['suites'] not in (['cpu-regression'], ['gpu-regression']) else 1
+        if type(config[key]) is not int or config[key] < minimum:
+            raise ValueError(f"Invalid {key}; require >= {minimum}")
     config.setdefault("threads", [1])
     config.setdefault("cpus", sorted(os.sched_getaffinity(0)))
     if (not config["threads"] or any(type(n) is not int or n < 1 or n > len(config["cpus"]) for n in config["threads"])
