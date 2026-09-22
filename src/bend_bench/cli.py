@@ -8,6 +8,15 @@ from .experiment import compare, directory, measure, prepare, report
 from .suites import plan
 
 
+def fast_arguments(parser, target):
+    parser.set_defaults(command='fast-'+target)
+    parser.add_argument('experiment', type=Path, nargs='?', default=Path(f'fast-{target}.toml'))
+    parser.add_argument('--plan', action='store_true', help='Preview the fixed portfolio without running it')
+    parser.add_argument('--repetitions', type=int, help='Measured executions per configuration (positive integer; overrides TOML)')
+    parser.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
+    parser.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Pinned, correctness-gated Bend benchmark experiments")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -21,12 +30,9 @@ def main(argv=None):
     comparison.add_argument("before", type=Path)
     comparison.add_argument("after", type=Path)
     for target in ('cpu', 'gpu'):
-        fast = commands.add_parser('fast-'+target, help=f'Check and measure the fixed Bend {target.upper()} regression portfolio')
-        fast.add_argument('experiment', type=Path, nargs='?', default=Path(f'fast-{target}.toml'))
-        fast.add_argument('--plan', action='store_true', help='Preview the fixed portfolio without running it')
-        fast.add_argument('--repetitions', type=int, help='Measured executions per configuration (positive integer; overrides TOML)')
-        fast.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
-        fast.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
+        profiles = commands.add_parser(target, help=f'Bend {target.upper()} regression profiles').add_subparsers(dest='profile', required=True)
+        fast_arguments(profiles.add_parser('fast', help='Reduced-workload regression profile'), target)
+        fast_arguments(commands.add_parser('fast-'+target, help=f'Compatibility alias for {target} fast'), target)
     for name in ('regression-report', 'gpu-report', 'cpu-report'):
         regression_report = commands.add_parser(name, help='Readable results and optional regression comparison')
         regression_report.add_argument('run', type=Path)

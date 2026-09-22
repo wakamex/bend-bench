@@ -43,13 +43,13 @@ Bend scales well across CPU cores on its published workloads, but gains no speed
 For compiler changes, [fast GPU regression testing](FAST_GPU.md) runs Bend GPU alone across all 22 workload families, using compact UTS and one full game-search batch:
 
 ```sh
-uv run --locked bend-bench fast-gpu
+uv run --locked bend-bench gpu fast
 ```
 
 The [CPU regression profile](FAST_CPU.md) covers the same workload families at one and 16 threads with CPU-appropriate input sizes:
 
 ```sh
-uv run --locked bend-bench fast-cpu
+uv run --locked bend-bench cpu fast
 ```
 
 Edit `fast-gpu.toml` or `fast-cpu.toml` to pin the compiler checkout and revision. Add `--baseline runs/BASELINE_ID` or pass a saved `regression.json` to get speed comparisons and flagged slowdowns. `bend-bench regression-report runs/CANDIDATE_ID --baseline runs/BASELINE_ID` compares existing results without rerunning them. CPU reports separate single-thread performance, multicore performance and thread scaling. Results are separate from the scorecard.

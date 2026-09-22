@@ -3,11 +3,11 @@
 Run the same 22 workload families as the GPU profile at one and 16 CPU threads:
 
 ```sh
-uv run --locked bend-bench fast-cpu --plan
-uv run --locked bend-bench fast-cpu
-uv run --locked bend-bench fast-cpu --repetitions 3
-uv run --locked bend-bench fast-cpu --repetitions 10
-uv run --locked bend-bench fast-cpu candidate.toml --baseline runs/BASELINE_ID
+uv run --locked bend-bench cpu fast --plan
+uv run --locked bend-bench cpu fast
+uv run --locked bend-bench cpu fast --repetitions 3
+uv run --locked bend-bench cpu fast --repetitions 10
+uv run --locked bend-bench cpu fast candidate.toml --baseline runs/BASELINE_ID
 ```
 
 The default [fast-cpu.toml](fast-cpu.toml) pins the compiler checkout, revision and host CPU affinity. Copy it and change `[bend].path` and `[bend].commit` for another compiler version. Workload sources and correctness references remain fixed. The profile builds each CPU executable once and runs it at both thread counts, with no GPU kernels, GPU idle wait, conventional controls or CPU/GPU overlap. The shared benchmark lock and blocked-service checks still apply.
@@ -41,7 +41,7 @@ Every configuration receives a correctness run, one excluded warmup and one meas
 For a run that survives terminal disconnection:
 
 ```sh
-systemd-run --user --unit=bend-bench-fast-cpu --property=WorkingDirectory=/code/bend-bench /code/bend-bench/.venv/bin/python -m bend_bench fast-cpu /code/bend-bench/fast-cpu.toml
+systemd-run --user --unit=bend-bench-fast-cpu --property=WorkingDirectory=/code/bend-bench /code/bend-bench/.venv/bin/python -m bend_bench cpu fast /code/bend-bench/fast-cpu.toml
 journalctl --user -u bend-bench-fast-cpu -f
 ```
 

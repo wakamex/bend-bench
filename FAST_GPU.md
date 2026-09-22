@@ -5,14 +5,14 @@ The [CPU profile](FAST_CPU.md) uses the same harness and reporting code, with on
 Run the 22 workload families from the scorecard against a pinned Bend compiler, without rebuilding or measuring conventional implementations or CPU backends:
 
 ```sh
-uv run --locked bend-bench fast-gpu --plan
-uv run --locked bend-bench fast-gpu
+uv run --locked bend-bench gpu fast --plan
+uv run --locked bend-bench gpu fast
 ```
 
 The default [fast-gpu.toml](fast-gpu.toml) targets the stack-growth fork at `19fa5ae3643241c70bcfbf1bde67d8eb0d4cca30`. Copy that configuration and change `[bend].path` and `[bend].commit` to test another checkout and exact revision. An intentional uncommitted compiler patch requires `allow_patch = true`; its content and tracked-file hashes are preserved. The benchmark sources remain fixed independently of the compiler checkout.
 
 ```sh
-uv run --locked bend-bench fast-gpu candidate.toml
+uv run --locked bend-bench gpu fast candidate.toml
 uv run --locked bend-bench compare runs/BASELINE_ID runs/CANDIDATE_ID
 ```
 
@@ -21,7 +21,7 @@ uv run --locked bend-bench compare runs/BASELINE_ID runs/CANDIDATE_ID
 Pass a baseline when running a new compiler:
 
 ```sh
-uv run --locked bend-bench fast-gpu candidate.toml --baseline runs/BASELINE_ID
+uv run --locked bend-bench gpu fast candidate.toml --baseline runs/BASELINE_ID
 ```
 
 The terminal report leads with overall performance, using the geometric mean of baseline/candidate time ratios, their range, and counts of faster and slower workloads. A compact table shows baseline time, candidate time and percentage change. Slowdowns above 10% appear under areas of concern. This is a screening threshold, not a statistical significance test; investigate flagged cases with repeated matched runs before attributing a close change to the compiler.
@@ -31,7 +31,7 @@ You can compare completed runs without running any benchmarks, or share the self
 ```sh
 uv run --locked bend-bench gpu-report runs/CANDIDATE_ID --baseline runs/BASELINE_ID
 uv run --locked bend-bench gpu-report candidate-regression.json --baseline baseline-regression.json
-uv run --locked bend-bench fast-gpu candidate.toml --baseline baseline-regression.json --threshold 5
+uv run --locked bend-bench gpu fast candidate.toml --baseline baseline-regression.json --threshold 5
 ```
 
 Baseline inputs may be a run directory, its `summary.json`, the compact `regression.json`, or a previous `comparison.json`. Passing a previous comparison uses its candidate result as the next baseline. Directory inputs are read from the underlying evidence rather than trusting a possibly stale report. JSON snapshots are portable reports of recorded gates and timings; retain raw samples for auditing.
@@ -71,6 +71,6 @@ The host preset requires 32 available logical CPUs because it preserves the exis
 For a run that survives terminal disconnection:
 
 ```sh
-systemd-run --user --unit=bend-bench-fast-gpu --property=WorkingDirectory=/code/bend-bench /code/bend-bench/.venv/bin/python -m bend_bench fast-gpu /code/bend-bench/fast-gpu.toml
+systemd-run --user --unit=bend-bench-fast-gpu --property=WorkingDirectory=/code/bend-bench /code/bend-bench/.venv/bin/python -m bend_bench gpu fast /code/bend-bench/fast-gpu.toml
 journalctl --user -u bend-bench-fast-gpu -f
 ```

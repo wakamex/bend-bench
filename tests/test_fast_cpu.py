@@ -51,6 +51,20 @@ class FastCPU(unittest.TestCase):
             self.assertEqual(main(['fast-cpu', str(ROOT/'fast-cpu.toml'), '--repetitions', '0']), 2)
             run.assert_not_called()
 
+    def test_nested_commands_and_aliases(self):
+        from unittest.mock import patch
+        from bend_bench.cli import main
+        for target in ('cpu', 'gpu'):
+            calls = []
+            for command in ([target, 'fast'], ['fast-'+target]):
+                with patch('bend_bench.fast.run', return_value=(ROOT, False)) as run:
+                    self.assertEqual(main([*command, str(ROOT/f'fast-{target}.toml'), '--repetitions', '3', '--threshold', '5']), 0)
+                    calls.append(run.call_args)
+            self.assertEqual(calls[0], calls[1])
+            result = subprocess.run([sys.executable, '-m', 'bend_bench', target, 'fast', '--help'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('--repetitions', result.stdout)
+
     def test_cpu_report_from_archived_native_timings(self):
         path = ROOT/'runs/64b53b136d7cfde4ed9e/summary.json'
         if not path.exists():
