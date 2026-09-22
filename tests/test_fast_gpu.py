@@ -17,6 +17,10 @@ class FastGPU(unittest.TestCase):
     def setUp(self):
         self.config = load_config(ROOT / 'fast-gpu.toml')
 
+    def test_default_repetitions(self):
+        self.assertEqual(self.config['repetitions'], 1)
+        self.assertEqual(self.config['warmups'], 1)
+
     def test_cli_entrypoint(self):
         result = subprocess.run([sys.executable, '-m', 'bend_bench', 'fast-gpu', '--help'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
