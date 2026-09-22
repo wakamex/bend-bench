@@ -111,3 +111,21 @@ class RegressionReport(unittest.TestCase):
         for threshold in (0, -1, float('nan')):
             with self.assertRaises(ValueError):
                 comparison(self.before, self.before, threshold)
+
+    def test_environment_warns_but_keeps_raw_ratios(self):
+        after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
+        after['compatibility']['environment'] = 'changed'
+        after['cases'][0]['seconds'] *= 2
+        compared = comparison(self.before, after)
+        self.assertEqual(compared['overall']['geometric_mean'], .5)
+        self.assertEqual(compared['overall']['matched'], 1)
+        self.assertTrue(compared['warnings'])
+        self.assertTrue(compared['concerns'])
+        self.assertIn('not an isolated compiler effect', render(after, compared))
+        after['cases'][0].update(status='failed', seconds=None)
+        self.assertIsNone(comparison(self.before, after)['overall']['geometric_mean'])
+        after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
+        after['compatibility']['policy'] = 'changed'
+        self.assertEqual(comparison(self.before, after)['overall']['matched'], 0)

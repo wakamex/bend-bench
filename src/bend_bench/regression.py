@@ -101,6 +101,10 @@ def comparison(before, after, threshold=10):
     left = {r['case']: r for r in before['cases']}
     right = {r['case']: r for r in after['cases']}
     changed = [k for k, v in before['compatibility'].items() if after['compatibility'][k] != v]
+    warnings = []
+    if 'environment' in changed:
+        warnings.append('Execution environment changed. Ratios describe the recorded runs, not an isolated compiler effect.')
+        changed.remove('environment')
     results = []
     for key in sorted(left.keys() | right.keys()):
         a, b = left.get(key), right.get(key)
@@ -128,7 +132,7 @@ def comparison(before, after, threshold=10):
     return dict(schema=CPU_COMPARISON_SCHEMA if target(after) == 'CPU' else COMPARISON_SCHEMA,
                 baseline=before, candidate=after, threshold_percent=threshold,
                 overall=overall, thread_groups=groups, scaling=scaling(before, after, results),
-                cases=results, concerns=bool(overall['regressions'] or overall['uncomparable']))
+                cases=results, warnings=warnings, concerns=bool(warnings or overall['regressions'] or overall['uncomparable']))
 
 
 def aggregate(results):
@@ -231,8 +235,10 @@ def render(result, compared=None):
             if group['geometric_mean'] is not None:
                 lines += [f"CPU{threads}: {group['geometric_mean']:.3f}× speed ratio; range {group['minimum']:.3f}–{group['maximum']:.3f}×; {group['matched']}/{group['total']} comparable cases.", '']
         lines += ['## Areas of concern', '']
+        for warning in compared.get('warnings', []):
+            lines.append(f'- {warning}')
         concerns = [r for r in compared['cases'] if r['issues'] or r['regression']]
-        if not concerns:
+        if not concerns and not compared.get('warnings'):
             lines += [f"No incomplete comparisons or slowdowns above {compared['threshold_percent']:g}%.", '']
         for row in sorted(concerns, key=lambda r: (not bool(r['issues']), -(r['time_change_percent'] or 0))):
             text = '; '.join(row['issues']) if row['issues'] else f"{row['time_change_percent']:.1f}% longer ({duration(row['before_seconds'])} → {duration(row['after_seconds'])})"
