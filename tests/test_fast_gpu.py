@@ -37,10 +37,23 @@ class FastGPU(unittest.TestCase):
                  patch('bend_bench.fast.provenance', return_value={}), \
                  patch('bend_bench.experiment.directory', return_value=Path(tmp)), \
                  patch('bend_bench.fast.wait_gpu') as wait, \
+                 patch('bend_bench.fast.idle_gpu') as check, \
                  patch('bend_bench.experiment.prepare', side_effect=ValueError('stop before builds')):
                 with self.assertRaisesRegex(ValueError, 'stop before builds'):
                     run(self.config, wait_for_idle=requested)
                 self.assertEqual(wait.call_count, int(requested))
+                self.assertEqual(check.call_count, int(not requested))
+
+    def test_gpu_conflict_fails_before_provenance_and_builds(self):
+        from unittest.mock import patch
+        from bend_bench.fast import run
+        with patch('bend_bench.fast.idle_gpu', side_effect=ValueError('Unapproved GPU process 42')), \
+             patch('bend_bench.fast.provenance') as provenance, \
+             patch('bend_bench.experiment.prepare') as prepare:
+            with self.assertRaisesRegex(ValueError, 'Unapproved GPU process 42'):
+                run(self.config)
+            provenance.assert_not_called()
+            prepare.assert_not_called()
 
     def test_cli_entrypoint(self):
         result = subprocess.run([sys.executable, '-m', 'bend_bench', 'fast-gpu', '--help'], capture_output=True, text=True)

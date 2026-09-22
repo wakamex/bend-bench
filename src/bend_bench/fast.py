@@ -6,7 +6,7 @@ from pathlib import Path
 import struct
 import time
 
-from .core import append, hash_file, provenance
+from .core import append, hash_file, idle_gpu, provenance
 
 ASSETS = Path(__file__).parent / 'assets/fast_gpu'
 CPU_ASSETS = Path(__file__).parent / 'assets/fast_cpu'
@@ -114,6 +114,9 @@ def run(config, baseline=None, threshold=10, *, wait_for_idle=False):
             raise ValueError('fast-cpu requires CUDA and GPU monitoring disabled and threads = [1, 16]')
     elif config['suites'] != ['gpu-regression'] or not config['cuda'] or not config['require_idle_gpu']:
         raise ValueError('fast-gpu requires the GPU-only regression preset and GPU activity gates')
+    if not cpu and not wait_for_idle:
+        print('Checking GPU activity before preparation...', flush=True)
+        idle_gpu(config)
     evidence = provenance(config)
     folder = directory(config, evidence)
     folder.mkdir(parents=True, exist_ok=True)

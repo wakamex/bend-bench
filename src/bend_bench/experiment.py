@@ -24,6 +24,7 @@ def prepare(config):
         evidence = provenance(config)
         run = directory(config, evidence)
         if (run / "prepared.json").exists():
+            print('Validating saved build:', run, flush=True)
             validate(config, run, evidence)
             return run
         run.mkdir(parents=True, exist_ok=True)
@@ -33,12 +34,17 @@ def prepare(config):
         stage(config, run / "work")
         builds, cases = plan(config, run / "work")
         write_json(run / "plan.json", {"builds": builds, "cases": cases})
-        for command in builds:
+        print(f'Preparing {len(builds)} build steps: {run}', flush=True)
+        for index, command in enumerate(builds, 1):
+            output = command[command.index('-o') + 1] if '-o' in command else command[0] if '--gpu-build' in command else command[-1]
+            print(f'Build {index}/{len(builds)}: {Path(str(output)).name}', flush=True)
             result = execute(command, cwd=run / "work", timeout=config["timeout"])
             append(run / "prepare.jsonl", result)
+            print(f"  {'FAILED' if result['returncode'] else 'done'} ({result['end_to_end_seconds']:.2f}s)", flush=True)
             if result["returncode"]:
                 raise ValueError(f"Preparation failed; retained log: {run / 'prepare.jsonl'}")
         # Verify sources/tools did not change during compilation.
+        print('Validating build artifacts and loaded libraries...', flush=True)
         if provenance(config) != evidence:
             raise ValueError("Sources, tools, environment, or host changed during preparation")
         hashes = artifacts(run / "work")
