@@ -65,6 +65,21 @@ class FastCPU(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn('--repetitions', result.stdout)
 
+    def test_total_elapsed_on_success_and_failure(self):
+        import contextlib
+        import io
+        from unittest.mock import patch
+        from bend_bench.cli import main
+        for target in ('cpu', 'gpu'):
+            for error in (None, ValueError('test failure')):
+                output = io.StringIO()
+                with patch('bend_bench.fast.run', return_value=(ROOT, False), side_effect=error), \
+                     patch('bend_bench.cli.time.perf_counter', side_effect=[100, 3761.2]), \
+                     contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+                    status = main([target, 'fast', str(ROOT/f'fast-{target}.toml')])
+                self.assertEqual(status, 2 if error else 0)
+                self.assertIn('Total elapsed time: 01:01:01 (3661.2 seconds', output.getvalue())
+
     def test_cpu_report_from_archived_native_timings(self):
         path = ROOT/'runs/64b53b136d7cfde4ed9e/summary.json'
         if not path.exists():

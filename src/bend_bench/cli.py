@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import time
 
 from .core import load_config, provenance
 from .experiment import compare, directory, measure, prepare, report
@@ -67,7 +68,14 @@ def main(argv=None):
                     config['repetitions'] = args.repetitions
             if args.command in ('fast-gpu', 'fast-cpu') and not args.plan:
                 from .fast import run as fast_run
-                folder, failed = fast_run(config, args.baseline, args.threshold)
+                started = time.perf_counter()
+                try:
+                    folder, failed = fast_run(config, args.baseline, args.threshold)
+                finally:
+                    elapsed = time.perf_counter() - started
+                    minutes, seconds = divmod(round(elapsed), 60)
+                    hours, minutes = divmod(minutes, 60)
+                    print(f'Total elapsed time: {hours:02d}:{minutes:02d}:{seconds:02d} ({elapsed:.1f} seconds; includes waiting, compilation and testing)', flush=True)
                 return int(failed)
             elif args.command == "plan" or args.command in ('fast-gpu', 'fast-cpu'):
                 run = directory(config, provenance(config))

@@ -28,6 +28,8 @@ Input sizes are fixed, not adapted to the candidate compiler. The historical mea
 
 ## Single-thread, multicore and scaling results
 
+The command prints total elapsed time when it finishes or exits with an error, including compilation and testing. Individual workload timings remain separate.
+
 The readable comparison reports separate geometric-mean speed ratios and ranges for CPU1 and CPU16. Each per-case row shows baseline time, candidate time and percentage change. A thread-scaling table shows CPU1/CPU16 speedup before and after the compiler change. Scaling changes are descriptive: faster single-thread code can reduce the speedup ratio even when multicore time is unchanged. Slowdown flags are based on measured execution time, not the scaling ratio alone.
 
 ```sh
