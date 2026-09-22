@@ -8,7 +8,7 @@ from bend_bench.suites import plan, stage
 
 ROOT = Path(__file__).resolve().parent
 BASELINE = ROOT / 'runs/257a7afdc515d4cd801b'
-OUTPUT = ROOT / 'runs/cpu-shortening-20260922'
+OUTPUT = ROOT / 'runs/cpu-shortening-20260922-three-reps'
 CHANGES = {
     'gameoflife': ('def size() -> Nat:\n  18n', 'def size() -> Nat:\n  16n'),
     'nbody': ('def sy() -> Nat:\n  17n', 'def sy() -> Nat:\n  15n'),
@@ -74,7 +74,7 @@ def main():
         rows = []
         for case in cases:
             times = []
-            for phase, count in [('check', 1), ('warmup', 1), ('measure', 10)]:
+            for phase, count in [('check', 1), ('warmup', 1), ('measure', 3)]:
                 for rep in range(count):
                     result = execute(case['command'], env={**environment(), **case['env']}, timeout=60, measured=True)
                     passed = correct(case, result)
