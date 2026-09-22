@@ -305,8 +305,9 @@ def plan(config, work):
                    f"-I{bots}/common", f"-I{bots}/omp-tasks/uts", work / "gpu/uts.cu", sha_object,
                    f"-L{cuda}/lib64", f"-Wl,-rpath,{cuda}/lib64", "-lcudart", "-o", gpu_binary])
         for dataset in config["uts_inputs"]:
-            data = uts_input(work, dataset)
-            parameters = data.read_text().splitlines()[0].split()
+            data = uts_input(work, dataset) if dataset == "compact" else bots / "inputs/uts" / f"{dataset}.input"
+            input_source = Path(__file__).parent / "assets/inputs/uts/compact.input" if dataset == "compact" else data
+            parameters = input_source.read_text().splitlines()[0].split()
             nodes = parameters[5]
             contract = dict(workload="uts-" + dataset, parameters=parameters, expected_nodes=nodes, fuel=1000000)
             binary = bend_build(work / "ports" / f"uts-{dataset}.bend", "uts-" + dataset, config["uts_gpu"])

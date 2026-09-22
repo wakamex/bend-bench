@@ -13,6 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class UTSGPU(unittest.TestCase):
     def test_compact_input_preserves_tiny_distribution(self):
         config = load_config(ROOT / 'uts-compact.toml')
+        # Planning must work before staging creates the run directory.
+        _, preview = plan(config, ROOT / 'runs/not-staged-compact-preview')
+        self.assertEqual(len(preview), 7)
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
             stage(config, work)
