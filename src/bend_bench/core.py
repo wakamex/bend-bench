@@ -47,7 +47,8 @@ def rows(path):
 def environment():
     # Do not inherit arbitrary OMP/CUDA/compiler options or persist secrets.
     return {"PATH": os.environ.get("PATH", os.defpath), "HOME": os.environ.get("HOME", "/tmp"),
-            "LANG": "C", "LC_ALL": "C", "TZ": "UTC"}
+            "LANG": "C", "LC_ALL": "C", "TZ": "UTC",
+            **({"TMPDIR": os.environ["TMPDIR"]} if "TMPDIR" in os.environ else {})}
 
 
 def execute(command, cwd=None, env=None, timeout=180, measured=False, gpu_policy=None):
