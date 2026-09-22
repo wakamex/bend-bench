@@ -1,6 +1,7 @@
-"""Alternate patched/unpatched GPU measurements with one pinned resident exception."""
+"""Alternate patched/unpatched GPU measurements with one explicit resident exception."""
 import argparse
 import json
+import os
 from pathlib import Path
 import time
 import uuid
@@ -15,9 +16,18 @@ ROOT = Path(__file__).resolve().parent
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--resident-pid', type=int, required=True)
+    resident_args = parser.add_mutually_exclusive_group(required=True)
+    resident_args.add_argument('--resident-pid', type=int)
+    resident_args.add_argument('--resident-cgroup', help='Exact user service cgroup allowed across worker restarts')
     args = parser.parse_args()
-    resident = process_identity(args.resident_pid)
+    if args.resident_cgroup:
+        group = args.resident_cgroup
+        prefix = f'/user.slice/user-{os.getuid()}.slice/user@{os.getuid()}.service/'
+        if not group.startswith(prefix) or not group.endswith('.service') or '..' in group.split('/'):
+            parser.error('--resident-cgroup must name a user service cgroup')
+        resident = {'cgroup': group}
+    else:
+        resident = process_identity(args.resident_pid)
     started = time.perf_counter()
     identity = uuid.uuid4().hex
     configs = []
@@ -29,7 +39,7 @@ def main():
     output = ROOT / 'runs' / ('gpu-stack-pair-' + identity[:12])
     output.mkdir()
     write_json(output / 'request.json', dict(configs=configs, resident=resident,
-        policy='Only the pinned resident may overlap; its activity is allowed and recorded',
+        policy='Only the specified resident process or service may overlap; its activity is allowed and recorded',
         ordering='Per workload: alternate implementations; reverse first implementation each repetition',
         phases={'check': 1, 'warmup': 1, 'measure': 3}))
     print('PAIR', output, flush=True)
