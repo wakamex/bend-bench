@@ -20,6 +20,8 @@ uv run --locked bend-bench compare runs/BASELINE_ID runs/CANDIDATE_ID
 
 ## Readable regression comparisons
 
+Each invocation collects fresh measurements in a new `runs/<id>/` directory, even with unchanged code and settings. Use `--resume runs/<id>` explicitly to continue an interrupted run with matching configuration, source and harness identity. Completed samples are retained; failed samples are not erased or retried. Comparing a run against itself is rejected. `--baseline` selects saved comparison data and does not resume it.
+
 Pass a baseline when running a new compiler:
 
 ```sh

@@ -15,6 +15,7 @@ def fast_arguments(parser, target):
     parser.add_argument('--plan', action='store_true', help='Preview the fixed portfolio without running it')
     parser.add_argument('--repetitions', type=int, help='Measured executions per configuration (positive integer; overrides TOML)')
     parser.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
+    parser.add_argument('--resume', type=Path, help='Resume this run directory instead of collecting a fresh run')
     parser.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
     if target == 'gpu':
         parser.add_argument('--exclusive-gpu', action='store_true', help='Reject other GPU processes and overlapping GPU activity')
@@ -62,6 +63,8 @@ def main(argv=None):
         else:
             config = load_config(args.experiment)
             if args.command in ('fast-gpu', 'fast-cpu'):
+                if args.plan and args.resume:
+                    raise ValueError('--plan and --resume cannot be combined')
                 expected_suite = args.command.removeprefix('fast-') + '-regression'
                 if config['suites'] != [expected_suite]:
                     raise ValueError(f'{args.command} requires suites = ["{expected_suite}"]')
@@ -76,7 +79,7 @@ def main(argv=None):
                 from .fast import run as fast_run
                 started = time.perf_counter()
                 try:
-                    folder, failed = fast_run(config, args.baseline, args.threshold, wait_for_idle=getattr(args, 'wait_idle', False))
+                    folder, failed = fast_run(config, args.baseline, args.threshold, wait_for_idle=getattr(args, 'wait_idle', False), resume=args.resume)
                 finally:
                     elapsed = time.perf_counter() - started
                     minutes, seconds = divmod(round(elapsed), 60)

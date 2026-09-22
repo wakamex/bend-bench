@@ -80,6 +80,49 @@ class FastCPU(unittest.TestCase):
                 self.assertEqual(status, 2 if error else 0)
                 self.assertIn('Total elapsed time: 01:01:01 (3661.2 seconds', output.getvalue())
 
+    def test_fresh_runs_and_explicit_resume_with_real_execution(self):
+        from unittest.mock import patch
+        from bend_bench.fast import run
+
+        def evidence(config):
+            return dict(config=config, sources={}, host={'test': True})
+
+        def stage(config, work):
+            (work/'build').mkdir(parents=True)
+            (work/'build/main.c').write_text('#include <stdio.h>\nint main(void) { puts("42"); }\n')
+
+        def plan(config, work):
+            binary = work/'build/main'
+            return [['cc', '-O3', str(work/'build/main.c'), '-o', str(binary)]], [
+                dict(id='cpu-regression/constant/bend/1', contract={'expected': '42'},
+                     implementation='bend', threads=1, command=[str(binary)], env={},
+                     expected_regex='42', unsupported=None)]
+
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch('bend_bench.fast.provenance', side_effect=evidence), \
+             patch('bend_bench.experiment.provenance', side_effect=evidence), \
+             patch('bend_bench.experiment.stage', side_effect=stage), \
+             patch('bend_bench.experiment.plan', side_effect=plan), \
+             patch('bend_bench.regression.publish', return_value=('test report', False)):
+            config = {**self.config, 'output': tmp, 'blocked_services': []}
+            first, failed = run(config)
+            self.assertFalse(failed)
+            original = (first/'samples.jsonl').read_bytes()
+            second, failed = run(config)
+            self.assertFalse(failed)
+            self.assertNotEqual(first, second)
+            self.assertEqual(len((second/'samples.jsonl').read_text().splitlines()), 3)
+            resumed, failed = run(config, resume=first)
+            self.assertEqual(resumed, first)
+            self.assertEqual(original, (first/'samples.jsonl').read_bytes())
+            with self.assertRaisesRegex(ValueError, 'configuration differs'):
+                run({**config, 'repetitions': 3}, resume=first)
+            saved = json.loads((first/'provenance.json').read_text())
+            saved['config']['_run_id'] = 'wrong-identity'
+            (first/'provenance.json').write_text(json.dumps(saved))
+            with self.assertRaisesRegex(ValueError, 'identity changed'):
+                run(config, resume=first)
+
     def test_cpu_report_from_archived_native_timings(self):
         path = ROOT/'runs/64b53b136d7cfde4ed9e/summary.json'
         if not path.exists():
@@ -97,7 +140,8 @@ class FastCPU(unittest.TestCase):
         quick['required_samples'] = 3
         with self.assertRaises(ValueError):
             validate_result(quick)
-        compared = comparison(result, result)
+        candidate = {**result, 'fingerprint': 'independent-test-run'}
+        compared = comparison(result, candidate)
         self.assertEqual(compared['thread_groups']['1']['geometric_mean'], 1)
         self.assertEqual(compared['thread_groups']['16']['geometric_mean'], 1)
         self.assertTrue(all(r['change_percent'] == 0 for r in compared['scaling']))

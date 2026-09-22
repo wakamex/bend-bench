@@ -96,6 +96,8 @@ def comparison(before, after, threshold=10):
     validate_result(after)
     if target(before) != target(after):
         raise ValueError('CPU and GPU profiles require separate baselines')
+    if before['fingerprint'] == after['fingerprint']:
+        raise ValueError('Cannot compare a run with itself; collect fresh measurements')
     left = {r['case']: r for r in before['cases']}
     right = {r['case']: r for r in after['cases']}
     changed = [k for k, v in before['compatibility'].items() if after['compatibility'][k] != v]

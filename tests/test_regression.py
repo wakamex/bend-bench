@@ -19,21 +19,25 @@ class RegressionReport(unittest.TestCase):
         self.before = load_result(ARCHIVE)
 
     def test_real_result_roundtrip_and_self_comparison(self):
-        compared = comparison(self.before, self.before)
+        with self.assertRaisesRegex(ValueError, 'with itself'):
+            comparison(self.before, self.before)
+        candidate = {**self.before, 'fingerprint': 'independent-test-run'}
+        compared = comparison(self.before, candidate)
         self.assertEqual(compared['overall']['geometric_mean'], 1)
         self.assertEqual(compared['overall']['matched'], 1)
         self.assertFalse(compared['concerns'])
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'comparison.json'
             path.write_text(json.dumps(compared))
-            self.assertEqual(load_result(path), self.before)
+            self.assertEqual(load_result(path), candidate)
             command = [sys.executable, '-m', 'bend_bench', 'gpu-report', str(path), '--baseline', str(path)]
             result = subprocess.run(command, capture_output=True, text=True)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('1.000×', result.stdout)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertIn('with itself', result.stderr)
 
     def test_regression_range_and_threshold(self):
         after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
         after['cases'][0]['seconds'] *= 1.2
         compared = comparison(self.before, after)
         self.assertEqual(compared['overall']['regressions'], 1)
@@ -57,10 +61,11 @@ class RegressionReport(unittest.TestCase):
         result = load_result(run)
         self.assertEqual(len(result['cases']), 22)
         self.assertIn('Unapproved GPU process', render(result))
-        self.assertTrue(comparison(result, result)['concerns'])
+        self.assertTrue(comparison(result, {**result, 'fingerprint': 'independent-test-run'})['concerns'])
 
     def test_reciprocal_ratios_balance(self):
         before, after = copy.deepcopy(self.before), copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
         for obj in (before, after):
             other = copy.deepcopy(obj['cases'][0]); other['case'] += '-other'; obj['cases'].append(other)
         after['cases'][0]['seconds'] *= 2
@@ -71,29 +76,35 @@ class RegressionReport(unittest.TestCase):
 
     def test_removed_failed_and_changed_cases_are_not_silent(self):
         after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
         after['cases'][0].update(status='failed', seconds=None, samples=0, checked=False)
         c = comparison(self.before, after)
         self.assertTrue(c['concerns'])
         self.assertEqual(c['overall']['matched'], 0)
         self.assertIn('candidate failed', render(after, c))
         after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
         after['cases'][0]['case'] += '-renamed'
         c = comparison(self.before, after)
         self.assertEqual(c['overall']['uncomparable'], 2)
         after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
         after['compatibility']['toolkit'] = 'changed'
         self.assertIn('changed toolkit', render(after, comparison(self.before, after)))
         after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
         after['cases'][0]['contract_sha256'] = 'changed'
         self.assertEqual(comparison(self.before, after)['overall']['matched'], 0)
 
     def test_rejects_invalid_evidence(self):
         for value in (0, -1, float('nan'), float('inf')):
             after = copy.deepcopy(self.before)
+            after['fingerprint'] = 'independent-test-run'
             after['cases'][0]['seconds'] = value
             with self.assertRaises(ValueError):
                 validate_result(after)
         after = copy.deepcopy(self.before)
+        after['fingerprint'] = 'independent-test-run'
         after['cases'][0]['samples'] = 1
         with self.assertRaises(ValueError):
             validate_result(after)

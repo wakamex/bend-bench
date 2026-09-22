@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 import struct
 import time
+import uuid
 
 from .core import append, hash_file, idle_gpu, provenance
 
@@ -99,7 +100,7 @@ def correct_special(case, result):
         return False
 
 
-def run(config, baseline=None, threshold=10, *, wait_for_idle=False):
+def run(config, baseline=None, threshold=10, *, wait_for_idle=False, resume=None):
     from .experiment import directory, measure, prepare, report
     from .regression import load_result, publish, target
     if not math.isfinite(threshold) or threshold <= 0:
@@ -109,6 +110,20 @@ def run(config, baseline=None, threshold=10, *, wait_for_idle=False):
     cpu = is_cpu(config)
     if baseline is not None and target(baseline) != ('CPU' if cpu else 'GPU'):
         raise ValueError('CPU and GPU profiles require separate baselines')
+    config = dict(config)
+    if resume is not None:
+        resume = Path(resume).resolve()
+        saved = json.loads((resume / 'provenance.json').read_text())['config']
+        settings = {k: v for k, v in saved.items() if k != '_run_id'}
+        if config != settings:
+            raise ValueError('Resume configuration differs from the saved run; use its original configuration and flags')
+        if '_run_id' in saved:
+            config['_run_id'] = saved['_run_id']
+        if baseline is not None and (resume / 'prepared.json').exists():
+            if json.loads((resume / 'prepared.json').read_text())['fingerprint'] == baseline['fingerprint']:
+                raise ValueError('Cannot compare a run with itself; omit --resume to collect fresh measurements')
+    else:
+        config['_run_id'] = uuid.uuid4().hex
     if cpu:
         if config['cuda'] or config['require_idle_gpu'] or config['threads'] != [1, 16]:
             raise ValueError('fast-cpu requires CUDA and GPU monitoring disabled and threads = [1, 16]')
@@ -123,6 +138,8 @@ def run(config, baseline=None, threshold=10, *, wait_for_idle=False):
         idle_gpu(config)
     evidence = provenance(config)
     folder = directory(config, evidence)
+    if resume is not None and folder.resolve() != resume:
+        raise ValueError('Resume source, harness or environment identity changed; start a fresh run')
     folder.mkdir(parents=True, exist_ok=True)
     if not cpu and wait_for_idle:
         wait_gpu(config, folder)
