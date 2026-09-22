@@ -31,6 +31,8 @@ A subsequent [fork-only runtime fix](UTS_GPU_STACK_FIX.md) adds heap-backed stac
 
 ## Reproduction and evidence
 
+A [compact 293,367-node input](UTS_COMPACT.md) completes on the stack-growth fork in 3.85 seconds and retains Bend's lack of CPU scaling. It changes the conventional GPU ranking because CUDA startup dominates at that size, so the main scorecard retains the larger tree.
+
 The [UTS GPU configuration](uts-gpu.toml) explicitly enables `uts_gpu`; existing configurations retain their CPU-only UTS selection. Adapt dependency and tool paths before running:
 
 ```sh

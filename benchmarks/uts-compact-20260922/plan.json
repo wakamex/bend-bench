@@ -1,0 +1,415 @@
+{
+  "builds": [
+    [
+      "/usr/bin/clang",
+      "-std=gnu11",
+      "-O3",
+      "-march=native",
+      "-ffp-contract=off",
+      "-fopenmp",
+      "-I/code/bend2/bots/common",
+      "-I/code/bend2/bots/serial/uts",
+      "-DCDATE=\"pinned\"",
+      "-DCMESSAGE=\"bend-bench UTS\"",
+      "-DCC=\"/usr/bin/clang\"",
+      "-DLD=\"/usr/bin/clang\"",
+      "-DCFLAGS=\"-O3 -march=native -ffp-contract=off -fopenmp\"",
+      "-DLDFLAGS=\"-fopenmp -lm\"",
+      "/code/bend2/bots/common/bots_main.c",
+      "/code/bend2/bots/common/bots_common.c",
+      "/code/bend2/bots/serial/uts/uts.c",
+      "/code/bend2/bots/serial/uts/brg_sha1.c",
+      "-lm",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-serial"
+    ],
+    [
+      "/usr/bin/clang",
+      "-std=gnu11",
+      "-O3",
+      "-march=native",
+      "-ffp-contract=off",
+      "-fopenmp",
+      "-I/code/bend2/bots/common",
+      "-I/code/bend2/bots/omp-tasks/uts",
+      "-DCDATE=\"pinned\"",
+      "-DCMESSAGE=\"bend-bench UTS\"",
+      "-DCC=\"/usr/bin/clang\"",
+      "-DLD=\"/usr/bin/clang\"",
+      "-DCFLAGS=\"-O3 -march=native -ffp-contract=off -fopenmp\"",
+      "-DLDFLAGS=\"-fopenmp -lm\"",
+      "/code/bend2/bots/common/bots_main.c",
+      "/code/bend2/bots/common/bots_common.c",
+      "/code/bend2/bots/omp-tasks/uts/uts.c",
+      "/code/bend2/bots/omp-tasks/uts/brg_sha1.c",
+      "-lm",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-omp-tasks"
+    ],
+    [
+      "/usr/bin/clang",
+      "-std=gnu11",
+      "-O3",
+      "-march=native",
+      "-ffp-contract=off",
+      "-fopenmp",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/baselines/uts-omp.c",
+      "/code/bend2/bots/omp-tasks/uts/brg_sha1.c",
+      "-I/code/bend2/bots/common",
+      "-lm",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-cutoff"
+    ],
+    [
+      "/usr/bin/clang",
+      "-std=gnu11",
+      "-O3",
+      "-march=native",
+      "-ffp-contract=off",
+      "-I/code/bend2/bots/common",
+      "-c",
+      "/code/bend2/bots/omp-tasks/uts/brg_sha1.c",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-sha.o"
+    ],
+    [
+      "/usr/bin/clang++",
+      "-std=c++17",
+      "-O3",
+      "-march=native",
+      "-ffp-contract=off",
+      "--cuda-path=/usr/local/cuda-13.1",
+      "--cuda-gpu-arch=sm_86",
+      "-Wno-unknown-cuda-version",
+      "-I/code/bend2/bots/common",
+      "-I/code/bend2/bots/omp-tasks/uts",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/gpu/uts.cu",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-sha.o",
+      "-L/usr/local/cuda-13.1/lib64",
+      "-Wl,-rpath,/usr/local/cuda-13.1/lib64",
+      "-lcudart",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-conventional-cuda"
+    ],
+    [
+      "/code/bend2/tools/bun-linux-x64/bun",
+      "/code/bend/bend2/main.ts",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/ports/uts-compact.bend",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact.c"
+    ],
+    [
+      "/usr/bin/clang",
+      "-std=c11",
+      "-O3",
+      "-march=native",
+      "-ffp-contract=off",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact.c",
+      "-lpthread",
+      "-lm",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact"
+    ],
+    [
+      "/usr/bin/clang",
+      "-std=c11",
+      "-O3",
+      "-march=native",
+      "-ffp-contract=off",
+      "-DBEND_CUDA=1",
+      "-I/usr/local/cuda-13.1/include",
+      "-L/usr/local/cuda-13.1/lib64",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact.c",
+      "-lpthread",
+      "-lm",
+      "-lcuda",
+      "-lnvrtc",
+      "-Wl,--disable-new-dtags,-rpath,/usr/local/cuda-13.1/lib64",
+      "-o",
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact-cuda"
+    ],
+    [
+      "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact-cuda",
+      "--gpu-build"
+    ]
+  ],
+  "cases": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-serial",
+        "-f",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/inputs/uts/compact.input",
+        "-c"
+      ],
+      "contract": {
+        "expected_nodes": "293367",
+        "fuel": 1000000,
+        "parameters": [
+          "512",
+          "0.333332",
+          "3",
+          "8",
+          "1",
+          "293367",
+          "0",
+          "0"
+        ],
+        "workload": "uts-compact"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "(?=.*Tree size\\s*=\\s*293367\\b).*Verification\\s*= successful\\s*.*",
+      "id": "uts/compact/serial-c/1",
+      "implementation": "serial-c",
+      "suite": "uts",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "compact"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact-cuda",
+        "--threads",
+        "16",
+        "--gpu",
+        "4GB"
+      ],
+      "contract": {
+        "expected_nodes": "293367",
+        "fuel": 1000000,
+        "parameters": [
+          "512",
+          "0.333332",
+          "3",
+          "8",
+          "1",
+          "293367",
+          "0",
+          "0"
+        ],
+        "workload": "uts-compact"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "16",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "293367\\ 0",
+      "id": "uts/compact/bend-cuda/16",
+      "implementation": "bend-cuda",
+      "suite": "uts",
+      "threads": 16,
+      "unsupported": null,
+      "workload": "compact"
+    },
+    {
+      "check_args": [
+        "verify"
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-conventional-cuda",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/inputs/uts/compact.input"
+      ],
+      "contract": {
+        "expected_nodes": "293367",
+        "fuel": 1000000,
+        "parameters": [
+          "512",
+          "0.333332",
+          "3",
+          "8",
+          "1",
+          "293367",
+          "0",
+          "0"
+        ],
+        "workload": "uts-compact"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "293367",
+      "id": "uts/compact/conventional-cuda/1",
+      "implementation": "conventional-cuda",
+      "suite": "uts",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "compact"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact",
+        "--threads",
+        "1",
+        "--gpu",
+        "off"
+      ],
+      "contract": {
+        "expected_nodes": "293367",
+        "fuel": 1000000,
+        "parameters": [
+          "512",
+          "0.333332",
+          "3",
+          "8",
+          "1",
+          "293367",
+          "0",
+          "0"
+        ],
+        "workload": "uts-compact"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "293367\\ 0",
+      "id": "uts/compact/bend/1",
+      "implementation": "bend",
+      "suite": "uts",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "compact"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-omp-tasks",
+        "-f",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/inputs/uts/compact.input",
+        "-c"
+      ],
+      "contract": {
+        "expected_nodes": "293367",
+        "fuel": 1000000,
+        "parameters": [
+          "512",
+          "0.333332",
+          "3",
+          "8",
+          "1",
+          "293367",
+          "0",
+          "0"
+        ],
+        "workload": "uts-compact"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "(?=.*Tree size\\s*=\\s*293367\\b).*Verification\\s*= successful\\s*.*",
+      "id": "uts/compact/openmp/1",
+      "implementation": "openmp",
+      "suite": "uts",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "compact"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-compact",
+        "--threads",
+        "16",
+        "--gpu",
+        "off"
+      ],
+      "contract": {
+        "expected_nodes": "293367",
+        "fuel": 1000000,
+        "parameters": [
+          "512",
+          "0.333332",
+          "3",
+          "8",
+          "1",
+          "293367",
+          "0",
+          "0"
+        ],
+        "workload": "uts-compact"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "16",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "293367\\ 0",
+      "id": "uts/compact/bend/16",
+      "implementation": "bend",
+      "suite": "uts",
+      "threads": 16,
+      "unsupported": null,
+      "workload": "compact"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/build/uts-omp-tasks",
+        "-f",
+        "/code/bend-bench/runs/254001a94e61170c195c/work/inputs/uts/compact.input",
+        "-c"
+      ],
+      "contract": {
+        "expected_nodes": "293367",
+        "fuel": 1000000,
+        "parameters": [
+          "512",
+          "0.333332",
+          "3",
+          "8",
+          "1",
+          "293367",
+          "0",
+          "0"
+        ],
+        "workload": "uts-compact"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "16",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "(?=.*Tree size\\s*=\\s*293367\\b).*Verification\\s*= successful\\s*.*",
+      "id": "uts/compact/openmp/16",
+      "implementation": "openmp",
+      "suite": "uts",
+      "threads": 16,
+      "unsupported": null,
+      "workload": "compact"
+    }
+  ]
+}
