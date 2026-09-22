@@ -99,7 +99,7 @@ def correct_special(case, result):
         return False
 
 
-def run(config, baseline=None, threshold=10):
+def run(config, baseline=None, threshold=10, *, wait_for_idle=False):
     from .experiment import directory, measure, prepare, report
     from .regression import load_result, publish, target
     if not math.isfinite(threshold) or threshold <= 0:
@@ -117,7 +117,7 @@ def run(config, baseline=None, threshold=10):
     evidence = provenance(config)
     folder = directory(config, evidence)
     folder.mkdir(parents=True, exist_ok=True)
-    if not cpu:
+    if not cpu and wait_for_idle:
         wait_gpu(config, folder)
     if provenance(config) != evidence:
         raise ValueError('Inputs changed during admission wait')

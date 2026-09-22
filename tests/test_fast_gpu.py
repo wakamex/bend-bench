@@ -21,6 +21,27 @@ class FastGPU(unittest.TestCase):
         self.assertEqual(self.config['repetitions'], 1)
         self.assertEqual(self.config['warmups'], 1)
 
+    def test_idle_wait_is_opt_in(self):
+        from unittest.mock import patch
+        from bend_bench.cli import main
+        for flags, expected in [([], False), (['--wait-idle'], True)]:
+            with patch('bend_bench.fast.run', return_value=(ROOT, False)) as run:
+                self.assertEqual(main(['gpu', 'fast', str(ROOT/'fast-gpu.toml'), *flags]), 0)
+                self.assertEqual(run.call_args.kwargs['wait_for_idle'], expected)
+
+    def test_runner_only_waits_when_requested(self):
+        from unittest.mock import patch
+        from bend_bench.fast import run
+        for requested in (False, True):
+            with tempfile.TemporaryDirectory() as tmp, \
+                 patch('bend_bench.fast.provenance', return_value={}), \
+                 patch('bend_bench.experiment.directory', return_value=Path(tmp)), \
+                 patch('bend_bench.fast.wait_gpu') as wait, \
+                 patch('bend_bench.experiment.prepare', side_effect=ValueError('stop before builds')):
+                with self.assertRaisesRegex(ValueError, 'stop before builds'):
+                    run(self.config, wait_for_idle=requested)
+                self.assertEqual(wait.call_count, int(requested))
+
     def test_cli_entrypoint(self):
         result = subprocess.run([sys.executable, '-m', 'bend_bench', 'fast-gpu', '--help'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)

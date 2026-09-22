@@ -16,6 +16,8 @@ def fast_arguments(parser, target):
     parser.add_argument('--repetitions', type=int, help='Measured executions per configuration (positive integer; overrides TOML)')
     parser.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
     parser.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
+    if target == 'gpu':
+        parser.add_argument('--wait-idle', action='store_true', help='Wait for 120 seconds of GPU inactivity before preparing the run')
 
 
 def main(argv=None):
@@ -70,7 +72,7 @@ def main(argv=None):
                 from .fast import run as fast_run
                 started = time.perf_counter()
                 try:
-                    folder, failed = fast_run(config, args.baseline, args.threshold)
+                    folder, failed = fast_run(config, args.baseline, args.threshold, wait_for_idle=getattr(args, 'wait_idle', False))
                 finally:
                     elapsed = time.perf_counter() - started
                     minutes, seconds = divmod(round(elapsed), 60)
