@@ -32,6 +32,23 @@ def process_cgroup(pid):
     raise ValueError("Unified process cgroup unavailable")
 
 
+def process_stats(pid, processes, samples):
+    """Describe observed residency and utilization, not lifetime GPU compute."""
+    try:
+        name = Path(f'/proc/{pid}/comm').read_text().strip()
+        name = ''.join(ch if ch.isprintable() else '?' for ch in name)
+    except OSError:
+        name = 'name unavailable (exited or inaccessible)'
+    memory = next((p['memory_bytes'] for p in processes if p['pid'] == pid), None)
+    vram = f'{memory / 2**20:,.0f} MiB' if memory is not None and memory != 2**64-1 else 'unavailable'
+    observed = [s for s in samples if s['pid'] == pid]
+    if observed:
+        compute = f"sampled GPU compute peak {max(s['sm'] for s in observed)}% ({len(observed)} samples)"
+    else:
+        compute = 'GPU compute unavailable (no utilization samples)'
+    return f'{name}; VRAM {vram}; {compute}'
+
+
 def belongs_to(pid, root):
     """Allow only the benchmark session or its descendants during execution."""
     seen = set()
@@ -148,7 +165,7 @@ class Activity:
                 errors.append("Pinned GPU residency disappeared")
         for p in processes:
             if p["pid"] not in approved and not (benchmark_pid and belongs_to(p["pid"], benchmark_pid)):
-                errors.append(f"Unapproved GPU process {p['pid']}")
+                errors.append(f"Unapproved GPU process {p['pid']} ({process_stats(p['pid'], processes, samples)})")
         # The pinned resident worker is explicitly allowed to run, including
         # its canary jobs. Only activity from an unapproved process invalidates
         # a sample; the resident process remains visible in the evidence.
@@ -156,7 +173,8 @@ class Activity:
                   and s["pid"] not in approved
                   and not (benchmark_pid and belongs_to(s["pid"], benchmark_pid))]
         if active:
-            errors.append("External GPU activity detected")
+            details = '; '.join(f"PID {pid} ({process_stats(pid, processes, samples)})" for pid in sorted({s['pid'] for s in active}))
+            errors.append(f"External GPU activity detected: {details}")
         return dict(gpu_uuid=self.uuid, observed_us=time.time_ns()//1000, processes=processes,
                     samples=samples, resident_processes=identities,
                     benchmark_processes=benchmark_identities.copy(), errors=errors)

@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from bend_bench.core import append, correct, execute, load_config
-from bend_bench.gpu_activity import Activity, belongs_to, idle_snapshot, process_identity, process_cgroup
+from bend_bench.gpu_activity import Activity, belongs_to, idle_snapshot, process_identity, process_cgroup, process_stats
 
 
 class ActivityTests(unittest.TestCase):
@@ -20,7 +20,7 @@ class ActivityTests(unittest.TestCase):
         with patch("bend_bench.gpu_activity.process_identity", side_effect=FileNotFoundError):
             self.assertEqual(activity.snapshot({}, 0)["errors"], [])
         with patch("bend_bench.gpu_activity.process_identity", return_value=dict(start_ticks=124)):
-            self.assertIn("Unapproved GPU process 42", activity.snapshot({}, 0)["errors"])
+            self.assertTrue(any(e.startswith("Unapproved GPU process 42 (") for e in activity.snapshot({}, 0)["errors"]))
 
     def test_service_restart_and_foreign_process(self):
         group = process_cgroup(os.getpid())
@@ -37,7 +37,29 @@ class ActivityTests(unittest.TestCase):
                 self.assertEqual(record["errors"], [])
                 self.assertEqual([p["pid"] for p in record["resident_processes"]], pids)
         with patch("bend_bench.gpu_activity.process_identity", return_value=dict(pid=20, start_ticks=30)), patch("bend_bench.gpu_activity.process_cgroup", return_value=group + "-impostor"):
-            self.assertIn("Unapproved GPU process 20", activity.snapshot(dict(cgroup=group), 0)["errors"])
+            self.assertTrue(any(e.startswith("Unapproved GPU process 20 (") for e in activity.snapshot(dict(cgroup=group), 0)["errors"]))
+
+    def test_process_stats(self):
+        with patch('bend_bench.gpu_activity.Path.read_text', return_value='python\n'):
+            text = process_stats(42, [dict(pid=42, memory_bytes=1536*2**20)],
+                                 [dict(pid=42, sm=12), dict(pid=42, sm=37), dict(pid=99, sm=100)])
+        self.assertEqual(text, 'python; VRAM 1,536 MiB; sampled GPU compute peak 37% (2 samples)')
+        with patch('bend_bench.gpu_activity.Path.read_text', side_effect=FileNotFoundError):
+            text = process_stats(42, [dict(pid=42, memory_bytes=2**64-1)], [])
+        self.assertIn('exited or inaccessible', text)
+        self.assertIn('VRAM unavailable', text)
+        self.assertIn('no utilization samples', text)
+
+    def test_exited_foreign_process_activity_details(self):
+        activity = object.__new__(Activity)
+        activity.uuid = 'fixture'
+        activity.processes = lambda: []
+        activity.samples = lambda since: [dict(pid=42, timestamp_us=100, sm=25, memory=0, encoder=0, decoder=0)]
+        with patch('bend_bench.gpu_activity.Path.read_text', side_effect=FileNotFoundError):
+            errors = activity.snapshot({}, 0)['errors']
+        self.assertIn('PID 42', errors[0])
+        self.assertIn('VRAM unavailable', errors[0])
+        self.assertIn('compute peak 25%', errors[0])
 
     def test_identity_and_ancestry(self):
         self.assertEqual(process_identity(os.getpid())["pid"], os.getpid())
