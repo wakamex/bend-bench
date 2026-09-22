@@ -1,0 +1,35 @@
+schema = 1
+label = "uts-compact-stack-fix"
+output = "runs"
+suites = ["uts"]
+uts_inputs = ["compact"]
+uts_cutoffs = []
+uts_gpu = true
+threads = [1, 16]
+cpus = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+repetitions = 10
+warmups = 1
+timeout = 60
+cuda = true
+gpu_heap = "4GB"
+gpu_arch = "sm_86"
+require_idle_gpu = true
+blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-applications.service", "bend-bench-gpu.service", "bend-bench-vendor-cuda.service"]
+
+[gpu_resident]
+cgroup = "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service"
+
+[bend]
+path = "../bend"
+commit = "19fa5ae3643241c70bcfbf1bde67d8eb0d4cca30"
+
+[bots]
+path = "../bend2/bots"
+commit = "2607a695128727a3f6c98754367705443663136d"
+
+[tools]
+bun = "../bend2/tools/bun-linux-x64/bun"
+cc = "/usr/bin/clang"
+cxx = "/usr/bin/g++"
+cuda_cxx = "/usr/bin/clang++"
+cuda_path = "/usr/local/cuda-13.1"

@@ -20,6 +20,10 @@ def vendor_outputs(bend):
     return expected
 
 
+def uts_input(work, dataset):
+    return Path(work) / ("inputs/uts/compact.input" if dataset == "compact" else f"bots/inputs/uts/{dataset}.input")
+
+
 def stage(config, work, *, mnk_count=16):
     assets = Path(__file__).parent / "assets"
     shutil.copytree(assets, work, dirs_exist_ok=True)
@@ -66,7 +70,7 @@ def stage(config, work, *, mnk_count=16):
             raise ValueError(result["stderr"])
     if "uts" in config["suites"]:
         for dataset in config["uts_inputs"]:
-            values = (work / "bots/inputs/uts" / f"{dataset}.input").read_text().splitlines()[0].split()
+            values = uts_input(work, dataset).read_text().splitlines()[0].split()
             root, probability, branching, seed, granularity, *_ = values
             if granularity != "1":
                 raise ValueError("UTS port currently supports compute granularity 1")
@@ -301,7 +305,7 @@ def plan(config, work):
                    f"-I{bots}/common", f"-I{bots}/omp-tasks/uts", work / "gpu/uts.cu", sha_object,
                    f"-L{cuda}/lib64", f"-Wl,-rpath,{cuda}/lib64", "-lcudart", "-o", gpu_binary])
         for dataset in config["uts_inputs"]:
-            data = bots / "inputs/uts" / f"{dataset}.input"
+            data = uts_input(work, dataset)
             parameters = data.read_text().splitlines()[0].split()
             nodes = parameters[5]
             contract = dict(workload="uts-" + dataset, parameters=parameters, expected_nodes=nodes, fuel=1000000)

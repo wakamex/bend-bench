@@ -1,0 +1,4 @@
+512 0.333332 3 8 1 293367 0 0
+# Project compact input: BOTS tiny's seed, branching probability, arity and granularity.
+# Only root arity changes from 2000 to 512. Original BOTS serial traversal counts 293367 nodes.
+# Depth/leaves are not contracts in canonical BOTS; CUDA verification computes and checks them independently.

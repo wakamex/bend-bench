@@ -254,8 +254,8 @@ def load_config(path):
         if (not config["cuda"] or not config["gpu_depths"] or set(config["gpu_depths"]) - {12, 18, 23}
                 or len(set(config["gpu_depths"])) != len(config["gpu_depths"])):
             raise ValueError("cub requires CUDA and gpu_depths drawn from 12, 18, 23")
-    if set(config["uts_inputs"]) - {"test", "tiny"}:
-        raise ValueError("Supported UTS inputs: test, tiny")
+    if set(config["uts_inputs"]) - {"test", "tiny", "compact"}:
+        raise ValueError("Supported UTS inputs: test, tiny, compact")
     if any(type(n) is not int or n < 0 for n in config["uts_cutoffs"]):
         raise ValueError("UTS cutoffs must be nonnegative integers")
     for key, default, valid in (("pricing_depths", [12,15,18], {8,12,15,18}),

@@ -5,12 +5,27 @@ import tempfile
 import unittest
 
 from bend_bench.core import append, execute, exclusive, idle_gpu, load_config
-from bend_bench.suites import plan, stage
+from bend_bench.suites import plan, stage, uts_input
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class UTSGPU(unittest.TestCase):
+    def test_compact_input_preserves_tiny_distribution(self):
+        config = load_config(ROOT / 'uts-compact.toml')
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            stage(config, work)
+            small = uts_input(work, 'compact').read_text().splitlines()[0].split()
+            large = uts_input(work, 'tiny').read_text().splitlines()[0].split()
+            self.assertEqual(small[1:5], large[1:5])
+            self.assertEqual(small[0], '512')
+            self.assertEqual(small[5], '293367')
+            self.assertIn('U32.to_nat(512)', (work / 'ports/uts-compact.bend').read_text())
+            _, cases = plan(config, work)
+            self.assertEqual(len(cases), 7)
+            self.assertTrue(all(c['contract']['expected_nodes'] == '293367' for c in cases))
+
     def test_opt_in_plan(self):
         for filename, expected in (("experiment.toml", 0), ("uts-gpu.toml", 4)):
             config = load_config(ROOT / filename)
