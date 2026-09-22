@@ -40,6 +40,14 @@ Bend scales well across CPU cores on its published workloads, but gains no speed
 
 ## Run a benchmark
 
+For compiler changes, [fast GPU regression testing](FAST_GPU.md) runs Bend GPU alone across all 22 workload families, using compact UTS and one full game-search batch:
+
+```sh
+uv run --locked bend-bench fast-gpu
+```
+
+Edit `fast-gpu.toml` to pin the compiler checkout and revision. Results are separate from the scorecard; `bend-bench compare` compares two regression runs.
+
 Requirements: Linux, uv, Git, `taskset`, GNU time, Bun, Clang and an OpenMP-enabled C++ compiler. GPU runs additionally require a compatible CUDA toolchain and NVIDIA GPU; kernel profiling requires Nsight Systems.
 
 Choose a configuration and edit its source paths, exact commits, tool paths, CPU affinity and workload selection for your machine:

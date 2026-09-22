@@ -20,6 +20,9 @@ def main(argv=None):
     comparison = commands.add_parser("compare")
     comparison.add_argument("before", type=Path)
     comparison.add_argument("after", type=Path)
+    fast = commands.add_parser('fast-gpu', help='Check and measure the fixed Bend GPU regression portfolio')
+    fast.add_argument('experiment', type=Path, nargs='?', default=Path('fast-gpu.toml'))
+    fast.add_argument('--plan', action='store_true', help='Preview the fixed 22 cases without running them')
     args = parser.parse_args(argv)
     try:
         if args.command == "report":
@@ -28,7 +31,12 @@ def main(argv=None):
             print(json.dumps(compare(args.before, args.after), indent=2))
         else:
             config = load_config(args.experiment)
-            if args.command == "plan":
+            if args.command == 'fast-gpu' and not args.plan:
+                from .fast_gpu import run as fast_run
+                folder, failed = fast_run(config)
+                print(report(folder))
+                return int(failed)
+            elif args.command == "plan" or args.command == 'fast-gpu':
                 run = directory(config, provenance(config))
                 builds, cases = plan(config, run / "work")
                 print(json.dumps(dict(run=str(run), builds=builds, cases=cases), indent=2))

@@ -31,6 +31,9 @@ def stage(config, work, *, mnk_count=16):
         if key in config and not (work / name).exists():
             (work / name).symlink_to(config[key]["path"], target_is_directory=True)
     (work / "build").mkdir(exist_ok=True)
+    if "gpu-regression" in config["suites"]:
+        from .fast_gpu import stage_fixtures
+        stage_fixtures(config, work)
     if "nqueens" in config["suites"]:
         for size in config["queens_sizes"]:
             source = (assets / "ports/nqueens.bend").read_text().replace("@MASK@", str((1 << size) - 1))
@@ -118,7 +121,8 @@ def plan(config, work):
         cfile = work / "build" / f"{name}.c"
         binary = work / "build" / name
         build([bun, bend / "bend2/main.ts", source, "-o", cfile])
-        build([cc, "-std=c11", *flags, cfile, "-lpthread", "-lm", "-o", binary])
+        if config['suites'] != ['gpu-regression']:
+            build([cc, "-std=c11", *flags, cfile, "-lpthread", "-lm", "-o", binary])
         if gpu and not gpu_reason:
             # NVRTC dlopens its builtins library. DT_RPATH also applies to
             # that indirect lookup; DT_RUNPATH only resolves direct deps.
@@ -126,6 +130,10 @@ def plan(config, work):
                    "-lpthread", "-lm", "-lcuda", "-lnvrtc", f"-Wl,--disable-new-dtags,-rpath,{cuda}/lib64", "-o", str(binary) + "-cuda"])
             build([str(binary) + "-cuda", "--gpu-build"])
         return binary
+
+    if "gpu-regression" in config['suites']:
+        from .fast_gpu import plan_fixtures
+        plan_fixtures(config, work, bend_build, case, cases, gpu_reason)
 
     if set(config['suites']) & {'pricing', 'mnk', 'bfs'}:
         from .applications import plan as plan_applications
