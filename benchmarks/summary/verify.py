@@ -4,9 +4,11 @@ import json
 from pathlib import Path
 import re
 import statistics
+import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+sys.path.insert(0, str(ROOT))
 data = json.loads((HERE / 'data.json').read_text())
 cases = {}
 for relative, digest in data['source_sha256'].items():
@@ -33,21 +35,32 @@ def table(relative):
     return [[s.strip() for s in line.split('|')[1:-1]]
             for line in (ROOT / relative).read_text().splitlines() if re.match(r'^\| \d', line)]
 
-pricing_run = ROOT / 'runs/pricing-crossover-20260920'
-pricing = max((json.loads(line) for line in (pricing_run / 'summary.jsonl').read_text().splitlines()), key=lambda p: p['paths'])
 for row in data['rows']:
     if row['group'] == 'Repeated pricing requests':
         n = int(row['detail'].split()[0].replace(',', ''))
-        assert n == pricing['paths']
-        assert all(row['ms'][column] is None for column in (0, 1, 3, 4))
-        for column, impl, key in [(2, 'bend-cuda', 'bend'), (5, 'local-cuda', 'cuda')]:
+        assert n == 262144
+        pricing_run = ROOT / 'runs/pricing-sustained-20260918-165158' / str(n)
+        reference = json.loads((pricing_run / 'local-openmp-0/result.json').read_text())
+        from pricing_sustained import compare_quotes
+        for column, impl in enumerate(['bend', 'bend', 'bend-cuda', 'local-openmp', 'local-openmp', 'local-cuda']):
+            run = ROOT / row['single_cpu_source'] if column in (0, 3) else pricing_run
+            if column in (0, 3):
+                assert json.loads((run / 'completed.json').read_text())['status'] == 'passed'
+                schedule = json.loads((run / 'schedule.json').read_text())
+                matching = [s['case'] for s in schedule if s['case']['implementation'] == impl]
+                assert len(matching) == 3 and all(c['env']['OMP_NUM_THREADS'] == '1' and c['threads'] == 1 for c in matching)
             values = []
             for rep in range(3):
-                result = json.loads((pricing_run / str(n) / f'{impl}-{rep}' / 'result.json').read_text())
-                assert result['correct'] and len(result['pricing_seconds']) == 12
+                result = json.loads((run / f'{impl}-{rep}' / 'result.json').read_text())
+                assert result['correct'] and len(result['pricing_seconds']) == 32
+                assert result['returncode'] == 0 and not result['timeout'] and not result.get('contention_error')
+                compare_quotes(result['quotes'], reference['quotes'])
+                if column in (0, 3):
+                    assert result['command'][:3] == ['taskset', '-c', '0']
+                    if impl == 'bend':
+                        assert result['command'][-2:] == ['--threads', '1']
                 values.append(statistics.mean(result['pricing_seconds'][2:]))
-            assert pricing[key] == statistics.median(values)
-            assert abs(row['ms'][column] - pricing[key] * 1000) < 1e-9
+            assert abs(row['ms'][column] - statistics.median(values) * 1000) < 1e-9
     elif row['group'] == 'Repeated game-search batches':
         final = 'final cuda' in row['detail']
         run = '161850' if final else '160439'

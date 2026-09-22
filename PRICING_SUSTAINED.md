@@ -2,13 +2,13 @@
 
 Bend GPU returns a price and standard error about 68× faster than Bend CPU16 and 40× faster than OpenMP16 at 262,144 paths. The project-written CUDA simulation with CUB reduction is another 7.2× faster than Bend GPU. Each program stays running across requests, which simulate an arithmetic Asian call using 256 observations per path and return the price, nominal Monte Carlo standard error and completed path count.
 
-| Paths per request | Bend, 16 CPU threads | OpenMP, 16 CPU threads | Bend GPU | Project-written CUDA with CUB reduction |
-|---:|---:|---:|---:|---:|
-| 1,073,741,824 | | | 7,823.641 ms | 1,874.269 ms |
+| Paths per request | Bend, 1 CPU thread | Bend, 16 CPU threads | Bend GPU | OpenMP, 1 CPU thread | OpenMP, 16 CPU threads | Project CUDA + CUB |
+|---:|---:|---:|---:|---:|---:|---:|
+| 262,144 | 2,407.737 ms | 239.666 ms | 3.501 ms | 1,419.661 ms | 139.491 ms | 0.488 ms |
 
-The table shows the largest completed request size. CUDA is 4.2× faster than Bend GPU there; no crossover occurred across the 15 doubled sizes. CPU cells are blank because this size was only measured on GPU. Times include simulation, aggregation and returning the quote to CPU memory, using the median of three process means with two warmups and ten measured requests each. All sizes passed quote checks. See the [full size sweep](runs/pricing-crossover-20260920/report.md) and [sweep methodology](PRICING_CROSSOVER.md).
+The table uses the request size measured on all six CPU/GPU configurations. Times include simulation, aggregation and returning the quote to CPU memory, using the median of three process means with two warmups and 30 measured requests each. The September 22 single-thread measurements reuse the exact hash-verified September 18 binaries, changing only thread count and CPU affinity. Every quote passes the same correctness checks, and a separate small-input audit checks every payoff. See the [single-thread results](runs/pricing-single-cpu-20260922-111154/summary.json), [commands and schedule](runs/pricing-single-cpu-20260922-111154/schedule.json), and [original CPU16/GPU results](runs/pricing-sustained-20260918-165158/report.md).
 
-The earlier CPU/GPU comparison above used 262,144 paths and 30 measured requests per process. Its [individual process results](runs/pricing-sustained-20260918-165158/report.md) and [preserved run evidence](runs/pricing-sustained-20260918-165158/) remain available. The following sections describe that initial experiment.
+The GPU size sweep reached 1,073,741,824 paths, where Bend took 7,823.641 ms and CUDA took 1,874.269 ms per request. CUDA's advantage narrowed from 7.2× to 4.2×, with no crossover across the 15 doubled sizes. That sweep used ten measured requests per process; its [full results](runs/pricing-crossover-20260920/report.md) and [methodology](PRICING_CROSSOVER.md) remain available. The following sections describe the original CPU/GPU experiment.
 
 ## Pricing and arithmetic
 

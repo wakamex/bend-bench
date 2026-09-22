@@ -1,6 +1,6 @@
 {
   "title": "Bend benchmark scorecard",
-  "measurement_dates": "17–21 September 2026",
+  "measurement_dates": "17–22 September 2026",
   "hardware": "AMD Ryzen 9 3950X · NVIDIA RTX 3090",
   "bend_revision": "b9d1352c9f45632447f40a2e927355c92f2be58c",
   "columns": [
@@ -567,18 +567,19 @@
     {
       "group": "Repeated pricing requests",
       "name": "Option pricing",
-      "detail": "1,073,741,824 paths · 256 observations · price + standard error",
-      "baseline": "Project CUDA + CUB",
+      "detail": "262,144 paths · 256 observations · price + standard error",
+      "baseline": "Project OpenMP / project CUDA + CUB",
       "ms": [
-        null,
-        null,
-        7823.6413995,
-        null,
-        null,
-        1874.26899
+        2407.7369918,
+        239.66618933333334,
+        3.501137266666667,
+        1419.6614746666667,
+        139.4911959,
+        0.48843279999999994
       ],
       "link": "../../PRICING_SUSTAINED.md",
-      "metric": "request to host quote"
+      "metric": "request to host quote",
+      "single_cpu_source": "runs/pricing-single-cpu-20260922-111154"
     },
     {
       "group": "Repeated game-search batches",
@@ -607,6 +608,27 @@
     "runs/summation-scaling-20260920/summary.json": "67d2ad36468ed9bd0516d0df2d8344888b76203f304eb2b0a7c820869d665c96",
     "benchmarks/vendor-cuda-20260921/summary.json": "9892387d5f9ae6fa27813d7c4d63db8a19ebe74ff09c1aeb998e82c13cb858bb",
     "runs/182bf42ec81e810fd617/summary.json": "3c3d2557033fceb69d3e93305b80e409a52193780b3c72c1471b152157e6066f",
-    "benchmarks/uts-gpu-20260921/summary.json": "ff10f54cd7fed91a2577a651086a4792f54e490436f1babf82919388934d4d33"
+    "benchmarks/uts-gpu-20260921/summary.json": "ff10f54cd7fed91a2577a651086a4792f54e490436f1babf82919388934d4d33",
+    "runs/pricing-single-cpu-20260922-111154/bend-0/result.json": "e7a5c7c9808c76a580574bc10598b3c06f1ca22d5cf4d4e56147709e8d4c6434",
+    "runs/pricing-single-cpu-20260922-111154/bend-1/result.json": "aa09b8fb676c4530067e3b2f1f3b16653c83766f3d2903fcbc8d73c2e37065a9",
+    "runs/pricing-single-cpu-20260922-111154/bend-2/result.json": "eb8dce690325b4f0a9dcbae1d1333c833272d0392b450f102c4cf327c93a9d17",
+    "runs/pricing-sustained-20260918-165158/262144/bend-0/result.json": "a3803172c961707b49ffce269154becc17ea80e502120877f971fdf68d030152",
+    "runs/pricing-sustained-20260918-165158/262144/bend-1/result.json": "405d9b4504d4c01ce69ba6301af16c0947756dbf8a4511809c0f2a62541d42b0",
+    "runs/pricing-sustained-20260918-165158/262144/bend-2/result.json": "241dfa6c2a37f5e6303dd8bb7c724a0acb24ce2c3268eb2619efe4ccf2b87a8f",
+    "runs/pricing-sustained-20260918-165158/262144/bend-cuda-0/result.json": "a6f0e4b87f5866c638439b0c4e6534be492216d0083610d1fd1b8816d8f0ee30",
+    "runs/pricing-sustained-20260918-165158/262144/bend-cuda-1/result.json": "02ec76b52cdf6fc97d356872a8e801a087678a50cdd7c26927b767068a7e43c2",
+    "runs/pricing-sustained-20260918-165158/262144/bend-cuda-2/result.json": "897e0f06e554608113c560e2696df8afacdd66b05fff5ae19c82aeb64c05d094",
+    "runs/pricing-single-cpu-20260922-111154/local-openmp-0/result.json": "a019274e31c7568260e509cc0f15063044c1327179e0bf8a086362fa436b7e0b",
+    "runs/pricing-single-cpu-20260922-111154/local-openmp-1/result.json": "e9233f9d2e3c1b323f804ea7bda19ed016cbd5277d5ca51656c89a5f1eba3ba9",
+    "runs/pricing-single-cpu-20260922-111154/local-openmp-2/result.json": "a11b6b0ea0b4156929d91f0820828a810af1c281c68839b05d358662305c8699",
+    "runs/pricing-sustained-20260918-165158/262144/local-openmp-0/result.json": "349f9c711c46096f55ec244d8416e0c8d6af5d7567044767219ef69c2a4babb8",
+    "runs/pricing-sustained-20260918-165158/262144/local-openmp-1/result.json": "0984869226443b71dc08a04b5ed88732e2563b2dd876aa42248fcb33cd2c9f45",
+    "runs/pricing-sustained-20260918-165158/262144/local-openmp-2/result.json": "05a8c1f7336210909fc842269143d70065b57447586ca82b2587d438daa7cd00",
+    "runs/pricing-sustained-20260918-165158/262144/local-cuda-0/result.json": "7343e0e07c22ea01180da05ecda7b9f6b90971d87da5eca508fb6c5b1e090351",
+    "runs/pricing-sustained-20260918-165158/262144/local-cuda-1/result.json": "e29ac67f81782d5b33d49cb0bf2cf65bdaf0cfb4554610cd3bb68721d18cdf70",
+    "runs/pricing-sustained-20260918-165158/262144/local-cuda-2/result.json": "783240f87f8b885660542e190c6ace26d05cee6be05b4ccb62d4e8cb7fc60d30",
+    "runs/pricing-single-cpu-20260922-111154/completed.json": "62a2ec7ea23aed9b55d5588aa911617482704992eeb912b0d6c9a87ea7f781a1",
+    "runs/pricing-single-cpu-20260922-111154/schedule.json": "b82de775948622739101f8dbd7dd027378cfa3639c717082d2a2ceba3a5aab2c",
+    "runs/pricing-single-cpu-20260922-111154/provenance.json": "4c656736fb29ce18b92f588f866dda98e27fd20c1d60146921d0cb7825b9c66d"
   }
 }
