@@ -1,6 +1,6 @@
 # bend-bench
 
-The [Bend](https://github.com/bendlang/bend) programming lanauage lets you run the same code in parallel on CPU and GPU. This benchmark compares performance with OpenMP on CPU and CUDA on GPU. Bend's main benefit is verifiability, being fast is just a perk.
+The [Bend](https://github.com/bendlang/bend) programming language lets you run the same code in parallel on CPU and GPU. This benchmark compares performance with OpenMP on CPU and CUDA on GPU. Bend's main benefit is verifiability, being fast is just a perk.
 
 ## Benchmark choice
 
@@ -16,7 +16,7 @@ Additional benchmarks are chosen to span a few interesting dimensions:
 
 ## Results
 
-On Bend’s 16 published workloads, moving from one to 16 CPU threads gives Bend a median 13.6× speedup, compared with OpenMP’s 14.2×. Bend takes 32% longer than OpenMP at 16 threads at the median. The gaps vary widely by workload. Bend slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on several others. Sorting accounts for the largest differences: OpenMP finishes about 19× faster, despite Bend showing better thread scaling. Individual results (PERFORMANCE.md). [CPU results](PERFORMANCE.md).
+On Bend’s 16 published workloads, moving from one to 16 CPU threads gives Bend a median 13.6× speedup, compared with OpenMP’s 14.2×. Bend takes 32% longer than OpenMP at 16 threads at the median. The gaps vary widely by workload. Bend slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on several others. Sorting accounts for the largest differences: OpenMP finishes about 19× faster, despite Bend showing better thread scaling. [CPU results](PERFORMANCE.md).
 
 For sorting, we also compare against NVIDIA’s CUB library, which finishes 4.9× faster than Bend GPU. [GPU sorting results](runs/e930e5a1b9c488a9f8ba/report.md).
 
@@ -32,7 +32,7 @@ Irregular work is harder. Bend gains no CPU speedup on either UTS input. [UTS re
 
 On GPU, the unchanged Bend UTS port reaches the runtime's stack limit on both inputs. Our CUDA implementation completes the larger tree 6.5× faster than BOTS OpenMP on 16 CPU threads. [UTS GPU results](UTS_GPU.md).
 
-Rodinia’s CUDA implementation finishes HotSpot sooner than Bend GPU. Gunrock also finishes BFS sooner on the two larger graphs, while Bend finishes sooner on the smallest. HotSpot comparison (GPU_COMPARISON.md), BFS results (BFS_RESULTS.md).
+Rodinia’s CUDA implementation finishes HotSpot sooner than Bend GPU. Gunrock also finishes BFS sooner on the two larger graphs, while Bend finishes sooner on the smallest. [HotSpot comparison](GPU_COMPARISON.md), [BFS results](BFS_RESULTS.md).
 
 ## Takeaways
 
