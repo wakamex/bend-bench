@@ -144,7 +144,7 @@ def load_config(path):
                "cuda", "gpu_heap", "gpu_arch", "uts_inputs", "uts_cutoffs", "uts_gpu", "blocked_services",
                "bend", "bots", "cccl", "rodinia", "gpu_depths", "hotspot_sizes", "hotspot_steps",
                "hotspot_pyramids", "tools", "vendor", "require_idle_gpu", "gpu_resident",
-               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu", "cudf"}
+               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu", "cudf", "implementations"}
     if unknown := config.keys() - allowed:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     if config.get("schema") != 1:
@@ -249,6 +249,10 @@ def load_config(path):
     if type(config["uts_gpu"]) is not bool or (config["uts_gpu"] and
             (not config["cuda"] or "uts" not in config["suites"])):
         raise ValueError("uts_gpu requires the UTS suite and CUDA")
+    impls = config.get("implementations", [])
+    if (not isinstance(impls, list) or any(not isinstance(x, str) or not x for x in impls)
+            or len(set(impls)) != len(impls) or ("implementations" in config and not impls)):
+        raise ValueError("implementations must list unique implementation names")
     config.setdefault("blocked_services", [])
     config.setdefault("label", "default")
     if "cub" in config["suites"]:

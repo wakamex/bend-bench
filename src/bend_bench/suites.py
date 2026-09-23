@@ -332,6 +332,17 @@ def plan(config, work):
                 case("uts", dataset, "openmp", n, work / "build/uts-omp-tasks", ["-f", data, "-c"], verified, contract=contract)
                 for cutoff in config["uts_cutoffs"]:
                     case("uts", dataset, f"openmp-cutoff-{cutoff}", n, optimized, [data, cutoff], nodes, contract=contract)
+    if keep := config.get("implementations"):
+        # Remeasure a subset: its cases, and only the builds they need.
+        cases = [c for c in cases if c["implementation"] in keep]
+        needed = {c["command"][3] for c in cases}
+        kept = []
+        for command in reversed(builds):
+            out = command[command.index("-o") + 1] if "-o" in command else command[0]
+            if out in needed:
+                kept.append(command)
+                needed.update(command)
+        builds = kept[::-1]
     outputs = set()
     for command in builds:
         if "-o" in command:
