@@ -16,19 +16,19 @@ Additional benchmarks are chosen to span a few interesting dimensions:
 
 ## Results
 
-On Bend’s 16 published workloads, moving from one to 16 CPU threads gives Bend a median 13.6× speedup, compared with OpenMP’s 14.2×. Bend takes 32% longer than OpenMP at 16 threads at the median. The gaps vary widely by workload. Bend slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on several others. Sorting accounts for the largest differences: OpenMP finishes about 19× faster, despite Bend showing better thread scaling. Individual results (PERFORMANCE.md). [CPU results](/code/bend-bench/PERFORMANCE.md).
+On Bend’s 16 published workloads, moving from one to 16 CPU threads gives Bend a median 13.6× speedup, compared with OpenMP’s 14.2×. Bend takes 32% longer than OpenMP at 16 threads at the median. The gaps vary widely by workload. Bend slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on several others. Sorting accounts for the largest differences: OpenMP finishes about 19× faster, despite Bend showing better thread scaling. Individual results (PERFORMANCE.md). [CPU results](PERFORMANCE.md).
 
 For sorting, we also compare against NVIDIA’s CUB library, which finishes 4.9× faster than Bend GPU. [GPU sorting results](runs/e930e5a1b9c488a9f8ba/report.md).
 
 All 16 published workloads now have conventional GPU comparisons. Among the eleven project-written CUDA additions, CUDA finishes sooner on eight, led by lexer at 6.2× and ray tracing at 5.0×. Bend finishes the complete program sooner on Mandelbrot, Merkle trees and three-body simulation. [GPU results](VENDOR_CUDA_COMPLETION.md), [full scorecard](benchmarks/summary/index.html).
 
-For summation, Bend is faster below about 1 billion items, due to faster startup. CUB performs the calculation itself about 280× faster. [Summation results](/code/bend-bench/runs/reduction-crossover-20260920/report.md).
+For summation, Bend is faster below about 1 billion items, due to faster startup. CUB performs the calculation itself about 280× faster. [Summation results](runs/reduction-crossover-20260920/report.md).
   
-Option pricing on an RTX 3090 is 68× faster than on 16 CPU threads of a 3950x. Our CUDA implementation is another 7.2× faster than Bend GPU. [Pricing results](/code/bend-bench/PRICING_SUSTAINED.md).
+Option pricing on an RTX 3090 is 68× faster than on 16 CPU threads of a 3950x. Our CUDA implementation is another 7.2× faster than Bend GPU. [Pricing results](PRICING_SUSTAINED.md).
 
-For alpha-beta game search, Bend GPU is 1.9× faster than Bend on 16 CPU threads and 2.0× faster than our fastest CUDA implementation. OpenMP on 16 CPU threads is 1.3× faster than Bend GPU. [game-search results](/code/bend-bench/MNK_HOST_ARRAY.md).
+For alpha-beta game search, Bend GPU is 1.9× faster than Bend on 16 CPU threads and 2.0× faster than our fastest CUDA implementation. OpenMP on 16 CPU threads is 1.3× faster than Bend GPU. [game-search results](MNK_HOST_ARRAY.md).
 
-Irregular work is harder. Bend gains no CPU speedup on either UTS input. [UTS results](/code/bend-bench/PERFORMANCE.md#uts-irregular-search).
+Irregular work is harder. Bend gains no CPU speedup on either UTS input. [UTS results](PERFORMANCE.md#uts-irregular-search).
 
 On GPU, the unchanged Bend UTS port reaches the runtime's stack limit on both inputs. Our CUDA implementation completes the larger tree 6.5× faster than BOTS OpenMP on 16 CPU threads. [UTS GPU results](UTS_GPU.md).
 

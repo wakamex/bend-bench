@@ -1,0 +1,296 @@
+[
+  {
+    "case": {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/pricing-sustained-20260918-165158/262144/build/pricing-omp",
+        "262144",
+        "256"
+      ],
+      "contract": {
+        "abs_tolerance": 0.002,
+        "arithmetic": "FP32 paths; FP64 OpenMP sum, FP32 Bend/CUB reduction",
+        "maturity": 1,
+        "output": "price, nominal standard error, path count",
+        "paths": 262144,
+        "payoff_audit": false,
+        "rate": 0.05,
+        "rel_tolerance": 0.0001,
+        "resident_batches": 32,
+        "rng": "hashed path index + Park-Miller + Box-Muller; local control",
+        "seed_offset": "batch_index * paths",
+        "spot": 100,
+        "standard_error_abs_tolerance": 2e-06,
+        "standard_error_rel_tolerance": 0.001,
+        "steps": 256,
+        "strike": 100,
+        "timing": "simulation through all three host quote scalars",
+        "vector_kind": "f32-bits",
+        "volatility": 0.2,
+        "workload": "arithmetic-asian-call"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "",
+      "id": "pricing/pricing-18-256/local-openmp/1",
+      "implementation": "local-openmp",
+      "suite": "pricing",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "pricing-18-256"
+    },
+    "repetition": 0
+  },
+  {
+    "case": {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/pricing-sustained-20260918-165158/262144/build/pricing-omp",
+        "262144",
+        "256"
+      ],
+      "contract": {
+        "abs_tolerance": 0.002,
+        "arithmetic": "FP32 paths; FP64 OpenMP sum, FP32 Bend/CUB reduction",
+        "maturity": 1,
+        "output": "price, nominal standard error, path count",
+        "paths": 262144,
+        "payoff_audit": false,
+        "rate": 0.05,
+        "rel_tolerance": 0.0001,
+        "resident_batches": 32,
+        "rng": "hashed path index + Park-Miller + Box-Muller; local control",
+        "seed_offset": "batch_index * paths",
+        "spot": 100,
+        "standard_error_abs_tolerance": 2e-06,
+        "standard_error_rel_tolerance": 0.001,
+        "steps": 256,
+        "strike": 100,
+        "timing": "simulation through all three host quote scalars",
+        "vector_kind": "f32-bits",
+        "volatility": 0.2,
+        "workload": "arithmetic-asian-call"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "",
+      "id": "pricing/pricing-18-256/local-openmp/1",
+      "implementation": "local-openmp",
+      "suite": "pricing",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "pricing-18-256"
+    },
+    "repetition": 1
+  },
+  {
+    "case": {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/pricing-sustained-20260918-165158/262144/build/pricing-18-256",
+        "--gpu",
+        "off",
+        "--threads",
+        "1"
+      ],
+      "contract": {
+        "abs_tolerance": 0.002,
+        "arithmetic": "FP32 paths; FP64 OpenMP sum, FP32 Bend/CUB reduction",
+        "maturity": 1,
+        "output": "price, nominal standard error, path count",
+        "paths": 262144,
+        "payoff_audit": false,
+        "rate": 0.05,
+        "rel_tolerance": 0.0001,
+        "resident_batches": 32,
+        "rng": "hashed path index + Park-Miller + Box-Muller; local control",
+        "seed_offset": "batch_index * paths",
+        "spot": 100,
+        "standard_error_abs_tolerance": 2e-06,
+        "standard_error_rel_tolerance": 0.001,
+        "steps": 256,
+        "strike": 100,
+        "timing": "simulation through all three host quote scalars",
+        "vector_kind": "f32-bits",
+        "volatility": 0.2,
+        "workload": "arithmetic-asian-call"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "",
+      "id": "pricing/pricing-18-256/bend/1",
+      "implementation": "bend",
+      "suite": "pricing",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "pricing-18-256"
+    },
+    "repetition": 2
+  },
+  {
+    "case": {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/pricing-sustained-20260918-165158/262144/build/pricing-18-256",
+        "--gpu",
+        "off",
+        "--threads",
+        "1"
+      ],
+      "contract": {
+        "abs_tolerance": 0.002,
+        "arithmetic": "FP32 paths; FP64 OpenMP sum, FP32 Bend/CUB reduction",
+        "maturity": 1,
+        "output": "price, nominal standard error, path count",
+        "paths": 262144,
+        "payoff_audit": false,
+        "rate": 0.05,
+        "rel_tolerance": 0.0001,
+        "resident_batches": 32,
+        "rng": "hashed path index + Park-Miller + Box-Muller; local control",
+        "seed_offset": "batch_index * paths",
+        "spot": 100,
+        "standard_error_abs_tolerance": 2e-06,
+        "standard_error_rel_tolerance": 0.001,
+        "steps": 256,
+        "strike": 100,
+        "timing": "simulation through all three host quote scalars",
+        "vector_kind": "f32-bits",
+        "volatility": 0.2,
+        "workload": "arithmetic-asian-call"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "",
+      "id": "pricing/pricing-18-256/bend/1",
+      "implementation": "bend",
+      "suite": "pricing",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "pricing-18-256"
+    },
+    "repetition": 0
+  },
+  {
+    "case": {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/pricing-sustained-20260918-165158/262144/build/pricing-18-256",
+        "--gpu",
+        "off",
+        "--threads",
+        "1"
+      ],
+      "contract": {
+        "abs_tolerance": 0.002,
+        "arithmetic": "FP32 paths; FP64 OpenMP sum, FP32 Bend/CUB reduction",
+        "maturity": 1,
+        "output": "price, nominal standard error, path count",
+        "paths": 262144,
+        "payoff_audit": false,
+        "rate": 0.05,
+        "rel_tolerance": 0.0001,
+        "resident_batches": 32,
+        "rng": "hashed path index + Park-Miller + Box-Muller; local control",
+        "seed_offset": "batch_index * paths",
+        "spot": 100,
+        "standard_error_abs_tolerance": 2e-06,
+        "standard_error_rel_tolerance": 0.001,
+        "steps": 256,
+        "strike": 100,
+        "timing": "simulation through all three host quote scalars",
+        "vector_kind": "f32-bits",
+        "volatility": 0.2,
+        "workload": "arithmetic-asian-call"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "",
+      "id": "pricing/pricing-18-256/bend/1",
+      "implementation": "bend",
+      "suite": "pricing",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "pricing-18-256"
+    },
+    "repetition": 1
+  },
+  {
+    "case": {
+      "command": [
+        "taskset",
+        "-c",
+        "0",
+        "/code/bend-bench/runs/pricing-sustained-20260918-165158/262144/build/pricing-omp",
+        "262144",
+        "256"
+      ],
+      "contract": {
+        "abs_tolerance": 0.002,
+        "arithmetic": "FP32 paths; FP64 OpenMP sum, FP32 Bend/CUB reduction",
+        "maturity": 1,
+        "output": "price, nominal standard error, path count",
+        "paths": 262144,
+        "payoff_audit": false,
+        "rate": 0.05,
+        "rel_tolerance": 0.0001,
+        "resident_batches": 32,
+        "rng": "hashed path index + Park-Miller + Box-Muller; local control",
+        "seed_offset": "batch_index * paths",
+        "spot": 100,
+        "standard_error_abs_tolerance": 2e-06,
+        "standard_error_rel_tolerance": 0.001,
+        "steps": 256,
+        "strike": 100,
+        "timing": "simulation through all three host quote scalars",
+        "vector_kind": "f32-bits",
+        "volatility": 0.2,
+        "workload": "arithmetic-asian-call"
+      },
+      "env": {
+        "OMP_NUM_THREADS": "1",
+        "OMP_PLACES": "threads",
+        "OMP_PROC_BIND": "true",
+        "OMP_STACKSIZE": "64M"
+      },
+      "expected_regex": "",
+      "id": "pricing/pricing-18-256/local-openmp/1",
+      "implementation": "local-openmp",
+      "suite": "pricing",
+      "threads": 1,
+      "unsupported": null,
+      "workload": "pricing-18-256"
+    },
+    "repetition": 2
+  }
+]
