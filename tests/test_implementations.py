@@ -1,4 +1,4 @@
-"""An implementations list remeasures a subset without building the rest."""
+"""An implementations list remeasures a subset of cases with the full build."""
 from pathlib import Path
 import tempfile
 import unittest
@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Implementations(unittest.TestCase):
-    def test_subset_keeps_its_cases_and_their_builds(self):
-        text = (ROOT / 'uts-gpu.toml').read_text()
-        full = load_config(ROOT / 'uts-gpu.toml')
+    def test_subset_keeps_its_cases_and_every_build(self):
+        text = (ROOT / 'gpu-hotspot.toml').read_text()
+        full = load_config(ROOT / 'gpu-hotspot.toml')
         # Beside the real configs, so their relative paths resolve alike.
         with tempfile.NamedTemporaryFile('w', suffix='.toml', dir=ROOT) as f, \
                 tempfile.TemporaryDirectory() as tmp:
@@ -26,11 +26,7 @@ class Implementations(unittest.TestCase):
         self.assertTrue(cases)
         self.assertEqual({c['implementation'] for c in cases}, {'bend', 'bend-cuda'})
         self.assertEqual([c for c in all_cases if c['implementation'] in {'bend', 'bend-cuda'}], cases)
-        self.assertLess(len(builds), len(all_builds))
-        self.assertTrue(all(b in all_builds for b in builds))
-        made = {b[b.index('-o') + 1] for b in builds if '-o' in b} | {b[0] for b in builds}
-        self.assertTrue({c['command'][3] for c in cases} <= made)
-        self.assertFalse(any('uts-sha.o' in ' '.join(b) for b in builds))
+        self.assertEqual(builds, all_builds)
 
     def test_default_plans_everything(self):
         config = load_config(ROOT / 'experiment.toml')
