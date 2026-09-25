@@ -140,36 +140,6 @@ def share_chart(data, path):
     plt.close(fig)
 
 
-def anatomy_chart(data, path, names=('mandelbrot', 'kmeans')):
-    titles = {n: t for n, t, _ in WORKLOADS}
-    knobs = {n: k for n, _, k in WORKLOADS}
-    fig, axes = plt.subplots(1, len(names), figsize=(12, 4.8), facecolor=SURFACE)
-    series = (('bend_seconds', 'Bend GPU, whole process', BLUE, '-'),
-              ('cuda_seconds', 'CUDA, whole process', ORANGE, '-'),
-              ('cuda_device_seconds', 'CUDA, GPU work only', ORANGE, '--'))
-    for ax, name in zip(axes, names):
-        style(ax)
-        ps = data.get(name, [])
-        xs = [work(name, p) for p in ps]
-        for key, label, color, dash in series:
-            ys = [p[key] for p in ps]
-            ax.plot(xs, ys, color=color, linewidth=2, linestyle=dash, marker='o', markersize=4, label=label, zorder=3,
-                    markerfacecolor=SURFACE if dash == '--' else color)
-        ax.set_xscale('log', base=2)
-        ax.set_yscale('log')
-        ax.xaxis.set_major_formatter(FuncFormatter(times))
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f'{v:g} s'))
-        ax.set_title(titles[name], fontsize=11, color=INK, loc='left')
-        ax.set_xlabel(f'work ({knobs[name]}), × scorecard size', fontsize=8, color=INK2)
-    for ax in axes:
-        ax.legend(frameon=False, fontsize=8, labelcolor=INK, loc='upper left')
-    fig.suptitle("CUDA's process time stays near its startup floor until its GPU work outgrows it",
-                 fontsize=13, color=INK, x=0.01, ha='left')
-    fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig(path, dpi=160, facecolor=SURFACE)
-    plt.close(fig)
-
-
 def times_chart(data, path):
     """All workloads: Bend and conventional process time with the conventional GPU work, on one scale."""
     fig, axes = panels()
@@ -210,7 +180,6 @@ def main():
     fits = {r['name']: r['K'] for r in rows if r}
     ratio_chart(data, fits, OUT / 'ratio.png')
     share_chart(data, OUT / 'device-share.png')
-    anatomy_chart(data, OUT / 'startup-floor.png')
     times_chart(data, OUT / 'times.png')
     missing = [n for n, _, _ in WORKLOADS if n not in data]
     print('wrote', OUT, 'missing:', missing)
