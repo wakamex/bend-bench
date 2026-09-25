@@ -31,14 +31,17 @@ WORKLOADS = [
     ('lexer', 'Lexer', None), ('mandelbrot', 'Mandelbrot', None), ('merkle-blocks', 'Merkle tree', None),
     ('nbody', 'Three-body', None),
     ('raytrace', 'Ray tracing', lambda k: k * k), ('symreg', 'Symbolic regression', None),
-    ('terrain', 'Terrain', None), ('hotspot', 'Rodinia HotSpot', None),
+    ('terrain', 'Terrain', None), ('hotspot', 'Rodinia HotSpot', None), ('pricing', 'Option pricing', None),
+    ('game-search', 'Game search', None),
 ]
 # The library's work time is unmeasurable at every size Bend's heap allows: report the measured ratio only.
 LOWER_BOUND = [('tree-bitonic', 'Bitonic sort (CUB)'), ('tree-matmul', 'Tree matmul (cuBLAS)'), ('tree-radix', 'Radix sort (CUB)')]
 # Unsettled at the largest valid size: the reported work-only ratio, in place of the last fit.
 # Edit distance: the fit moved from 4.36 to 4.16 with 128x the pairs, whose paired ratios span 3.63 to
 # 4.27; the last doubling's added times give 4.33, and 256x overflows cuDF's 32-bit string offsets.
-REPORTED = {'editdist': 4.3}
+# Game search: Bend's added time per doubling is uneven (1.57x the time, then 1.92x at 32x), so the curve's
+# slope (1.55) runs below the last doubling (1.95), a line through 4x-32x (1.81) and the measured 1.8-2.0.
+REPORTED = {'editdist': 4.3, 'game-search': 1.8}
 # Sweeps along a second knob, listed with every size but not fitted on their own.
 EXTRA = [('queens', 'N-Queens, prefixes searched at 17 queens'), ('queens-board', 'N-Queens, board size'),
          ('merkle', 'Merkle tree, by tree depth'), ('lexer-length', 'Lexer, by line length')]

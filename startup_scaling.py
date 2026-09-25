@@ -168,6 +168,78 @@ RAYTRACE64 = [('for(uint32_t i=blockIdx.x*blockDim.x+threadIdx.x;i<w*h;i+=gridDi
               ('Pixel mismatch %u: %u != %u\\n",i,', 'Pixel mismatch %llu: %u != %u\\n",(unsigned long long)i,'),
               ('FULL_OUTPUT_VERIFIED=%u\\n",n);', 'FULL_OUTPUT_VERIFIED=%llu\\n",(unsigned long long)n);')]
 
+# Option pricing and game search, as whole programs: the scorecard's quote-only and batch programs
+# (pricing_sustained, mnk_sustained), built to answer one request or batch per process.
+APPLICATIONS = Path(__file__).resolve().parent / 'applications.toml'
+
+
+def pricing_prepare(folder, k):
+    """Bend GPU and CUDA + CUB pricing of 262,144k paths, one quote each; the OpenMP quote is the reference."""
+    from pricing_sustained import prepare
+    config = load_config(APPLICATIONS)
+    config.update(suites=['pricing'], threads=[16], pricing_steps=[256])
+    cases = {c['implementation']: c for c in prepare(config, folder / 'work', 17 + k.bit_length(), 256, 1)}
+    return {impl: (cases[case]['command'], cases[case].get('env', {}))
+            for impl, case in (('bend', 'bend-cuda'), ('cuda', 'local-cuda'), ('reference', 'local-openmp'))}
+
+
+def pricing_check(result, k):
+    from pricing_sustained import parse
+    quotes, _, times = parse(result, 262144 * k, 1)
+    return quotes[0], times[0]
+
+
+def pricing_agree(a, b):
+    from pricing_sustained import compare_quotes
+    try:
+        compare_quotes([a], [b])
+    except ValueError:
+        return False
+    return True
+
+
+def game_prepare(folder, k):
+    """Bend GPU and the tight-bound one-thread-per-position CUDA control on one batch of 524,288k positions
+    from the 1,024-position corpus; answers are checked against the corpus oracle."""
+    from bend_bench.suites import plan, stage
+    from mnk_sustained import bend_resident, bulk_variants, control_variants, cpp_resident
+    config = load_config(APPLICATIONS)
+    config.update(suites=['mnk'], mnk_games=[[5, 5, 4, 8]], threads=[16])
+    work, count = folder / 'work', 524288 * k
+    work.mkdir()
+    (work / 'build').mkdir()
+    stage(config, work, mnk_count=1024)
+    source = work / 'ports/mnk-5-5-4-8.bend'
+    source.write_text(bend_resident(source.read_text(), 18 + k.bit_length(), 1, 1024))
+    cpp = work / 'gpu/mnk.cpp'
+    cpp.write_text(cpp_resident(cpp.read_text(), count, 1, 1024))
+    builds, cases = plan(config, work)
+    control_variants(builds, cases)
+    bulk_variants(builds, cases)
+    for command in builds:
+        result = execute(command, timeout=900)
+        append(folder / 'build.jsonl', logged(result))
+        if result['returncode']:
+            raise RuntimeError(f'game search x{k}: build failed: {command[0]}\n{result["stderr"][-2000:]}')
+    (folder / 'expected.json').write_text(source.with_suffix('.json').read_text())
+    cases = {c['implementation']: c for c in cases}
+    return {impl: (cases[case]['command'], {}) for impl, case in (('bend', 'bend-cuda'), ('cuda', 'local-alpha-beta-position-tight-bulk-cuda'))}
+
+
+def game_check(result, k, folder):
+    """Every answer against the oracle (batch 0 starts at corpus offset 11); the search interval from stderr."""
+    expected = json.loads((folder / 'expected.json').read_text())
+    lines = result['stdout'].split('\n')
+    if lines[0] != 'READY' or lines[-2:] != ['END', ''] or len(lines) != 524288 * k + 3:
+        raise ValueError('incomplete game-search batch')
+    for i, line in enumerate(lines[1:-2]):
+        if line != str(expected[(i + 11) % len(expected)]):
+            raise ValueError(f'game-search answer {i} differs from the oracle')
+    phase = next(line.split() for line in result['stderr'].splitlines() if line.startswith(('PHASE_NS ', 'PHASE_MS ')))
+    scale = 1e9 if phase[0] == 'PHASE_NS' else 1e3
+    return hashlib.sha256(result['stdout'].encode()).hexdigest(), (int(phase[2]) - int(phase[1])) / scale
+
+
 # Each entry: bend(k) and patch(k) are exact text replacements in main.bend and the conventional source
 # (defaults and argument caps: timed runs cannot pass sizes); args(k) and verify(k) are its arguments.
 # Optional: source (the bench/runtime program), serial (replacements in its main.c), builder, max (largest valid multiplier), share (device
@@ -303,6 +375,12 @@ WORKLOADS = {
     'hotspot': dict(knob='timesteps on the 1,024 x 1,024 grid', base=100, grow=lambda k: 100 * k, cuda='gpu/hotspot-driver.cpp',
         builder=hotspot_builder, patch=lambda k: [('steps<1 || steps>1000', f'steps<1 || steps>{max(1000, 100 * k)}')],
         args=lambda k: [1024, 100 * k, 1, *HOTSPOT_INPUTS], verify=None, expected_bits=True, max=256),
+    # Whole programs: one quote of 262,144k paths (2^30 is the path cap), one batch of 524,288k positions.
+    # The conventional GPU work is each program's own timed compute region (quote ready, search done).
+    'pricing': dict(knob='paths per request (2^depth)', base=18, grow=lambda k: 17 + k.bit_length(), prepare=pricing_prepare,
+        check=pricing_check, agree=pricing_agree, cuda='gpu/pricing.cpp', max=4096),
+    'game-search': dict(knob='positions per batch (2^depth)', base=19, grow=lambda k: 18 + k.bit_length(), prepare=game_prepare,
+        check=game_check, folder=True, oracle=True, cuda='gpu/mnk.cpp', max=64),
     # cuDF's serial host input generation grows with the pairs, so its device share levels off near 40%:
     # the ratio settles without the share threshold. int32 string offsets overflow at 2^23 pairs.
     'editdist': dict(knob='string pairs (2^depth)', base=15, grow=lambda k: depth(15, k), cuda='gpu/vendor-editdist.cpp', builder=cudf_builder,
@@ -396,11 +474,11 @@ def build(work, bend, name, k, spec):
                         cuda=[str(folder / 'cuda'), *spec['args'](k)])
 
 
-def timed(command, config, log, **tags):
+def timed(command, config, log, env=None, **tags):
     while not gpu_clear():
         print('WAITING unapproved GPU process', flush=True)
         time.sleep(60)
-    result = execute(['taskset', '-c', ','.join(map(str, range(32))), *command], env=environment(),
+    result = execute(['taskset', '-c', ','.join(map(str, range(32))), *command], env={**environment(), **(env or {})},
                      timeout=1800, measured=True, gpu_policy=config)
     append(log, dict(tags, **logged(result)))
     if result['returncode'] or result['timeout'] or result.get('contention_error'):
@@ -440,9 +518,23 @@ def sweep(out, bend, name, spec, config, args, rng, results):
     verify = spec.get('verify', lambda k: ['verify'])
     limit = min(args.max_multiplier, spec.get('max', args.max_multiplier))
     while k <= limit:
-        folder, commands = build(out, bend, name, k, spec)
+        if 'prepare' in spec:
+            folder = out / name / str(k)
+            folder.mkdir(parents=True)
+            commands = spec['prepare'](folder, k)
+            envs = {impl: env for impl, (_, env) in commands.items()}
+            commands = {impl: command for impl, (command, _) in commands.items()}
+        else:
+            folder, commands = build(out, bend, name, k, spec)
+            envs = {}
         log = folder / 'samples.jsonl'
         reference = None
+        if 'prepare' in spec:
+            whole_program(name, k, spec, folder, commands, envs, config, log, args, rng, points, results, out)
+            if settled(points, spec.get('share', 0.5), spec.get('work', lambda k: k)):
+                return
+            k *= 2
+            continue
         if verify and k <= spec.get('verify_until', args.verify_until) and verify_seconds * 2 <= args.verify_budget:
             check = timed([commands['cuda'][0], *verify(k)], config, log, phase='verify', implementation='cuda')
             if 'FULL_OUTPUT_VERIFIED' not in check['stderr']:
@@ -487,6 +579,45 @@ def sweep(out, bend, name, spec, config, args, rng, results):
         if settled(points, spec.get('share', 0.5), spec.get('work', lambda k: k)):
             return
         k *= 2
+
+
+def whole_program(name, k, spec, folder, commands, envs, config, log, args, rng, points, results, out):
+    """One size of a whole-program workload: outputs compared with spec['agree'], GPU work from spec['check']."""
+    check = lambda result: spec['check'](result, k, folder) if spec.get('folder') else spec['check'](result, k)
+    run = lambda impl, **tags: timed(commands[impl], config, log, env=envs.get(impl), implementation=impl, **tags)
+    reference = None
+    if 'reference' in commands and k <= spec.get('verify_until', args.verify_until):
+        reference = check(run('reference', phase='verify'))[0]
+    outputs = {impl: check(run(impl, phase='check'))[0] for impl in ('cuda', 'bend')}
+    agree = spec.get('agree', lambda a, b: a == b)
+    if not agree(outputs['bend'], outputs['cuda']) or (reference is not None and not agree(outputs['cuda'], reference)):
+        raise RuntimeError(f'{name} x{k}: outputs disagree: {outputs} reference={reference}')
+    times, device, host = {'bend': [], 'cuda': []}, [], []
+    for phase, rounds in (('warmup', 1), ('measure', args.rounds)):
+        for rep in range(rounds):
+            order = ['bend', 'cuda']
+            rng.shuffle(order)
+            for impl in order:
+                r = run(impl, phase=phase, rep=rep)
+                output, work = check(r)
+                if not agree(output, outputs[impl]):
+                    raise RuntimeError(f'{name} x{k}: output changed between runs')
+                if phase == 'measure':
+                    times[impl].append(r['end_to_end_seconds'])
+                    if impl == 'cuda':
+                        device.append(work)
+                        host.append(r['end_to_end_seconds'] - work)
+    point = dict(multiplier=k, knob=spec['knob'], value=spec['grow'](k), checksum=outputs['cuda'],
+                 serial_verified=reference is not None or spec.get('oracle', False),
+                 bend_seconds=statistics.median(times['bend']), cuda_seconds=statistics.median(times['cuda']),
+                 cuda_device_seconds=statistics.median(device), cuda_host_floor=min(host),
+                 ratios=[b / c for b, c in zip(times['bend'], times['cuda'])])
+    point['bend_over_cuda'] = point['bend_seconds'] / point['cuda_seconds']
+    point['cuda_device_share'] = point['cuda_device_seconds'] / point['cuda_seconds']
+    points.append(point)
+    results[name] = points
+    write_json(out / 'summary.json', results)
+    print('POINT', name, json.dumps(point), flush=True)
 
 
 def main():
