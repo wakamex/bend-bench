@@ -421,10 +421,12 @@ def main():
     parser.add_argument('--literal-win-variants', action='store_true', help='Add literal-mask win checks to bulk-output controls')
     parser.add_argument('--scheduling-output-variants', action='store_true', help='Compare OpenMP chunks 1/16/64/256 and chunked Bend output')
     parser.add_argument('--host-array', action='store_true', help='Time complete host-array materialization and validate binary results outside that interval')
+    parser.add_argument('--config', default=str(ROOT / 'applications-mnk.toml'), help='Harness configuration pinning the Bend checkout and tools')
+    parser.add_argument('--bend-only', action='store_true', help='Measure only the Bend implementations, for a new Bend revision')
     args = parser.parse_args()
     if min(1 << d for d in args.depths) < max(args.corpus_sizes):
         parser.error('Every batch must cover the complete corpus')
-    config = load_config(ROOT / 'applications-mnk.toml')
+    config = load_config(args.config)
     config.update(mnk_games=[[5, 5, 4, 8]], threads=[1, 16])
     config['blocked_services'].append('bend-bench-applications.service')
     out = ROOT / 'runs' / time.strftime('mnk-sustained-%Y%m%d-%H%M%S')
@@ -514,6 +516,8 @@ def main():
                 if args.multicore_only and case['implementation'].startswith('bend') and not case['implementation'].endswith('cuda') and case['threads'] == 1:
                     continue
                 if args.gpu_only and not case['implementation'].endswith('cuda'):
+                    continue
+                if args.bend_only and not case['implementation'].startswith('bend'):
                     continue
                 if case['implementation'] != 'bend' and case['threads'] == 1 and not case['implementation'].endswith('cuda'):
                     continue

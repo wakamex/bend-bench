@@ -138,10 +138,12 @@ def build(config, folder, count, cpu=False):
     return cases
 
 
-def measure(config, out, count, cpu=False):
+def measure(config, out, count, cpu=False, keep=None):
     folder = out / str(count)
     folder.mkdir()
     cases = build(config, folder, count, cpu=cpu)
+    if keep:
+        cases = [c for c in cases if c['implementation'] in keep]
     samples = {c['implementation']: [] for c in cases}
     rng = random.Random(count)
     for phase, repetitions in [('check', 1), ('warmup', 2), ('measure', 10)]:
@@ -160,7 +162,9 @@ def measure(config, out, count, cpu=False):
                 if cpu:
                     print(phase, count, case['implementation'], rep, result['end_to_end_seconds'], flush=True)
     medians = {k: statistics.median(v) for k, v in samples.items()}
-    result = dict(count=count, medians=medians, cub_wins=medians['cub-cuda'] < medians['bend-cuda'])
+    result = dict(count=count, medians=medians)
+    if {'cub-cuda', 'bend-cuda'} <= medians.keys():
+        result['cub_wins'] = medians['cub-cuda'] < medians['bend-cuda']
     write_json(folder / 'summary.json', result)
     append(out / 'summary.jsonl', result)
     print('RESULT', json.dumps(result), flush=True)

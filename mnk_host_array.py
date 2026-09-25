@@ -4,12 +4,16 @@ from pathlib import Path
 
 
 def instrument(source, count):
-    marker = '  WL_CASE(FID_EMIT)\n  {\n    Term a_0 = r0;'
-    if source.count(marker) != 1:
+    # Bend 2.0.26 prefixes generated locals with an underscore (a_0 became _a_0).
+    for name in ('a_0', '_a_0'):
+        marker = f'  WL_CASE(FID_EMIT)\n  {{\n    Term {name} = r0;'
+        if source.count(marker) == 1:
+            break
+    else:
         raise ValueError('Generated emit layout changed')
     at = source.index('#define CID_ANSWER ')
     source = source[:at] + '#if !DEVICE\nstatic Term host_answer;\nstatic bool host_pending;\n#endif\n' + source[at:]
-    source = source.replace(marker, marker + '\n    host_answer = a_0; host_pending = true;')
+    source = source.replace(marker, marker + f'\n    host_answer = {name}; host_pending = true;')
     old = '''Term io_now_run(Env e, Term* f, IoWork* w) {
   return (Term)(io_tick() / 1000000);
 }'''
