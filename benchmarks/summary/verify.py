@@ -62,17 +62,17 @@ for row in data['rows']:
                 values.append(statistics.mean(result['pricing_seconds'][2:]))
             assert abs(row['ms'][column] - statistics.median(values) * 1000) < 1e-9
     elif row['group'] == 'Repeated game-search batches':
-        final = 'final cuda' in row['detail']
-        run = '161850' if final else '160439'
-        records = table(f'runs/mnk-sustained-20260918-{run}/report.md')
-        implementations = [None, None if final else 'bend', 'bend-cuda', None,
-                           'local-alpha-beta-openmp-tight-bulk',
-                           'local-alpha-beta-tight-bulk-literal-cuda' if final else 'local-alpha-beta-tight-bulk-cuda']
-        for column, impl in enumerate(implementations):
-            if impl is None:
+        # CPU and Bend GPU cells from the matched 18 September run; the CUDA cell from the 25 September
+        # rerun with the fixed-depth GPU search, where Bend GPU re-measured at 302.8 ms.
+        matched, fixed = 'runs/mnk-sustained-20260918-160439/report.md', 'runs/mnk-sustained-20260925-173106/report.md'
+        sources = [None, (matched, 'bend'), (matched, 'bend-cuda'), None,
+                   (matched, 'local-alpha-beta-openmp-tight-bulk'), (fixed, 'local-alpha-beta-position-tight-bulk-cuda')]
+        for column, source in enumerate(sources):
+            if source is None:
                 assert row['ms'][column] is None
                 continue
-            values = [float(r[8]) for r in records if re.sub(r'-\d+-run\d+$', '', r[3]) == impl]
+            report, impl = source
+            values = [float(r[8]) for r in table(report) if re.sub(r'-\d+-run\d+$', '', r[3]) == impl]
             assert len(values) == 3
             assert row['ms'][column] == statistics.median(values)
 
@@ -95,7 +95,7 @@ if summation:
             assert sorted(r['rep'] for r in measured) == list(range(10))
             assert ms == statistics.median(r['end_to_end_seconds'] for r in measured) * 1000
 games = [row for row in data['rows'] if row['group'] == 'Repeated game-search batches']
-assert len(games) == 1 and 'matched cpu / gpu' in games[0]['detail']
+assert len(games) == 1
 sorting = [row for row in data['rows'] if row['name'] == 'Tree bitonic sort']
 assert len(sorting) == 1 and sorting[0]['cases'][5] == 'cub/sort-23/cub-cuda/1'
 assert sorting[0]['case_sources'][sorting[0]['cases'][5]] == 'runs/e930e5a1b9c488a9f8ba/summary.json'

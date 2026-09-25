@@ -1,11 +1,12 @@
 # Endgame search through host-array completion
 
-OpenMP on 16 CPU threads produces 35% more game-search answers per second than Bend GPU. Bend GPU produces about twice as many as the strongest project-written CUDA control tested here. All implementations solve the same positions and finish with every answer in a flat CPU-memory array; formatting and validation happen after timing ends. The final comparison passed every array value in all 12 process runs.
+Our fastest CUDA control produces 3.7× as many game-search answers per second as Bend GPU, and OpenMP on 16 CPU threads 35% more. The CUDA controls in the tables below ran 5-7× slower than they should have: their recursive search kept each GPU thread's stack in local memory. With the depth fixed at compile time ([6e9d3d3](src/bend_bench/assets/gpu/mnk.cpp)), the one-thread-per-position control completes a batch in 80.9 ms and the root-parallel control in 108.7 ms, while Bend GPU re-measured at 302.8 ms in the same run ([report](runs/mnk-sustained-20260925-173106/report.md)). The tables below keep the original measurements. All implementations solve the same positions and finish with every answer in a flat CPU-memory array; formatting and validation happen after timing ends. The final comparison passed every array value in all 12 process runs.
 
 | Implementation | Median host-array completion per 524,288-position batch | Host-ready positions/second |
 |---|---:|---:|
 | Tight-bound OpenMP, 16 threads, mask-loop win check | 225.81 ms | 2,321,796 |
 | Bend GPU | 304.15 ms | 1,723,779 |
+| Project-written tight-bound CUDA, one thread per position, fixed-depth search (25 September) | 80.89 ms | 6,481,654 |
 | Project-written tight-bound root-parallel CUDA, literal win checks | 601.12 ms | 872,183 |
 | Project-written tight-bound root-parallel CUDA, mask-loop control | 636.07 ms | 824,257 |
 

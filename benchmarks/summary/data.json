@@ -584,15 +584,15 @@
     {
       "group": "Repeated game-search batches",
       "name": "5 × 5 connect-4 · alpha-beta",
-      "detail": "524,288 positions · matched cpu / gpu comparison",
-      "baseline": "Project OpenMP / project CUDA · mask-loop win checks",
+      "detail": "524,288 positions · 1,024-position corpus",
+      "baseline": "Project OpenMP / project CUDA, one thread per position · mask-loop win checks",
       "ms": [
         null,
         559.014,
         300.683,
         null,
         221.066,
-        636.049
+        80.888
       ],
       "link": "../../MNK_HOST_ARRAY.md",
       "metric": "batch to CPU result array"
@@ -629,6 +629,7 @@
     "runs/pricing-sustained-20260918-165158/262144/local-cuda-2/result.json": "783240f87f8b885660542e190c6ace26d05cee6be05b4ccb62d4e8cb7fc60d30",
     "runs/pricing-single-cpu-20260922-111154/completed.json": "62a2ec7ea23aed9b55d5588aa911617482704992eeb912b0d6c9a87ea7f781a1",
     "runs/pricing-single-cpu-20260922-111154/schedule.json": "b82de775948622739101f8dbd7dd027378cfa3639c717082d2a2ceba3a5aab2c",
-    "runs/pricing-single-cpu-20260922-111154/provenance.json": "4c656736fb29ce18b92f588f866dda98e27fd20c1d60146921d0cb7825b9c66d"
+    "runs/pricing-single-cpu-20260922-111154/provenance.json": "4c656736fb29ce18b92f588f866dda98e27fd20c1d60146921d0cb7825b9c66d",
+    "runs/mnk-sustained-20260925-173106/report.md": "701eb6ce2f2317507e7638d4e576e7a28be62740499ba17de6cc9ea64bb7b9e3"
   }
 }
