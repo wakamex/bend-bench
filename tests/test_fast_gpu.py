@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 from bend_bench.core import correct, load_config
-from bend_bench.fast import ASSETS
+from bend_bench.fast import ASSETS, GPU_SIZES
 from bend_bench.suites import plan, stage
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -91,8 +91,16 @@ class FastGPU(unittest.TestCase):
         if not archived.exists():
             self.skipTest('Original fast GPU plan unavailable')
         _, cases = plan(self.config, ROOT/'runs/fast-plan-only')
-        before = {c['id']: c['contract'] for c in json.loads(archived.read_text())['cases']}
-        self.assertEqual(before, {c['id']: c['contract'] for c in cases})
+        # fast-gpu-v2 grows the startup-bound workloads (fast_gpu_sizes.json); the rest keep their v1 contracts.
+        sizes = json.loads(GPU_SIZES.read_text())
+        drop = lambda contract: {k: v for k, v in contract.items() if k not in ('fixture_hashes', 'profile', 'timing')}
+        before = {c['id']: c for c in json.loads(archived.read_text())['cases']}
+        for case in cases:
+            old = before[case['id']]
+            if case['workload'] in sizes:
+                self.assertEqual(drop(case['contract']), sizes[case['workload']]['contract'])
+            else:
+                self.assertEqual(drop(old['contract']), drop(case['contract']))
 
     def test_sharing_mode_is_saved_and_changes_compatibility(self):
         from bend_bench.regression import snapshot, render
@@ -116,11 +124,13 @@ class FastGPU(unittest.TestCase):
             self.assertEqual(len(cases), 22)
             self.assertEqual(len(builds), 66)
             self.assertTrue(all(c['implementation'] == 'bend-cuda' for c in cases))
-            self.assertTrue(all(c['contract']['profile'] == 'fast-gpu-v1' for c in cases))
+            self.assertTrue(all(c['contract']['profile'] == 'fast-gpu-v2' for c in cases))
             self.assertTrue(all(c['threads'] in (16, 32) for c in cases))
             self.assertTrue(all('--gpu-build' in b or '-DBEND_CUDA=1' in b or b[0] == self.config['tools']['bun'] for b in builds))
             stage(self.config, work)
             self.assertIn('repeat(1n)', (work/'ports/game-search.bend').read_text())
+            self.assertIn('def its() -> Nat:\n  Nat.mul(51n, 32n)', (work/'ports/mandelbrot.bend').read_text())
+            self.assertEqual(next(c for c in cases if c['workload'] == 'mandelbrot')['expected_regex'], '3068159588')
             self.assertNotIn('@RODINIA@', (work/'ports/hotspot.bend').read_text())
             self.assertEqual(len((work/'ports/hotspot.expected').read_text().split()), 1024**2)
             self.assertEqual(len(json.loads((work/'ports/bfs-shared.expected').read_text())), 262144)

@@ -12,6 +12,8 @@ from .core import append, hash_file, idle_gpu, provenance
 
 ASSETS = Path(__file__).parent / 'assets/fast_gpu'
 CPU_ASSETS = Path(__file__).parent / 'assets/fast_cpu'
+# GPU sizes grown until Bend's runtime startup is at most 20% of a run, from verified startup-scaling points.
+GPU_SIZES = ASSETS.parent / 'fast_gpu_sizes.json'
 
 
 def is_cpu(config):
@@ -20,10 +22,9 @@ def is_cpu(config):
 
 def fixtures(config):
     values = json.loads((ASSETS / 'manifest.json').read_text())
-    if is_cpu(config):
-        overrides = json.loads((CPU_ASSETS / 'overrides.json').read_text())
-        for fixture in values:
-            fixture.update(overrides.get(fixture['name'], {}))
+    overrides = json.loads((CPU_ASSETS / 'overrides.json' if is_cpu(config) else GPU_SIZES).read_text())
+    for fixture in values:
+        fixture.update(overrides.get(fixture['name'], {}))
     return values
 
 
@@ -43,16 +44,15 @@ def stage_fixtures(config, work):
             shutil.copy2(source, work / 'ports' / source.name)
     for source in ASSETS.glob('*.gz'):
         (work / 'ports' / source.stem).write_bytes(gzip.decompress(source.read_bytes()))
-    if is_cpu(config):
-        for fixture in fixtures(config):
-            source = work / 'ports' / fixture['source']
-            if fixture.get('cpu_source'):
-                source.write_text((CPU_ASSETS / fixture['cpu_source']).read_text())
-            for old, new in fixture.get('replacements', []):
-                text = source.read_text()
-                if text.count(old) != 1:
-                    raise ValueError(f'CPU fixture marker changed: {old}')
-                source.write_text(text.replace(old, new))
+    for fixture in fixtures(config):
+        source = work / 'ports' / fixture['source']
+        if fixture.get('cpu_source'):
+            source.write_text((CPU_ASSETS / fixture['cpu_source']).read_text())
+        for old, new in fixture.get('replacements', []):
+            text = source.read_text()
+            if text.count(old) != 1:
+                raise ValueError(f'Fast fixture marker changed: {old}')
+            source.write_text(text.replace(old, new))
 
 
 def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
@@ -60,6 +60,8 @@ def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
     cpu = is_cpu(config)
     if cpu:
         hashes.update({'cpu/'+p.name: hash_file(p) for p in CPU_ASSETS.iterdir() if p.is_file()})
+    else:
+        hashes[GPU_SIZES.name] = hash_file(GPU_SIZES)
     for fixture in fixtures(config):
         name = fixture['name']
         counts = [1, 16] if cpu else [fixture['threads']]
@@ -67,7 +69,7 @@ def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
             raise ValueError(f'Fast profile {name} requires {max(counts)} available CPU threads')
         binary = bend_build(work / 'ports' / fixture['source'], name, not cpu)
         contract = {**fixture['contract'], 'fixture_hashes': hashes,
-                    'timing': 'complete process including startup and output', 'profile': 'fast-cpu-v1' if cpu else 'fast-gpu-v1'}
+                    'timing': 'complete process including startup and output', 'profile': 'fast-cpu-v1' if cpu else 'fast-gpu-v2'}
         for threads in counts:
             case('cpu-regression' if cpu else 'gpu-regression', name, 'bend' if cpu else 'bend-cuda', threads,
                  binary if cpu else str(binary) + '-cuda',

@@ -1,0 +1,256 @@
+{
+  "bfs": {
+    "replacements": [
+      [
+        "def size() -> Nat:\n  19n",
+        "def size() -> Nat:\n  20n"
+      ]
+    ],
+    "expected_regex": "490041823",
+    "contract": {
+      "expected_regex": "490041823",
+      "sources": {
+        "main.bend": "d7e2acda29553218004cc937d3107e50862d692a140630740268eaa3896bffbd",
+        "main.c": "ad283af87da1383a8f5f905ff8f8fb693da8b7e324ad96f76948696ab7cd98c3",
+        "main.lean": "0198ffd707de1743cc9f1338eab5f7539f73f64f2be8a89fae67c39d0478ef07",
+        "main.ts": "076b3a9840c0148bd84f6b59e08a225e0588cbb02ba193b3ab7b69da63284e28"
+      },
+      "workload": "bfs",
+      "scaled": {
+        "multiplier": 2,
+        "knob": "mazes (2^depth)",
+        "value": 20,
+        "source": "runs/startup-scaling-20260924-144502/bfs/2"
+      }
+    }
+  },
+  "editdist": {
+    "replacements": [
+      [
+        "def size.big() -> Nat:\n  15n",
+        "def size.big() -> Nat:\n  17n"
+      ]
+    ],
+    "expected_regex": "357471964",
+    "contract": {
+      "expected_regex": "357471964",
+      "sources": {
+        "main.bend": "466891a27b87119b5593209eb98aa0d687ff88b6ff28cc2ca339e248907a3959",
+        "main.c": "b26ec20e9e3930f9ae27cc219cd3cc5e2bf15004aa48465deab2705541e19f85",
+        "main.lean": "430d8bb435569a706b3d1506eb9a5406207230d7b4a4c508c3c262299dd990f2",
+        "main.ts": "d683257ef850bce022e0604e2fd85c4d743fc9ee62e43fd6e9c5e65381492d0d"
+      },
+      "workload": "editdist",
+      "scaled": {
+        "multiplier": 4,
+        "knob": "string pairs (2^depth)",
+        "value": 17,
+        "source": "runs/startup-scaling-20260924-104254/editdist/4"
+      }
+    }
+  },
+  "gameoflife": {
+    "replacements": [
+      [
+        "def size() -> Nat:\n  18n",
+        "def size() -> Nat:\n  24n"
+      ]
+    ],
+    "expected_regex": "1119453184",
+    "contract": {
+      "expected_regex": "1119453184",
+      "sources": {
+        "main.bend": "31f82656e9b54917803d9fa6b07284bc260f3c62c1c15976b118236151565eae",
+        "main.c": "c0c3414fae74204fdc42eb904030c5b7572adc106daf325f04913d42e7f4440a",
+        "main.lean": "e8eec3771bf9bc47d9cbf3f8d3f7e26b5a861fe5dc88f46e66ec1dd44fa4675b",
+        "main.ts": "4cc03cc1c5fe78c1f0fe8f371c3a2e966f70904c85a665a3c0b9cac0f1d5a027"
+      },
+      "workload": "gameoflife",
+      "scaled": {
+        "multiplier": 64,
+        "knob": "soups (2^depth)",
+        "value": 24,
+        "source": "runs/startup-scaling-20260924-080939/gameoflife/64"
+      }
+    }
+  },
+  "kmeans": {
+    "replacements": [
+      [
+        "loop(20n, d,",
+        "loop(Nat.mul(20n, 2n), d,"
+      ]
+    ],
+    "expected_regex": "1822583089",
+    "contract": {
+      "expected_regex": "1822583089",
+      "sources": {
+        "main.bend": "68af341f50d57878b2518f8c0907e445552750ceb4a264ab0e4e7877600bffb1",
+        "main.c": "1a67c73d84055871187cc6bb5867f79333434114e8559b705ac3cb9949b1b6a7",
+        "main.lean": "993dd7df1cdb79dd292a3e39e9af5aae04e7106a242f4764bc62e4fb2a1cc330",
+        "main.ts": "7ae54da69aaecaafc1efd690510d6e3591ead64ba13172a7cc86861e4d09102c"
+      },
+      "workload": "kmeans",
+      "scaled": {
+        "multiplier": 2,
+        "knob": "Lloyd rounds",
+        "value": 40,
+        "source": "runs/startup-scaling-20260924-104254/kmeans/2"
+      }
+    }
+  },
+  "mandelbrot": {
+    "replacements": [
+      [
+        "def its() -> Nat:\n  51n",
+        "def its() -> Nat:\n  Nat.mul(51n, 32n)"
+      ]
+    ],
+    "expected_regex": "3068159588",
+    "contract": {
+      "expected_regex": "3068159588",
+      "sources": {
+        "main.bend": "400b94705df43c5f6506ecba640db11ae91b24f74d58e39a5e5f7f56dcbabcfa",
+        "main.c": "c9ae35e9ad7eada27a589ba02f5512b9520cca1411941b37cfb61463a66ad10f",
+        "main.lean": "025e6baf5c11329a7297e7c183541c6bc49c97c9340276ac2468957986e7ea9f",
+        "main.ts": "78f133f34554d4ad02c711a705472ed5056e3b1dee658012e4d0465a70056cf7"
+      },
+      "workload": "mandelbrot",
+      "scaled": {
+        "multiplier": 32,
+        "knob": "iterations",
+        "value": 1632,
+        "source": "runs/startup-scaling-20260924-080939/mandelbrot/32"
+      }
+    }
+  },
+  "merkle": {
+    "replacements": [
+      [
+        "def blocks() -> Nat:\n  30n",
+        "def blocks() -> Nat:\n  Nat.mul(30n, 64n)"
+      ]
+    ],
+    "expected_regex": "3844439603",
+    "contract": {
+      "expected_regex": "3844439603",
+      "sources": {
+        "main.bend": "fee3e9144d09a4426a3903656ef485d68d9b9c99822ef02368b5fcbc663e39c9",
+        "main.c": "6bf4057ef894a53bd964589bb784ba6f17566c9acf3dd678d47227119176109b",
+        "main.lean": "8c1ed52700afc5e907be578a88f5591745c23de8350fc3819be89c46add60f35",
+        "main.ts": "6eba29fc981bc26d6454794b2dc64892e0b4289e1ce82b9ec1c1120021f50282"
+      },
+      "workload": "merkle",
+      "scaled": {
+        "multiplier": 64,
+        "knob": "blocks per leaf",
+        "value": 1920,
+        "source": "runs/startup-scaling-20260924-085331/merkle-blocks/64"
+      }
+    }
+  },
+  "nbody": {
+    "replacements": [
+      [
+        "def st() -> Nat:\n  300n",
+        "def st() -> Nat:\n  Nat.mul(300n, 64n)"
+      ]
+    ],
+    "expected_regex": "4074768986",
+    "contract": {
+      "expected_regex": "4074768986",
+      "sources": {
+        "main.bend": "e261a45e3a3fcc7fbdc42143a487d19d76aece4935d8ccc313408ec2ec6aba91",
+        "main.c": "99ee6145ba9ff085d976df3adc7beef85958df1e0b3c1932c7b54a5f4c8b3c12",
+        "main.lean": "29a9dba3da569975b3af32a41f52f9cab34ccb02dc08c1708fcc1dae2b695bf7",
+        "main.ts": "a5555439ff1a3ea679efc9a3915cd6bd6897c977ffbab305a6dd7cf4fe46712c"
+      },
+      "workload": "nbody",
+      "scaled": {
+        "multiplier": 64,
+        "knob": "simulation steps",
+        "value": 19200,
+        "source": "runs/startup-scaling-20260924-082400/nbody/64"
+      }
+    }
+  },
+  "terrain": {
+    "replacements": [
+      [
+        "def epass() -> Nat:\n  5n",
+        "def epass() -> Nat:\n  Nat.mul(5n, 4n)"
+      ]
+    ],
+    "expected_regex": "846929920",
+    "contract": {
+      "expected_regex": "846929920",
+      "sources": {
+        "main.bend": "5d561e194aed9d34f83797db8b2c96afad5584dec6cb83fb2c791fce8caf669e",
+        "main.c": "2fc1222ef8e0ff73abb586215e7910cd9233c3149b38368052d799a8282a258a",
+        "main.lean": "610e0fef8109fd66b9593bfad7dbc4cae954cdfe0deed23854cc3713733666e1",
+        "main.ts": "7cf404e4ccecef8047a43948f96715fe7078ce5b269107644f617522932071ff"
+      },
+      "workload": "terrain",
+      "scaled": {
+        "multiplier": 4,
+        "knob": "relaxation sweeps per tile",
+        "value": 20,
+        "source": "runs/startup-scaling-20260924-104254/terrain/4"
+      }
+    }
+  },
+  "tree-matmul": {
+    "replacements": [
+      [
+        "def blog() -> Nat:\n  9n",
+        "def blog() -> Nat:\n  10n"
+      ],
+      [
+        "def nchain() -> U32:\n  384",
+        "def nchain() -> U32:\n  768"
+      ]
+    ],
+    "expected_regex": "2731397888",
+    "contract": {
+      "expected_regex": "2731397888",
+      "sources": {
+        "main.bend": "e87baaba955d4dd52224a1bccd7cc2a493999499f42232350a6e89564fb11111",
+        "main.c": "d696d72a7428c51e11314742858946a900470a421283b05f71d055c2a78e9693",
+        "main.lean": "e55265ec54591d6436fe2100db126bdb73baebf79e9b619d2cb936b8146b2dec",
+        "main.ts": "377872c8eefee6557f46cf2b0056fc8ff1d8768dc5362843420353c45b85d243"
+      },
+      "workload": "tree-matmul",
+      "scaled": {
+        "multiplier": 2,
+        "knob": "rounds of 128x128 GEMMs",
+        "value": 768,
+        "source": "runs/startup-scaling-20260924-104254/tree-matmul/2"
+      }
+    }
+  },
+  "tree-radix": {
+    "replacements": [
+      [
+        "gen!(22n, 0)",
+        "gen!(23n, 0)"
+      ]
+    ],
+    "expected_regex": "2456013777",
+    "contract": {
+      "expected_regex": "2456013777",
+      "sources": {
+        "main.bend": "2f9784e5035e75bde271ad919075565156de20720be6186f86f0191e0ac9e802",
+        "main.c": "e1cca8669dd57c9ca65d7e7364eeaef1947c95a079317fa1ca35cfcb7911819a",
+        "main.lean": "6802369ff14713a1fb010a8c56eb52ef51f239c727bcdc318de70308d80c22b9",
+        "main.ts": "039d8ca5c6f9800a75ec8745d43369fe6a67218d2014881a1d897c99604ccce9"
+      },
+      "workload": "tree-radix",
+      "scaled": {
+        "multiplier": 2,
+        "knob": "keys (2^depth)",
+        "value": 23,
+        "source": "runs/startup-scaling-20260924-104254/tree-radix/2"
+      }
+    }
+  }
+}
