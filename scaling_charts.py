@@ -31,7 +31,8 @@ WORKLOADS = [
     ('raytrace', 'Ray tracing', 'pixels'), ('symreg', 'Symbolic regression', 'population'),
     ('terrain', 'Terrain', 'relaxation sweeps'), ('tree-bitonic', 'Bitonic sort (CUB)', 'keys'),
     ('tree-matmul', 'Tree matmul (cuBLAS)', 'GEMM rounds'), ('tree-radix', 'Radix sort (CUB)', 'keys'),
-    ('hotspot', 'Rodinia HotSpot', 'timesteps'),
+    ('hotspot', 'Rodinia HotSpot', 'timesteps'), ('pricing', 'Option pricing', 'paths'),
+    ('game-search', 'Game search', 'positions'),
 ]
 ROWS = math.ceil(len(WORKLOADS) / 4)
 LOWER_BOUND = {'tree-bitonic', 'tree-matmul', 'tree-radix'}
