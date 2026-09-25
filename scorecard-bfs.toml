@@ -1,0 +1,49 @@
+# Bend cells of the scorecard's shared-graph BFS row (2^18 vertices) at a new Bend revision.
+schema = 1
+output = "runs"
+implementations = ["bend", "bend-cuda"]
+repetitions = 10
+warmups = 1
+timeout = 180
+cuda = true
+gpu_heap = "4GB"
+gpu_arch = "sm_86"
+require_idle_gpu = true
+blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-applications.service", "bend-bench-gpu.service", "bend-bench-vendor-cuda.service", "bend-bench-uts-compact.service"]
+label = "scorecard-bend-bfs"
+suites = ["bfs"]
+bfs_depths = [18]
+threads = [1, 16, 32]
+cpus = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+
+[gpu_resident]
+cgroup = "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service"
+
+[bend]
+path = "../bend-upstream"
+commit = "6a77e1246c351055cb15031267a7c76c87036cbc"
+[gap]
+path = "sources/gapbs"
+commit = "2972aeb2703165bafd921222f4ed7196f542d3a8"
+
+[gunrock]
+path = "sources/gunrock"
+commit = "a2e9f04aa7a14aa4d2922ffc6a5fcbba9d451df6"
+allow_patch = true
+
+[moderngpu]
+path = "sources/moderngpu"
+commit = "267cc8d02c03f00f1656f1205c61c946a1e530b0"
+
+[cccl]
+path = "../bend-bench/sources/cccl-clang"
+commit = "ecfd3adfaa7ebcb81d80d5b297ab3551619fda02"
+allow_patch = true
+
+
+[tools]
+bun = "../bend2/tools/bun-linux-x64/bun"
+cc = "/usr/bin/clang"
+cxx = "/usr/bin/g++"
+cuda_cxx = "/usr/bin/clang++"
+cuda_path = "/usr/local/cuda-12.4"

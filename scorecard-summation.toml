@@ -1,0 +1,35 @@
+# Bend cells of the scorecard's summation row at a new Bend revision (copied from gpu-primitives.toml).
+schema = 1
+label = "scorecard-bend-summation"
+output = "runs"
+suites = ["cub"]
+threads = [16]
+cpus = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+repetitions = 10
+warmups = 1
+timeout = 180
+cuda = true
+gpu_heap = "4GB"
+gpu_arch = "sm_86"
+gpu_depths = [12, 18, 23]
+require_idle_gpu = true
+blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-applications.service", "bend-bench-gpu.service", "bend-bench-vendor-cuda.service", "bend-bench-uts-compact.service"]
+
+[gpu_resident]
+cgroup = "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service"
+
+[bend]
+path = "../bend-upstream"
+commit = "6a77e1246c351055cb15031267a7c76c87036cbc"
+
+[cccl]
+path = "sources/cccl-clang"
+commit = "ecfd3adfaa7ebcb81d80d5b297ab3551619fda02"
+allow_patch = true
+
+[tools]
+bun = "../bend2/tools/bun-linux-x64/bun"
+cc = "/usr/bin/clang"
+cxx = "/usr/bin/g++"
+cuda_cxx = "/usr/bin/clang++"
+cuda_path = "/usr/local/cuda-13.1"
