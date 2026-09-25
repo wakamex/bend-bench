@@ -20,6 +20,10 @@
 #define SEARCH
 #endif
 #include "mnk-data.h"
+SEARCH int solve_rec(uint32_t me, uint32_t other, int left, int alpha, int beta);
+#ifdef __CUDACC__
+template <int L> __device__ int solve_fixed(uint32_t me, uint32_t other, int alpha, int beta);
+#endif
 SEARCH bool won(uint32_t board) {
   for (uint32_t m : masks)
     if ((board & m) == m)
@@ -27,6 +31,17 @@ SEARCH bool won(uint32_t board) {
   return false;
 }
 SEARCH int solve(uint32_t me, uint32_t other, int left, int alpha, int beta) {
+#ifdef __CUDACC__
+  // A runtime-depth recursion keeps each GPU thread's stack in local memory,
+  // which made this search 5-7x slower; the endgame depths are known here.
+  if (left == empty)
+    return solve_fixed<empty>(me, other, alpha, beta);
+  if (left == empty - 1)
+    return solve_fixed<empty - 1>(me, other, alpha, beta);
+#endif
+  return solve_rec(me, other, left, alpha, beta);
+}
+SEARCH int solve_rec(uint32_t me, uint32_t other, int left, int alpha, int beta) {
   if (won(other))
     return -1;
   if (!left)
@@ -36,7 +51,7 @@ SEARCH int solve(uint32_t me, uint32_t other, int left, int alpha, int beta) {
   while (free) {
     uint32_t bit = free & -free;
     free -= bit;
-    int value = -solve(other, me | bit, left - 1, -beta, -alpha);
+    int value = -solve_rec(other, me | bit, left - 1, -beta, -alpha);
     if (value > best)
       best = value;
     if (best > alpha)
@@ -46,6 +61,32 @@ SEARCH int solve(uint32_t me, uint32_t other, int left, int alpha, int beta) {
   }
   return best;
 }
+#ifdef __CUDACC__
+// solve_rec with the remaining depth as a template parameter: every call
+// resolves at compile time, so the search needs no runtime stack.
+template <int L> __device__ int solve_fixed(uint32_t me, uint32_t other, int alpha, int beta) {
+  if (won(other))
+    return -1;
+  if constexpr (L == 0) {
+    return 0;
+  } else {
+    int best = -1;
+    uint32_t free = ((1u << cells) - 1) & ~(me | other);
+    while (free) {
+      uint32_t bit = free & -free;
+      free -= bit;
+      int value = -solve_fixed<L - 1>(other, me | bit, -beta, -alpha);
+      if (value > best)
+        best = value;
+      if (best > alpha)
+        alpha = best;
+      if (alpha >= beta)
+        break;
+    }
+    return best;
+  }
+}
+#endif
 #ifdef __CUDACC__
 __global__ void children(int *out) {
   int position = blockIdx.x, move = threadIdx.x;
