@@ -1,6 +1,6 @@
 {
   "title": "Bend benchmark scorecard",
-  "measurement_dates": "17–22 September 2026",
+  "measurement_dates": "25 September 2026",
   "hardware": "AMD Ryzen 9 3950X · NVIDIA RTX 3090",
   "bend_revision": "b9d1352c9f45632447f40a2e927355c92f2be58c",
   "columns": [
@@ -38,7 +38,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/bfs/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "22×"
     },
     {
       "group": "Published workloads",
@@ -66,7 +67,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/editdist/cudf-cuda/1": "runs/182bf42ec81e810fd617/summary.json"
-      }
+      },
+      "gpu_work": "4.3×"
     },
     {
       "group": "Published workloads",
@@ -91,7 +93,8 @@
       ],
       "link": "../../PERFORMANCE.md",
       "metric": "complete program",
-      "source": "runs/64b53b136d7cfde4ed9e/summary.json"
+      "source": "runs/64b53b136d7cfde4ed9e/summary.json",
+      "gpu_work": "1.3×"
     },
     {
       "group": "Published workloads",
@@ -119,7 +122,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/hashmap/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "5.1×"
     },
     {
       "group": "Published workloads",
@@ -147,7 +151,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/kmeans/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "6.2×"
     },
     {
       "group": "Published workloads",
@@ -175,7 +180,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/lexer/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "200×"
     },
     {
       "group": "Published workloads",
@@ -203,7 +209,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/mandelbrot/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "88×"
     },
     {
       "group": "Published workloads",
@@ -231,7 +238,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/merkle/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "4.5×"
     },
     {
       "group": "Published workloads",
@@ -259,7 +267,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/nbody/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "3.6×"
     },
     {
       "group": "Published workloads",
@@ -287,7 +296,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/queens/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "1.5×"
     },
     {
       "group": "Published workloads",
@@ -315,7 +325,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/raytrace/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "120×"
     },
     {
       "group": "Published workloads",
@@ -343,7 +354,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/symreg/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "190×"
     },
     {
       "group": "Published workloads",
@@ -371,7 +383,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/terrain/conventional-cuda/1": "benchmarks/vendor-cuda-20260921/summary.json"
-      }
+      },
+      "gpu_work": "15×"
     },
     {
       "group": "Published workloads",
@@ -399,7 +412,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "cub/sort-23/cub-cuda/1": "runs/e930e5a1b9c488a9f8ba/summary.json"
-      }
+      },
+      "gpu_work": ">89×"
     },
     {
       "group": "Published workloads",
@@ -427,7 +441,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/tree-matmul/cublas-cuda/1": "runs/182bf42ec81e810fd617/summary.json"
-      }
+      },
+      "gpu_work": ">11×"
     },
     {
       "group": "Published workloads",
@@ -455,7 +470,8 @@
       "source": "runs/64b53b136d7cfde4ed9e/summary.json",
       "case_sources": {
         "vendor/tree-radix/cub-cuda/1": "runs/182bf42ec81e810fd617/summary.json"
-      }
+      },
+      "gpu_work": ">5.6×"
     },
     {
       "group": "Irregular recursive search",
@@ -537,7 +553,8 @@
       ],
       "link": "../../GPU_COMPARISON.md",
       "metric": "complete program",
-      "source": "runs/c058f6b3293bda1d65dd/summary.json"
+      "source": "runs/c058f6b3293bda1d65dd/summary.json",
+      "gpu_work": "290×"
     },
     {
       "group": "Shared-graph traversal",
@@ -579,7 +596,8 @@
       ],
       "link": "../../PRICING_SUSTAINED.md",
       "metric": "request to host quote",
-      "single_cpu_source": "runs/pricing-single-cpu-20260922-111154"
+      "single_cpu_source": "runs/pricing-single-cpu-20260922-111154",
+      "gpu_work": "4.0×"
     },
     {
       "group": "Repeated game-search batches",
@@ -595,7 +613,8 @@
         80.888
       ],
       "link": "../../MNK_HOST_ARRAY.md",
-      "metric": "batch to CPU result array"
+      "metric": "batch to CPU result array",
+      "gpu_work": "1.8×"
     }
   ],
   "source_sha256": {

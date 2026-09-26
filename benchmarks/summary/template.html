@@ -22,11 +22,12 @@ h1 { font-size:32px; letter-spacing:-1px; margin:0 0 6px; font-weight:650; }
 .legend #metric-label { color:var(--ink); margin-right:auto; }
 .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#087b70; margin-right:6px; }
 table { width:100%; border-collapse:collapse; table-layout:fixed; font-variant-numeric:tabular-nums; }
-col.workload { width:40%; } col.result { width:10%; }
+col.workload { width:37%; } col.result { width:9%; }
 thead th { text-align:center; font-size:14px; padding:7px 3px; font-weight:600; }
 thead th:first-child { text-align:left; }
 thead .bend { background:#e6f4f1; color:var(--bend); font-size:18px; border-radius:6px 0 0 0; }
-thead .comparison { background:#edf1f8; color:var(--compare); font-size:18px; border-radius:0 6px 0 0; }
+thead .comparison { background:#edf1f8; color:var(--compare); font-size:18px; }
+thead .work { background:#f4f1ea; color:#6b5a2e; font-size:14px; border-radius:0 6px 0 0; }
 thead .sub { color:var(--muted); border-bottom:1px solid var(--line); font-size:12px; }
 tbody .section th { text-align:left; padding:12px 0 6px; border-bottom:2px solid #283e48; }
 .section-title { font-size:15px; letter-spacing:.1px; }
@@ -37,7 +38,8 @@ tbody th.label { text-align:left; padding-left:0; font-weight:400; }
 .detail { display:block; color:var(--muted); font-size:12px; line-height:1.2; margin-top:2px; }
 td { text-align:center; font-size:18px; color:#34454e; white-space:nowrap; }
 td.bend-cell { background:#f7fbfa; }
-td.compare-start { border-left:1px solid var(--line); }
+td.compare-start, td.work-only { border-left:1px solid var(--line); }
+td.work-only { color:#6b5a2e; }
 td.fastest { color:#086c60; background:#ddf1e9; }
 td.empty { background-image:repeating-linear-gradient(135deg,transparent,transparent 5px,#f4f6f6 5px,#f4f6f6 6px); }
 a { color:inherit; text-decoration:none; } a:hover { text-decoration:underline; }
@@ -54,15 +56,15 @@ a { color:inherit; text-decoration:none; } a:hover { text-decoration:underline; 
 <div class="toolbar"><span>Self-contained scorecard · select a metric before export</span><button data-mode="ratio" aria-pressed="true">Relative time</button><button data-mode="ms" aria-pressed="false">Milliseconds</button></div>
 <main id="scorecard">
 <p class="eyebrow">bend-bench / CPU + GPU</p>
-<div class="heading"><div><h1>Bend benchmark scorecard</h1><p class="hardware">AMD Ryzen 9 3950X · NVIDIA RTX 3090</p></div><div class="stamp"><span id="row-count"></span> workload / input comparisons<br>Measurements: <span id="measurement-dates"></span></div></div>
+<div class="heading"><div><h1>Bend benchmark scorecard</h1><p class="hardware">AMD Ryzen 9 3950X · NVIDIA RTX 3090</p></div><div class="stamp"><span id="row-count"></span> workload / input comparisons<br>Updated <span id="measurement-dates"></span></div></div>
 <div class="legend"><span id="metric-label"></span><span><span class="dot"></span>Lowest recorded time in row</span><span>Blank = no matching measurement</span></div>
-<table aria-label="Bend and comparison execution times"><colgroup><col class="workload"><col span="6" class="result"></colgroup>
-<thead><tr><th rowspan="2" scope="col">Workload and input</th><th class="bend" colspan="3" scope="colgroup">Bend</th><th class="comparison" colspan="3" scope="colgroup">Comparisons</th></tr><tr><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th></tr></thead>
+<table aria-label="Bend and comparison execution times"><colgroup><col class="workload"><col span="7" class="result"></colgroup>
+<thead><tr><th rowspan="2" scope="col">Workload and input</th><th class="bend" colspan="3" scope="colgroup">Bend</th><th class="comparison" colspan="3" scope="colgroup">Comparisons</th><th class="work" rowspan="2" scope="col">GPU work only<br><span style="font-weight:400;font-size:12px">Bend ÷ comparison</span></th></tr><tr><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th><th class="sub" scope="col">1 CPU thread</th><th class="sub" scope="col">16 CPU threads</th><th class="sub" scope="col">GPU</th></tr></thead>
 <tbody id="results"></tbody></table>
 <p class="table-note">Summation: Bend GPU beats CUB at 268 million and 537 million integers; CUB wins at 1.07 billion and 2.15 billion. OpenMP wins at every tested size. <a href="../../SUMMATION_SCALING.md">Full sweep</a>.</p>
 <div class="notes">
-<div><h2>Timing boundaries</h2><p>Complete-program rows include startup, input preparation, computation, transfers and output. Each cell is a median of ten correctness-gated executions after warmup. Option pricing and game-search rows exclude startup and use medians of three process means, with 30 measured requests or batches after two warmups. Quote and game-search timings end when their results are available on the CPU.</p><p>Relative time divides each cell by the fastest measured time in its row. Lower is better. Compare implementations within a row, not ratios across different workloads. Highlighting is descriptive, not a significance test.</p></div>
-<div><h2>Comparison implementations</h2><p>Published workloads use serial C and project-written OpenMP, with project CUDA, CUB sorting, cuBLAS matrix multiplication and cuDF edit distance. UTS uses canonical BOTS OpenMP tasks and a project CUDA frontier traversal. Summation uses fused serial C++, OpenMP and CUB reduction. HotSpot uses corrected Rodinia OpenMP and CUDA pyramid height 1. BFS uses GAP and Gunrock. Pricing and game search use project-written OpenMP/CUDA.</p><p>Sorting algorithms and data representations differ. Published-workload and UTS GPU additions come from separate runs with matching inputs and output contracts. The game-search row uses one matched CPU/GPU run. Bend GPU reaches its runtime stack limit on UTS; the failed run has no timing. Invalid and superseded measurements, kernel-only timings and the separate reduction crossover sweep are excluded.</p></div>
+<div><h2>Timing boundaries</h2><p>Complete-program rows include startup, input preparation, computation, transfers and output. Each cell is a median of ten correctness-gated executions after warmup. Option pricing and game-search rows exclude startup and use medians of three process means, with 30 measured requests or batches after two warmups. Quote and game-search timings end when their results are available on the CPU.</p><p>GPU work only: Bend GPU time over the comparison's GPU time for each added unit of work, fitted from runs at growing sizes until the comparison's startup no longer dominates (<a href="../../STARTUP_SCALING.md">startup scaling</a>). Edit distance and game search, whose fits did not settle, show their measured ratio at the largest sizes. &gt; marks lower bounds, where Bend's 4 GB heap ran out before the comparison's startup stopped dominating.</p><p>Relative time divides each cell by the fastest measured time in its row. Lower is better. Compare implementations within a row, not ratios across different workloads. Highlighting is descriptive, not a significance test.</p></div>
+<div><h2>Comparison implementations</h2><p>Published workloads use serial C and project-written OpenMP, with project CUDA, CUB sorting, cuBLAS matrix multiplication and cuDF edit distance. UTS uses canonical BOTS OpenMP tasks and a project CUDA frontier traversal. Summation uses fused serial C++, OpenMP and CUB reduction. HotSpot uses corrected Rodinia OpenMP and CUDA pyramid height 1. BFS uses GAP and Gunrock. Pricing and game search use project-written OpenMP/CUDA.</p><p>Sorting algorithms and data representations differ. Published-workload and UTS GPU additions come from separate runs with matching inputs and output contracts. The game-search row's CPU and Bend GPU cells come from one matched run; its CUDA cell comes from a 25 September rerun with the corrected GPU search, in which Bend GPU re-measured within 1%. Bend GPU reaches its runtime stack limit on UTS; the failed run has no timing. Invalid and superseded measurements, kernel-only timings and the separate reduction crossover sweep are excluded.</p></div>
 </div>
 <div class="footer"><span>Bend revision b9d1352 · CPU columns count threads, not sockets · GPU columns use the full device</span><span>Sources and exact values embedded · bend-bench</span></div>
 </main>
@@ -84,15 +86,18 @@ function render(mode){
  document.querySelectorAll('button[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
  const body=document.getElementById('results'); body.replaceChildren();let group='';
  for(const row of data.rows){
-  if(section(row)!==group){group=section(row);const tr=body.insertRow();tr.className='section';const th=document.createElement('th');th.colSpan=7;th.scope='rowgroup';const title=document.createElement('span');title.className='section-title';title.textContent=group;const note=document.createElement('span');note.className='section-note';note.textContent=descriptions[group];th.append(title,note);tr.append(th);}
+  if(section(row)!==group){group=section(row);const tr=body.insertRow();tr.className='section';const th=document.createElement('th');th.colSpan=8;th.scope='rowgroup';const title=document.createElement('span');title.className='section-title';title.textContent=group;const note=document.createElement('span');note.className='section-note';note.textContent=descriptions[group];th.append(title,note);tr.append(th);}
   const tr=body.insertRow();const label=document.createElement('th');label.scope='row';label.className='label';const a=document.createElement('a');a.href=row.link;a.className='name';a.textContent=row.name;const detail=document.createElement('span');detail.className='detail';detail.textContent=row.detail;if(row.group!=='Published workloads'){const baseline=document.createElement('span');baseline.className='detail';baseline.textContent=row.baseline;detail.append(baseline);}label.append(a);if(row.detail!=='Published input')label.append(detail);tr.append(label);
   const best=Math.min(...row.ms.filter(v=>v!==null));
   row.ms.forEach((v,i)=>{const td=tr.insertCell();td.className=(i<3?'bend-cell ':'')+(i===3?'compare-start ':'');
    if(v===null){td.classList.add('empty');const reason=row.missing_labels?.[i];td.textContent=reason||'';td.setAttribute('aria-label',reason?data.columns[i]+': '+reason:'No matching measurement');return;}
    if(v===best)td.classList.add('fastest');
-   td.textContent=mode==='ratio'?(v/best).toFixed(1)+'×':v.toLocaleString('en-US',{minimumFractionDigits:v<1?3:1,maximumFractionDigits:v<1?3:1});
+   const r=Number((v/best).toPrecision(2));td.textContent=mode==='ratio'?(r<10?r.toFixed(1):r.toLocaleString('en-US'))+'×':Number(v.toPrecision(3)).toLocaleString('en-US');
    td.title=data.columns[i]+': '+v.toPrecision(8)+' ms; '+row.baseline+'; '+row.metric;
   });
+  const work=tr.insertCell();work.className='work-only';
+  if(row.gpu_work){work.textContent=row.gpu_work;work.title='Bend GPU time over comparison GPU time per added unit of work, once startup no longer dominates'+(row.gpu_work.startsWith('>')?'; lower bound, Bend ran out of heap first':'');}
+  else{work.classList.add('empty');work.setAttribute('aria-label','No scaling sweep');}
  }
 }
 document.querySelectorAll('button[data-mode]').forEach(b=>b.addEventListener('click',()=>render(b.dataset.mode)));

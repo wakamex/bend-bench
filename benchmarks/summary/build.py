@@ -36,7 +36,7 @@ def main():
             assert not errors, errors
             assert page.locator('tbody th.label').count() == len(data['rows'])
             assert page.locator('tbody tr.section').count() == 2
-            assert page.locator('tbody tr:not(.section) td').count() == len(data['rows']) * 6
+            assert page.locator('tbody tr:not(.section) td').count() == len(data['rows']) * 7
             assert page.evaluate('document.querySelector("#scorecard").scrollWidth <= document.querySelector("#scorecard").clientWidth')
             assert page.evaluate('Array.from(document.querySelectorAll("td, th")).every(cell => cell.scrollWidth <= cell.clientWidth)'), 'Table cell text overflows'
             args.png.parent.mkdir(parents=True, exist_ok=True)
