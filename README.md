@@ -18,9 +18,9 @@ Additional benchmarks are chosen to span a few interesting dimensions:
 
 ### CPU
 
-On Bend’s 16 published workloads, moving from one to 16 CPU threads gives Bend a median 13.6× speedup, compared with OpenMP’s 14.2×. Bend takes 32% longer than OpenMP at 16 threads at the median. The gaps vary widely by workload. Bend slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on several others. Sorting accounts for the largest differences: OpenMP finishes about 19× faster. That gap is algorithmic. Our OpenMP sorts call GNU parallel sort, which finishes over 100× faster than the serial C version, while Bend's sorts take about 1.3× serial C's time on one thread. [CPU results](PERFORMANCE.md).
+Across all workloads, moving from one to 16 CPU threads gives Bend a median 13× speedup, compared with 14× for the conventional programs. At 16 threads, Bend takes a median 2.3× as long. The gaps vary widely by workload. Bend slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on seven others. The largest gaps are 9–19×, on HotSpot, BFS, summation and sorting. The sorting gap is algorithmic. Our OpenMP sorts call GNU parallel sort, which finishes over 100× faster than the serial C version, while Bend's sorts take about 1.3× serial C's time on one thread. [CPU results](PERFORMANCE.md).
 
-On one CPU thread, Bend's median time is 1.24× serial C. It stays within 1.4× on 12 of the 16 workloads and beats C on Game of Life and tree matrix multiplication. The exceptions are edit distance, N-Queens, lexer and hash tables, at 2.2–3.7× C's time.
+On one CPU thread, Bend's median time is 1.3× the conventional program's. It stays within 1.4× on 12 of 21 workloads and beats serial C on Game of Life and tree matrix multiplication. Most others take 1.7–3.7× as long, and HotSpot, summation and BFS 17–22×.
 
 Startup doesn't distort these CPU ratios. An empty Bend program runs in about 2 ms and an empty OpenMP program in about 5 ms, a few percent at most of all but the shortest 16-thread runs.
 
@@ -41,7 +41,7 @@ Per unit of work, Bend GPU takes a median 5.7× as long as the conventional GPU 
 
 The library comparisons never get past startup. Bend's 4 GB heap runs out while CUB and cuBLAS still spend under 5% of their run on the GPU, so we only have lower bounds: at least 89× for bitonic sort against CUB, 11× for tree matrix multiplication against cuBLAS and 5.6× for radix sort against CUB. For summation, Bend finishes sooner below about 1 billion items, again due to faster startup, while CUB performs the calculation itself about 280× faster. [Summation results](runs/reduction-crossover-20260920/report.md).
 
-The same correction applies to moving one Bend program from 16 CPU threads to the GPU. At the scorecard sizes, the GPU speeds up half of the published workloads and slows down the other half. Per unit of work, it's 24–61× faster than 16 threads on Mandelbrot, three-body, Game of Life and Merkle, and 1.1–2.0× faster on k-means, symbolic regression, terrain and edit distance. Ray tracing comes out even, and BFS, hash tables and lexer still take 1.3–2.4× longer on the GPU. This assumes the 16-thread CPU time grows in proportion to the work; we haven't measured the CPU beyond the scorecard size.
+The same correction applies to moving one Bend program from 16 CPU threads to the GPU. At the scorecard sizes, the GPU speeds up 11 of 21 workloads and slows down the other 10. Per unit of work, it's 24–61× faster than 16 threads on Mandelbrot, three-body, Game of Life and Merkle, and 1.1–2.0× faster on k-means, symbolic regression, terrain and edit distance. Ray tracing comes out even, and BFS, hash tables and lexer still take 1.3–2.4× longer on the GPU. This assumes the 16-thread CPU time grows in proportion to the work; we haven't measured the CPU beyond the scorecard size.
 
 Option pricing on the GPU is 68× faster than on 16 CPU threads. Per path, our CUDA implementation is 4.0× faster than Bend GPU, while Bend finishes sooner below about 34× the scorecard's paths thanks to its smaller fixed cost. [Pricing results](PRICING_SUSTAINED.md). For alpha-beta game search, Bend GPU is 1.9× faster than Bend on 16 CPU threads. Our CUDA implementation is 3.7× faster than Bend GPU per batch, and 1.8× faster per position as a whole program that also writes out every answer. OpenMP on 16 CPU threads is 1.4× faster than Bend GPU. [Game-search results](MNK_HOST_ARRAY.md).
 
@@ -55,7 +55,7 @@ These results measure Bend 2.0.3. In paired runs, 2.0.26 takes about 3% longer t
 
 ## Takeaways
 
-Bend scales well across CPU cores on its published workloads, but gains no speedup on the irregular UTS trees. On GPU, a single timing at one size mostly measures startup, so compare per unit of work. Measured that way, Bend GPU takes a median 5.7× as long as conventional CUDA, and it compares better against Bend on 16 CPU threads, on every workload, than single timings show. Implementations matter more than language choice. Bend benefits greatly from balanced work: batching the same N-Queens search made it 4.9× faster on 16 CPU threads, with essentially no change in single-thread time ([N-Queens batching comparison](QUEENS_BATCHING.md)).
+Bend scales well across CPU cores on most workloads, but gains no speedup on the irregular UTS trees. On GPU, a single timing at one size mostly measures startup, so compare per unit of work. Measured that way, Bend GPU takes a median 5.7× as long as conventional CUDA, and it compares better against Bend on 16 CPU threads, on every workload, than single timings show. Implementations matter more than language choice. Bend benefits greatly from balanced work: batching the same N-Queens search made it 4.9× faster on 16 CPU threads, with essentially no change in single-thread time ([N-Queens batching comparison](QUEENS_BATCHING.md)).
 
 ## Run a benchmark
 
