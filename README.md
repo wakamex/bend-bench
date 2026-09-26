@@ -40,59 +40,14 @@ Bend scales well across CPU cores on its published workloads, but gains no speed
 
 ## Run a benchmark
 
-For compiler changes, [fast GPU regression testing](FAST_GPU.md) runs Bend GPU alone across all 22 workload families, using compact UTS and one full game-search batch:
+For compiler changes, [fast GPU regression testing](FAST_GPU.md) runs Bend GPU alone across all 22 workload families, and the [CPU profile](FAST_CPU.md) does the same at one and 16 threads:
 
 ```sh
 uv run --locked bend-bench gpu fast
-```
-
-GPU sharing is allowed by default. Add `--exclusive-gpu` to reject other GPU activity, or `--wait-idle` to wait for an idle GPU and then run exclusively. Use `--repetitions N` for more measurements.
-
-Fast commands collect fresh measurements and save a new run directory each time. `--baseline runs/<id>` compares the new measurements with a saved run; `--resume runs/<id>` explicitly continues an existing run instead.
-
-To compile once and reuse binaries, use `--build-only --output builds/my-build`, then `--build builds/my-build`. See [reusable builds](BUILDS.md) for CPU/GPU examples and integrity checks.
-
-The [CPU regression profile](FAST_CPU.md) covers the same workload families at one and 16 threads with CPU-appropriate input sizes:
-
-```sh
 uv run --locked bend-bench cpu fast
 ```
 
-Edit `fast-gpu.toml` or `fast-cpu.toml` to pin the compiler checkout and revision. Add `--baseline runs/BASELINE_ID` or pass a saved `regression.json` to get speed comparisons and flagged slowdowns. `bend-bench regression-report runs/CANDIDATE_ID --baseline runs/BASELINE_ID` compares existing results without rerunning them. CPU reports separate single-thread performance, multicore performance and thread scaling. Results are separate from the scorecard.
-
-Requirements: Linux, uv, Git, `taskset`, GNU time, Bun, Clang and an OpenMP-enabled C++ compiler. GPU runs additionally require a compatible CUDA toolchain and NVIDIA GPU; kernel profiling requires Nsight Systems.
-
-Choose a configuration and edit its source paths, exact commits, tool paths, CPU affinity and workload selection for your machine:
-
-| Configuration | Workloads |
-|---|---|
-| [experiment.toml](experiment.toml) | Published benchmarks and BOTS UTS |
-| [gpu-primitives.toml](gpu-primitives.toml) | CUB sorting and reduction |
-| [gpu-hotspot.toml](gpu-hotspot.toml) | Rodinia HotSpot |
-| [applications.toml](applications.toml) | Pricing, m,n,k and shared-graph BFS |
-| [applications-bfs.toml](applications-bfs.toml) | Corrected BFS comparison alone |
-| [nqueens.toml](nqueens.toml) | Bend and C++ bit-mask N-Queens, with serial and OpenMP task variants |
-
-The supplied configurations reference the evaluation machine's local source checkouts. Paths resolve relative to the configuration file. Obtain the pinned dependencies and adapt those paths before running; the harness does not download sources or install toolchains.
-
-```sh
-uv run --locked bend-bench plan experiment.toml
-uv run --locked bend-bench prepare experiment.toml
-uv run --locked bend-bench check experiment.toml
-uv run --locked bend-bench run experiment.toml
-uv run --locked bend-bench report runs/RUN_ID
-```
-
-`plan` previews commands without executing the workloads. `prepare` builds into a fingerprinted run directory. `check` verifies every selected configuration's output. `run` requires those checks, excludes warmups and collects at least ten measurements. `report` summarizes saved evidence. The CLI is also available through `python -m bend_bench`.
-
-For a smaller CPU experiment, select `suites = ["uts"]` and `uts_inputs = ["test"]` in the configuration. That BOTS input has 4,112,897 nodes; the upstream input named `tiny` is larger, at about 30 million nodes.
-
-GPU kernel profiling is a separate stage after unprofiled measurements pass:
-
-```sh
-uv run --locked bend-bench profile applications-bfs.toml --nsys /path/to/nsys
-uv run --locked bend-bench report runs/RUN_ID
-```
+Pin the compiler checkout and revision in `fast-gpu.toml` or `fast-cpu.toml`, and add `--baseline runs/BASELINE_ID` to compare against a saved run. [Running bend-bench](RUNNING.md) covers the other options, the full harness with conventional comparisons, and the startup-scaling sweep.
 
 ## Measurement and reproducibility
 
