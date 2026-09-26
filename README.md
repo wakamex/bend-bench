@@ -18,9 +18,9 @@ Additional benchmarks are chosen to span a few interesting dimensions:
 
 ### CPU
 
-Across all workloads, moving from one to 16 CPU threads gives Bend a median 13× speedup, compared with 14× for the conventional programs. At 16 threads, Bend takes a median 2.3× as long. The gaps vary widely by workload. Bend slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on seven others. The largest gaps are 9–19×, on HotSpot, BFS, summation and sorting. The sorting gap is algorithmic. Our OpenMP sorts call GNU parallel sort, which finishes over 100× faster than the serial C version, while Bend's sorts take about 1.3× serial C's time on one thread. [CPU results](PERFORMANCE.md).
+Across all workloads, moving from one to 16 CPU threads gives Bend a median 13× speedup, compared with 14× for the conventional programs. How Bend compares at 16 threads depends on what it's compared against. Against the same algorithm, in our OpenMP ports and the pricing and game-search controls, Bend takes a median 1.3× as long. It slightly beats OpenMP on Game of Life and tree matrix multiplication, and comes within 1.1–1.3× on seven others. Against established tuned code or a different algorithm, it takes a median 14× as long: GNU parallel sort, GAP's BFS, Rodinia's HotSpot, BOTS's UTS tasks and a fused summation loop. The sorting gap is algorithmic. Our OpenMP sorts call GNU parallel sort, which finishes over 100× faster than the serial C version, while Bend's sorts take about 1.3× serial C's time on one thread. [CPU results](PERFORMANCE.md).
 
-On one CPU thread, Bend's median time is 1.3× the conventional program's. It stays within 1.4× on 12 of 21 workloads and beats serial C on Game of Life and tree matrix multiplication. Most others take 1.7–3.7× as long, and HotSpot, summation and BFS 17–22×.
+On one CPU thread, Bend's median time is 1.2× the same algorithm's. It stays within 1.4× on 10 of those 15 workloads, beats serial C on Game of Life and tree matrix multiplication, and takes 1.7–3.7× as long on the rest. Against the tuned serial codes, HotSpot, summation and BFS take 17–22× as long.
 
 Startup doesn't distort these CPU ratios. An empty Bend program runs in about 2 ms and an empty OpenMP program in about 5 ms, a few percent at most of all but the shortest 16-thread runs.
 
