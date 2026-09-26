@@ -47,6 +47,12 @@ EXTRA = [('queens', 'N-Queens, prefixes searched at 17 queens'), ('queens-board'
          ('merkle', 'Merkle tree, by tree depth'), ('lexer-length', 'Lexer, by line length')]
 
 
+def times(value):
+    """A ratio to two significant figures: timings repeat to a few percent, so more digits mislead."""
+    rounded = float(f'{value:.2g}')
+    return (f'{rounded:.1f}' if rounded < 10 else f'{rounded:,.0f}') + '×'
+
+
 def points():
     """Latest point per workload and multiplier, with its fastest measured conventional host time where
     the sweep predates recording it."""
@@ -137,7 +143,7 @@ def analyse(name, title, work, ps):
     x = [work(p['multiplier']) for p in ps]
     fb, fc = fit(x, [p['bend_seconds'] for p in ps]), fit(x, conventional_time(ps, work))
     return dict(name=name, title=title, sizes=len(ps), largest=ps[-1]['multiplier'],
-                a_bend=fb[0], a_conv=fc[0], K=REPORTED.get(name, k), K_fit=k, cell=f'{REPORTED.get(name, k):.3g}×', settle=k / previous - 1,
+                a_bend=fb[0], a_conv=fc[0], K=REPORTED.get(name, k), K_fit=k, cell=times(REPORTED.get(name, k)), settle=k / previous - 1,
                 crossover=crossover(fb, fc), rms_bend=bend['rms'], rms_conv=conv['rms'],
                 first_ratio=ps[0]['bend_over_cuda'], last_ratio=ps[-1]['bend_over_cuda'], last_share=ps[-1]['cuda_device_share'])
 
@@ -155,7 +161,7 @@ def queens_row(data):
         aB, K, r, se, rms = fit_time_time(tb, wc, 1.0)
     aC = float(np.median([p['cuda_seconds'] - p['cuda_device_seconds'] for p in queens]))
     return dict(name='queens', title='N-Queens', sizes=len(queens), a_bend=aB, a_conv=aC, K=K,
-                cell=f'{K:.3g}×' if linear else f't^{r:.2f}', settle=float('nan'), crossover=None, rms_bend=rms, rms_conv=0.0,
+                cell=times(K) if linear else f't^{r:.2f}', settle=float('nan'), crossover=None, rms_bend=rms, rms_conv=0.0,
                 last_ratio=queens[-1]['bend_over_cuda'], last_share=queens[-1]['cuda_device_share'])
 
 
@@ -168,11 +174,11 @@ def markdown(rows, bounds, data):
         knob = 'prefixes searched at 17 queens, then board size' if r['name'] == 'queens' else SWEEPS[r['name']]['knob']
         largest = f"{r['largest']:,}×" if 'largest' in r else 'board 19'
         change = '' if math.isnan(r['settle']) else f"{100 * r['settle']:+.1f}%"
-        lines.append(f"| {r['title']} | {knob} | 1× to {largest} | {r.get('first_ratio', data['queens'][0]['bend_over_cuda']):.2f} "
-                     f"| {r['last_ratio']:.2f} | {100 * r['last_share']:.0f}% | {r['cell']} | {change} | {r['a_bend']:.3f} s | {r['a_conv']:.3f} s |")
+        lines.append(f"| {r['title']} | {knob} | 1× to {largest} | {times(r.get('first_ratio', data['queens'][0]['bend_over_cuda']))} "
+                     f"| {times(r['last_ratio'])} | {100 * r['last_share']:.0f}% | {r['cell']} | {change} | {r['a_bend']:.2g} s | {r['a_conv']:.2g} s |")
     lines += ['', "| Library comparison | Largest size Bend's heap allows | Bend ÷ library there | Library GPU share there |",
               '|---|---:|---:|---:|']
-    lines += [f"| {b['title']} | {b['largest']:,}× | {b['last_ratio']:.1f} | {100 * b['last_share']:.0f}% |" for b in bounds]
+    lines += [f"| {b['title']} | {b['largest']:,}× | {times(b['last_ratio'])} | {100 * b['last_share']:.0f}% |" for b in bounds]
     titles = [(n, t) for n, t, _ in WORKLOADS] + [(n, t) for n, t in LOWER_BOUND] + EXTRA
     for name, title in titles:
         if name not in data:
@@ -181,8 +187,8 @@ def markdown(rows, bounds, data):
                   '| Conventional GPU seconds | Conventional host floor seconds | Bend ÷ conventional | Checked against serial C |',
                   '|---:|---:|---:|---:|---:|---:|---:|---|']
         for p in data[name]:
-            lines.append(f"| {p['multiplier']:,}× | {p['value']:,} | {p['bend_seconds']:.3f} | {p['cuda_seconds']:.3f} "
-                         f"| {p['cuda_device_seconds']:.4f} | {p['cuda_host_floor']:.3f} | {p['bend_over_cuda']:.2f} "
+            lines.append(f"| {p['multiplier']:,}× | {p['value']:,} | {p['bend_seconds']:.3g} | {p['cuda_seconds']:.3g} "
+                         f"| {p['cuda_device_seconds']:.3g} | {p['cuda_host_floor']:.3g} | {times(p['bend_over_cuda'])} "
                          f"| {'yes' if p['serial_verified'] else 'no'} |")
     return '\n'.join(lines) + '\n'
 

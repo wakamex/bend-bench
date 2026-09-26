@@ -86,13 +86,13 @@ def ratio_chart(data, fits, path):
         ax.axhline(1, color=REF, linewidth=1, linestyle='--')
         if name in fits:
             ax.axhline(fits[name], color=BLUE, linewidth=1, linestyle=':')
-            ax.annotate(f'work only {fits[name]:.3g}×', (0.97, 0.05), xycoords='axes fraction', ha='right', fontsize=8, color=INK2)
+            ax.annotate(f'work only {scaling_fit.times(fits[name])}', (0.97, 0.05), xycoords='axes fraction', ha='right', fontsize=8, color=INK2)
         if ps:
             xs, ys = [work(name, p) for p in ps], [p['bend_over_cuda'] for p in ps]
             ax.plot(xs, ys, color=BLUE, linewidth=2, marker='o', markersize=4, zorder=3)
             ax.plot(xs[-1:], ys[-1:], marker='o', markersize=8, linestyle='none', zorder=4,
                     markerfacecolor=SURFACE if name in LOWER_BOUND else BLUE, markeredgecolor=BLUE, markeredgewidth=2)
-            note = f'{ys[-1]:.3g}×' + (' (lower bound)' if name in LOWER_BOUND else '')
+            note = scaling_fit.times(ys[-1]) + (' (lower bound)' if name in LOWER_BOUND else '')
             left = xs[-1] < 64  # near the left edge the label goes right, inside the panel
             ax.annotate(note, (xs[-1], ys[-1]), textcoords='offset points', xytext=(8 if left else -6, 8),
                         ha='left' if left else 'right', fontsize=9, color=INK)
