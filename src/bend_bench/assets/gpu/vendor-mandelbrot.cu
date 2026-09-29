@@ -14,6 +14,7 @@
 __device__ uint32_t escape_count(uint32_t id, uint32_t steps) {
   uint32_t cr=(id&4095)*768/4096-512, ci=(id>>12)*768/4096-384;
   uint32_t zr=0,zi=0;
+  #pragma unroll 4
   for(uint32_t i=0;i<steps;i++) {
     uint32_t r2=uint32_t(int32_t(zr*zr)>>8),i2=uint32_t(int32_t(zi*zi)>>8);
     if(r2+i2>1024) return i;
@@ -23,25 +24,25 @@ __device__ uint32_t escape_count(uint32_t id, uint32_t steps) {
   }
   return steps;
 }
-__global__ void render(uint32_t n,uint32_t steps,uint32_t *parts,uint32_t *pixels) {
-  __shared__ uint32_t sums[17];
-  if(threadIdx.x<17) sums[threadIdx.x]=0;
+// One thread per pixel. Each block sums its pixels in shared memory and adds its 17 sums to the
+// global ones (integer sums, so the order doesn't change them).
+__global__ void render(uint32_t n,uint32_t steps,uint32_t *sums,uint32_t *pixels) {
+  __shared__ uint32_t block[17];
+  if(threadIdx.x<17) block[threadIdx.x]=0;
   __syncthreads();
   uint32_t total=0;
   for(uint32_t i=blockIdx.x*blockDim.x+threadIdx.x;i<n;i+=gridDim.x*blockDim.x) {
     uint32_t it=escape_count(i,steps),bucket=min(it*8/steps,7u);
-    atomicAdd(sums+bucket,1u);
-    atomicAdd(sums+8+bucket,i*2654435761u+1u);
+    atomicAdd(block+bucket,1u);
+    atomicAdd(block+8+bucket,i*2654435761u+1u);
     total+=it;
     if(pixels) pixels[i]=it;
   }
-  atomicAdd(sums+16,total);
+  atomicAdd(block+16,total);
   __syncthreads();
-  if(threadIdx.x<17) parts[blockIdx.x*17+threadIdx.x]=sums[threadIdx.x];
+  if(threadIdx.x<17) atomicAdd(sums+threadIdx.x,block[threadIdx.x]);
 }
-__global__ void finish(const uint32_t *parts,uint32_t groups,uint32_t n,uint32_t *out) {
-  uint32_t sums[17]={};
-  for(uint32_t g=0;g<groups;g++) for(int k=0;k<17;k++) sums[k]+=parts[g*17+k];
+__global__ void finish(const uint32_t *sums,uint32_t n,uint32_t *out) {
   uint32_t cumulative=0,mix=0,result=sums[16];
   for(int k=0;k<8;k++) {
     cumulative+=sums[k];
@@ -62,14 +63,14 @@ int main(int argc,char **argv) {
     if(i==2) depth=v; else steps=v;
   }
   uint32_t n=64u<<depth,groups=(n+255)/256;
-  if(groups>1024) groups=1024;
-  uint32_t *parts,*out,*pixels=nullptr;
-  CUDA(cudaMalloc(&parts,groups*17*4)); CUDA(cudaMalloc(&out,18*4));
+  uint32_t *sums,*out,*pixels=nullptr;
+  CUDA(cudaMalloc(&sums,17*4)); CUDA(cudaMalloc(&out,18*4));
   if(verify) { CUDA(cudaMalloc(&pixels,size_t(n)*4)); }
   cudaEvent_t begin,end; CUDA(cudaEventCreate(&begin)); CUDA(cudaEventCreate(&end));
   CUDA(cudaEventRecord(begin));
-  render<<<groups,256>>>(n,steps,parts,pixels); CUDA(cudaGetLastError());
-  finish<<<1,1>>>(parts,groups,n,out); CUDA(cudaGetLastError());
+  CUDA(cudaMemsetAsync(sums,0,17*4));
+  render<<<groups,256>>>(n,steps,sums,pixels); CUDA(cudaGetLastError());
+  finish<<<1,1>>>(sums,n,out); CUDA(cudaGetLastError());
   CUDA(cudaEventRecord(end)); CUDA(cudaEventSynchronize(end));
   float ms; CUDA(cudaEventElapsedTime(&ms,begin,end));
   fprintf(stderr,"EVAL_DEVICE_SEQUENCE_SECONDS=%.9f\n",ms/1000.0);
@@ -88,5 +89,5 @@ int main(int argc,char **argv) {
     CUDA(cudaFree(pixels));
   }
   printf("%u\n",actual[17]);
-  CUDA(cudaFree(parts)); CUDA(cudaFree(out)); CUDA(cudaEventDestroy(begin)); CUDA(cudaEventDestroy(end));
+  CUDA(cudaFree(sums)); CUDA(cudaFree(out)); CUDA(cudaEventDestroy(begin)); CUDA(cudaEventDestroy(end));
 }
