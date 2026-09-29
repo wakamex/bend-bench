@@ -42,6 +42,14 @@ def main(argv=None):
         profiles = commands.add_parser(target, help=f'Bend {target.upper()} regression profiles').add_subparsers(dest='profile', required=True)
         fast_arguments(profiles.add_parser('fast', help='Reduced-workload regression profile'), target)
         fast_arguments(commands.add_parser('fast-'+target, help=f'Compatibility alias for {target} fast'), target)
+    checking = commands.add_parser('compiler-check', help='Compare two Bend checkouts: emitted output and the test lane')
+    checking.add_argument('base', type=Path, help='Bend checkout to compare against')
+    checking.add_argument('candidate', type=Path, help='Bend checkout with the change')
+    checking.add_argument('--bun', default='bun', help='Bun executable that runs each checkout (default: bun on PATH)')
+    checking.add_argument('--output', type=Path, help='Write the full comparison as JSON')
+    checking.add_argument('--only', help='Only programs whose path matches this regular expression')
+    checking.add_argument('--jobs', type=int, help='Parallel programs (default: half the CPUs)')
+    checking.add_argument('--identical', action='store_true', help='Also fail when any emitted output differs, for refactors')
     for name in ('regression-report', 'gpu-report', 'cpu-report'):
         regression_report = commands.add_parser(name, help='Readable results and optional regression comparison')
         regression_report.add_argument('run', type=Path)
@@ -49,6 +57,18 @@ def main(argv=None):
         regression_report.add_argument('--threshold', type=float, default=10)
     args = parser.parse_args(argv)
     try:
+        if args.command == 'compiler-check':
+            from .compiler_check import run as check_run
+            import shutil
+            bun = shutil.which(args.bun)
+            if bun is None:
+                raise ValueError(f'Bun executable not found: {args.bun}')
+            for checkout in (args.base, args.candidate):
+                if not (checkout / 'bend2/main.ts').is_file():
+                    raise ValueError(f'Not a Bend checkout (no bend2/main.ts): {checkout}')
+            text, failed = check_run(args.base, args.candidate, bun, args.output, args.only, args.jobs, args.identical)
+            print(text, end='')
+            return int(failed)
         if args.command in ('gpu-report', 'cpu-report', 'regression-report'):
             from .regression import comparison, load_result, publish, render
             if args.run.is_dir():

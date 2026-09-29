@@ -58,6 +58,14 @@ uv run --locked bend-bench report runs/RUN_ID
 
 ## Comparing Bend revisions
 
+Before benchmarking a compiler change, check it against the checkout it changes. `compiler-check` emits C, JS and MJS for every fast-profile port, the generated compile-stress programs, and both checkouts' demos and tests, then builds and runs every test with a `#|` expectation:
+
+```sh
+uv run --locked bend-bench compiler-check ../bend-base ../bend-candidate --bun ../bend2/tools/bun-linux-x64/bun --output check.json
+```
+
+It lists the programs whose output changed and the tests whose status changed, and exits 1 when a test passes with the base but not with the candidate. Add `--identical` for a refactor, which should change no output at all. `--only REGEX` limits it to matching program paths. A full check takes about five minutes on the benchmark host.
+
 [scorecard_paired_cpu.py](scorecard_paired_cpu.py) runs the scorecard's archived Bend binaries and a newer revision's binaries alternately under the same load, after the `scorecard-*.toml` runs have built them. The [Bend 2.0.26 comparison](BEND_2_0_26.md) uses it.
 
 ## Startup-scaling sweep

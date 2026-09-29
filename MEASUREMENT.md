@@ -35,3 +35,5 @@ uv run --locked bend-bench compare runs/BEFORE runs/AFTER
 ```
 
 Comparisons require matching host, workload contract and measurement policy. Different Bend revisions are allowed. Ratios are descriptive comparisons, not statistical significance tests.
+
+[`compiler-check`](RUNNING.md#comparing-bend-revisions) answers a narrower question first: what does the change emit differently? Identical output across both checkouts' tests, demos and the benchmark ports shows a refactor cannot change any measurement, so it needs no benchmark run. Changed output shows which programs a real change reaches, and says nothing about whether they are still correct. The test lane covers that, by comparing each test's status under both checkouts. Both checkouts run side by side on the same host, because upstream's tests and their expected output change between releases, so stored hashes would go stale.
