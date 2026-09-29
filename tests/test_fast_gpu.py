@@ -122,7 +122,8 @@ class FastGPU(unittest.TestCase):
             work = Path(tmp)
             builds, cases = plan(self.config, work)
             self.assertEqual(len(cases), 22)
-            self.assertEqual(len(builds), 66)
+            self.assertEqual(len(builds), 75)  # 22 workloads and 3 build-only stress programs, 3 steps each
+            self.assertEqual(sum('stress-' in ' '.join(b) for b in builds), 9)
             self.assertTrue(all(c['implementation'] == 'bend-cuda' for c in cases))
             self.assertTrue(all(c['contract']['profile'] == 'fast-gpu-v2' for c in cases))
             self.assertTrue(all(c['threads'] in (16, 32) for c in cases))

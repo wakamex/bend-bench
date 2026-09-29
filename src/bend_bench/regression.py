@@ -263,16 +263,75 @@ def render(result, compared=None):
     return aligned_tables(lines)
 
 
-def publish(run, baseline=None, threshold=10):
+STEPS = ('emit', 'CPU clang', 'CUDA clang', 'NVRTC')
+BUILD_FLOOR = 1.0  # seconds: builds are timed once, so smaller changes are noise
+
+
+def build_times(run):
+    """Seconds per build step of each Bend program in a run's prepare.jsonl, or None without one."""
+    path = Path(run) / 'prepare.jsonl'
+    if not path.is_file():
+        return None
+    times, emitted = {}, set()
+    for row in rows(path):
+        command = row['command']
+        if '--gpu-build' in command:
+            name, step = Path(command[0]).name.removesuffix('-cuda'), 'NVRTC'
+        elif '-o' in command:
+            out = Path(command[command.index('-o') + 1])
+            if out.suffix == '.c':
+                name, step = out.stem, 'emit'
+                emitted.add(name)
+            else:
+                name, step = out.name.removesuffix('-cuda'), 'CUDA clang' if '-DBEND_CUDA=1' in command else 'CPU clang'
+        else:
+            continue
+        times.setdefault(name, {})[step] = row['end_to_end_seconds']
+    return {name: steps for name, steps in times.items() if name in emitted}
+
+
+def build_section(after, before=None, threshold=10):
+    """Build-time lines for the report, and whether any step slowed beyond the threshold."""
+    if after is None:
+        return [], False
+    lines = ['', '## Build times', '']
+    if before is None:
+        lines += ['Build-only compile-stress programs (single timed builds; pass a baseline run directory to compare every build):', '',
+                  '| Program | Step | Time |', '|---|---|---:|']
+        lines += [f'| {name} | {step} | {after[name][step]:.2f} s |' for name in sorted(after) if name.startswith('stress-')
+                  for step in STEPS if step in after[name]]
+        return lines, False
+    pairs = [(name, step, before[name][step], after[name][step]) for name in sorted(after) if name in before
+             for step in STEPS if step in after[name] and step in before[name]]
+    slow = [(n, s, b, a) for n, s, b, a in pairs if a - b > BUILD_FLOOR and a > b * (1 + threshold/100)]
+    total = [sum(p[i] for p in pairs) for i in (2, 3)]
+    lines.append(f'Total over {len(pairs)} matched build steps: {total[0]:.1f} s baseline, {total[1]:.1f} s candidate.')
+    lines.append('No build step slowed by more than ' + f'{threshold:g}% and {BUILD_FLOOR:g} s.' if not slow
+                 else f'{len(slow)} build step(s) slowed by more than {threshold:g}% and {BUILD_FLOOR:g} s.')
+    shown = [p for p in pairs if p[0].startswith('stress-') or p in slow]
+    new = [(n, s, after[n][s]) for n in sorted(after) if n.startswith('stress-') and n not in before
+           for s in STEPS if s in after[n]]
+    if shown or new:
+        lines += ['', '| Program | Step | Baseline | Candidate | Change |', '|---|---|---:|---:|---:|']
+        lines += [f"| {n} | {s} | {b:.2f} s | {a:.2f} s | {100*(a/b - 1):+.0f}%{' SLOWER' if (n, s, b, a) in slow else ''} |"
+                  for n, s, b, a in shown]
+        lines += [f'| {n} | {s} | - | {a:.2f} s | new |' for n, s, a in new]
+    return lines, bool(slow)
+
+
+def publish(run, baseline=None, threshold=10, builds_before=None):
     run = Path(run)
     result = load_result(run)
     before = validate_result(baseline) if isinstance(baseline, dict) else load_result(baseline) if baseline is not None else None
     compared = comparison(before, result, threshold) if before is not None else None
     write_json(run / 'regression.json', result)
-    text = render(result, compared)
+    if builds_before is None and isinstance(baseline, (str, Path)) and Path(baseline).is_dir():
+        builds_before = build_times(baseline)
+    section, slow_builds = build_section(build_times(run), builds_before, threshold)
+    text = render(result, compared) + aligned_tables(section) + ('\n' if section else '')
     target = run / ('comparison.md' if compared else 'regression.md')
     target.write_text(text)
     if compared:
         write_json(run / 'comparison.json', compared)
     failed = any(r['status'] != 'passed' for r in result['cases'])
-    return text, bool(failed or (compared and compared['concerns']))
+    return text, bool(failed or (compared and compared['concerns']) or slow_builds)

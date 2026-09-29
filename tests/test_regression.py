@@ -129,3 +129,48 @@ class RegressionReport(unittest.TestCase):
         after['fingerprint'] = 'independent-test-run'
         after['compatibility']['policy'] = 'changed'
         self.assertEqual(comparison(self.before, after)['overall']['matched'], 0)
+
+
+class BuildTimes(unittest.TestCase):
+    # Paired fast-gpu-v2 runs of Bend 68f870e3 (base) and the inline-rule branch (candidate).
+    BASE, CANDIDATE = ROOT/'runs/d2f1555388c8d2e53740', ROOT/'runs/75f2699766cffa3c7e1b'
+
+    def setUp(self):
+        if not (self.BASE/'prepare.jsonl').exists() or not (self.CANDIDATE/'prepare.jsonl').exists():
+            self.skipTest('Archived fast GPU preparation logs unavailable')
+        from bend_bench.regression import build_times
+        self.before, self.after = build_times(self.BASE), build_times(self.CANDIDATE)
+
+    def test_real_logs_give_each_bend_programs_steps(self):
+        self.assertEqual(len(self.before), 22)
+        self.assertEqual(set(self.before['raytrace']), {'emit', 'CUDA clang', 'NVRTC'})
+        self.assertNotIn('hotspot-reference', self.before)
+
+    def test_only_slowdowns_past_threshold_and_floor_are_flagged(self):
+        from bend_bench.regression import BUILD_FLOOR, build_section
+        lines, slow = build_section(self.after, self.before)
+        self.assertFalse(slow)
+        self.assertIn('Total over 66 matched build steps', '\n'.join(lines))
+        after = copy.deepcopy(self.after)
+        after['raytrace']['NVRTC'] = self.before['raytrace']['NVRTC'] + BUILD_FLOOR + 1
+        after['bfs']['emit'] = self.before['bfs']['emit'] * 3  # far past 10%, but well under a second
+        lines, slow = build_section(after, self.before)
+        self.assertTrue(slow)
+        text = '\n'.join(lines)
+        self.assertIn('| raytrace | NVRTC |', text)
+        self.assertNotIn('| bfs |', text)
+
+    def test_stress_programs_new_to_the_candidate_are_listed(self):
+        from bend_bench.regression import build_section
+        after = {**self.after, 'stress-flatmany': dict(self.after['raytrace'])}
+        lines, slow = build_section(after, self.before)
+        self.assertFalse(slow)
+        self.assertIn('| stress-flatmany | NVRTC | - |', '\n'.join(lines))
+
+    def test_stress_programs_are_listed_without_a_baseline(self):
+        from bend_bench.regression import build_section
+        after = {**self.after, 'stress-flatchain': dict(self.after['raytrace'])}
+        lines, slow = build_section(after)
+        self.assertFalse(slow)
+        self.assertIn('| stress-flatchain | NVRTC |', '\n'.join(lines))
+        self.assertNotIn('| raytrace |', '\n'.join(lines))

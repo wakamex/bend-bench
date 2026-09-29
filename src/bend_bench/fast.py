@@ -8,6 +8,7 @@ import struct
 import time
 import uuid
 
+from .compile_stress import PROGRAMS as STRESS, write as write_stress
 from .core import append, hash_file, idle_gpu, provenance
 
 ASSETS = Path(__file__).parent / 'assets/fast_gpu'
@@ -53,6 +54,7 @@ def stage_fixtures(config, work):
             if text.count(old) != 1:
                 raise ValueError(f'Fast fixture marker changed: {old}')
             source.write_text(text.replace(old, new))
+    write_stress(work / 'ports')
 
 
 def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
@@ -85,6 +87,9 @@ def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
                     cases[-1]['regression_reference'] = str(work / 'ports' / (name + '.json'))
                 if cpu and name == 'pricing':
                     cases[-1]['regression_requests'] = 1
+    # Build-only: prepare.jsonl times the compile-stress builds, which never run.
+    for name in STRESS:
+        bend_build(work / 'ports' / f'stress-{name}.bend', f'stress-{name}', not cpu)
 
 
 def correct_special(case, result):
@@ -117,10 +122,13 @@ def correct_special(case, result):
 
 def run(config, baseline=None, threshold=10, *, wait_for_idle=False, resume=None):
     from .experiment import directory, measure, prepare, report
-    from .regression import load_result, publish, target
+    from .regression import build_times, load_result, publish, target
     if not math.isfinite(threshold) or threshold <= 0:
         raise ValueError('Regression threshold must be a finite positive percentage')
+    builds_before = None
     if baseline is not None:
+        if Path(baseline).is_dir():
+            builds_before = build_times(baseline)
         baseline = load_result(baseline)  # Freeze the comparison input before waiting or executing.
     cpu = is_cpu(config)
     if baseline is not None and target(baseline) != ('CPU' if cpu else 'GPU'):
@@ -167,7 +175,7 @@ def run(config, baseline=None, threshold=10, *, wait_for_idle=False, resume=None
         _, measured_failed = measure(config)
     finally:
         report(folder)
-        text, concerns = publish(folder, baseline, threshold)
+        text, concerns = publish(folder, baseline, threshold, builds_before)
         print(text, flush=True)
     return folder, failed or measured_failed or concerns
 
