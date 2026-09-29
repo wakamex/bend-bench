@@ -242,11 +242,14 @@ def game_check(result, k, folder):
 
 # Each entry: bend(k) and patch(k) are exact text replacements in main.bend and the conventional source
 # (defaults and argument caps: timed runs cannot pass sizes); args(k) and verify(k) are its arguments.
-# Optional: source (the bench/runtime program), serial (replacements in its main.c), builder, max (largest valid multiplier), share (device
-# share required before the fitted ratio can stop the sweep), verify_until (largest serially checked
-# size), work (work relative to the published size, when it is not the multiplier itself).
+# Optional: source (the bench/runtime program), bend_source (a Bend program among the assets, in place of
+# the bench/runtime one: Mandelbrot's runs the CUDA program's algorithm), serial (replacements in its
+# main.c), builder, max (largest valid multiplier), share (device share required before the fitted ratio
+# can stop the sweep), verify_until (largest serially checked size), work (work relative to the published
+# size, when it is not the multiplier itself).
 WORKLOADS = {
     'mandelbrot': dict(knob='iterations', base=51, grow=lambda k: 51 * k, cuda='gpu/vendor-mandelbrot.cu',
+        bend_source='ports/mandelbrot-escape.bend',
         bend=lambda k: [('def its() -> Nat:\n  51n', f'def its() -> Nat:\n  Nat.mul(51n, {nat(k)})')],
         patch=lambda k: [('uint32_t depth=18,steps=51;', f'uint32_t depth=18,steps={51 * k};'),
                          ('v<1 || v>51)', f'v<1 || v>{51 * k})')],
@@ -448,7 +451,8 @@ def build(work, bend, name, k, spec):
     if name == 'hotspot':
         source = hotspot_port(folder, cu, k)
     else:
-        source = replace((bend / 'bench/runtime' / program / 'main.bend').read_text(), spec['bend'](k), f'{name}: Bend')
+        main = ASSETS / spec['bend_source'] if 'bend_source' in spec else bend / 'bench/runtime' / program / 'main.bend'
+        source = replace(main.read_text(), spec['bend'](k), f'{name}: Bend')
     (folder / 'main.bend').write_text(source)
     if 'serial' in spec:  # a patched serial reference beside the conventional source, which includes it first
         serial = bend / 'bench/runtime' / program / 'main.c'
@@ -635,7 +639,8 @@ def main():
     out.mkdir()
     cccl = execute(['git', '-C', str(CCCL), 'rev-parse', 'HEAD'])['stdout'].strip()
     write_json(out / 'provenance.json', dict(bend=str(bend), script_sha256=hash_file(Path(__file__)), arguments=vars(args),
-               sources={spec['cuda']: hash_file(ASSETS / spec['cuda']) for spec in WORKLOADS.values()},
+               sources={path: hash_file(ASSETS / path) for spec in WORKLOADS.values()
+                        for path in (spec['cuda'], spec.get('bend_source')) if path},
                cccl_commit=cccl, cudf_lock_sha256=hash_file(ROOT / 'dependencies/cudf/uv.lock')))
     print('OUTPUT', out, flush=True)
     rng = random.Random(20260924)
