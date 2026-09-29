@@ -77,7 +77,7 @@ The same correction applies to moving one Bend program from the CPU to the GPU. 
 | Hash tables | 0.4× | 0.5× |
 | Lexer | 0.3× | 0.4× |
 
-This assumes the 16-thread CPU time grows in proportion to the work; the CPU sweep has not been run. Mandelbrot's row compares the published program on both chips, from the GPU sweep of 24 September, before the GPU comparison moved to the CUDA program's algorithm. HotSpot is left out because its CPU time includes parsing the input, which the GPU fit counts as fixed cost.
+This assumes the 16-thread CPU time grows in proportion to the work; the CPU sweep has not been run. Mandelbrot's row uses Bend's published program on both chips, not the GPU comparison's version (see Method). HotSpot is left out because its CPU time includes parsing the input, which the GPU fit counts as fixed cost.
 
 ## CPU startup is 2 to 5 ms
 
