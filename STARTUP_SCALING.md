@@ -2,7 +2,7 @@
 
 At the scorecard sizes, most conventional GPU programs spend under 10% of their run on the GPU, inside about 0.2 s of process startup, so the scorecard's GPU columns mostly compare startup. How much slower is Bend per unit of work once the work dominates?
 
-Grown until the conventional GPU work dominates, Bend GPU takes a median 5.7× as long as the conventional program for each added unit of work, from 1.3× to 290×. Bend is closest on Game of Life (1.3×), N-Queens (1.5×), game search (1.8×), three-body (3.6×), option pricing (4.0×), edit distance (4.3×), Merkle trees (4.5×) and hash tables (5.1×), and furthest on HotSpot (290×), lexing (200×), symbolic regression (180×), ray tracing (120×) and Mandelbrot (88×). Bend's four wins at the scorecard sizes, Mandelbrot, Merkle, three-body and Game of Life, come from its faster startup and end at 4× to 32× the scorecard's work. For every other workload except N-Queens, the scorecard ratio understates the gap 2 to 50 times over: lexing goes from 5.7× at the scorecard size to 200× per unit of work.
+Grown until the conventional GPU work dominates, Bend GPU takes a median 5.7× as long as the conventional program for each added unit of work, from 1.3× to 290×. Bend is closest on Game of Life (1.3×), N-Queens (1.5×), game search (1.8×), three-body (3.6×), option pricing (4.0×), edit distance (4.3×), Merkle trees (4.5×) and hash tables (5.1×), and furthest on HotSpot (290×), lexing (200×), symbolic regression (180×), ray tracing (120×) and Mandelbrot (40×). Bend's four wins at the scorecard sizes, Mandelbrot, Merkle, three-body and Game of Life, come from its faster startup and end at 8× to 32× the scorecard's work. For every other workload except N-Queens, the scorecard ratio understates the gap 2 to 50 times over: lexing goes from 5.7× at the scorecard size to 200× per unit of work.
 
 Each Bend program and its conventional counterpart ran at doubling sizes along one work knob, in five alternating rounds per size, with outputs checked at every size. Each program's time was fitted as a fixed cost plus a work curve, and the comparison is Bend's added time for more work over the conventional program's, at the largest size measured.
 
@@ -18,7 +18,7 @@ The work-only ratio counts only what grows with the work. The fixed cost is the 
 | Hash tables | tables (2^depth) | 1× to 256× | 2.6× | 4.7× | 99% | 5.1× | +2.6% | 0.53 s | 0.19 s |
 | K-means | Lloyd rounds | 1× to 64× | 2.0× | 5.9× | 96% | 6.2× | -0.4% | 0.12 s | 0.19 s |
 | Lexer | lines (2^depth) | 1× to 256× | 5.7× | 170× | 84% | 200× | +1.5% | 0.14 s | 0.18 s |
-| Mandelbrot | iterations | 1× to 16,384× | 0.8× | 83× | 95% | 88× | +1.2% | 0.14 s | 0.18 s |
+| Mandelbrot | iterations | 1× to 16,384× | 0.8× | 38× | 93% | 40× | +0.5% | 0.14 s | 0.18 s |
 | Merkle tree | blocks per leaf | 1× to 2,048× | 0.8× | 4.4× | 95% | 4.5× | +0.1% | 0.16 s | 0.19 s |
 | Three-body | simulation steps | 1× to 1,024× | 0.7× | 3.6× | 95% | 3.6× | +0.1% | 0.13 s | 0.18 s |
 | Ray tracing | image side (pixels = k^2 x 6000 x 4096) | 1× to 32× | 5.4× | 120× | 97% | 120× | -1.1% | 0.2 s | 0.18 s |
@@ -41,13 +41,13 @@ The work-only ratio counts only what grows with the work. The fixed cost is the 
 
 ![Share of the conventional program's time spent on GPU work as the work grows](benchmarks/startup-scaling/device-share.png)
 
-## Bend's startup wins end at 4× to 32× the scorecard's work
+## Bend's startup wins end at 8× to 32× the scorecard's work
 
-Bend finishes Mandelbrot, Merkle, three-body and Game of Life sooner at the scorecard sizes because those CUDA programs spend 0.8 to 14 ms on the GPU inside about 0.2 s, and Bend's fixed cost is 0.12 to 0.16 s against about 0.18 s. Bend stops finishing first at 4× the iterations for Mandelbrot, 8× the blocks per leaf for Merkle, 8× the steps for three-body and 32× the soups for Game of Life. Per unit of work, Game of Life is Bend's closest workload at 1.3×.
+Bend finishes Mandelbrot, Merkle, three-body and Game of Life sooner at the scorecard sizes because those CUDA programs spend 0.8 to 14 ms on the GPU inside about 0.2 s, and Bend's fixed cost is 0.12 to 0.16 s against about 0.18 s. Bend stops finishing first at 16× the iterations for Mandelbrot, 8× the blocks per leaf for Merkle, 8× the steps for three-body and 32× the soups for Game of Life. Per unit of work, Game of Life is Bend's closest workload at 1.3×.
 
 ## The scorecard sizes hide the largest gaps
 
-Lexing, symbolic regression, ray tracing and Mandelbrot all run their conventional GPU work in 0.8 to 6 ms at the scorecard size. Their ratios of 0.8 to 5.7 at that size grow to 88× to 200× per unit of work. HotSpot's 12× at the scorecard size hides two fixed costs, 0.6 s for Rodinia's CUDA program and 5.1 s for Bend, both spent before the first timestep. Past those, each timestep takes Bend about 27 ms and CUDA about 0.1 ms.
+Lexing, symbolic regression, ray tracing and Mandelbrot all run their conventional GPU work in 0.8 to 6 ms at the scorecard size. Their ratios of 0.8 to 5.7 at that size grow to 40× to 200× per unit of work. HotSpot's 12× at the scorecard size hides two fixed costs, 0.6 s for Rodinia's CUDA program and 5.1 s for Bend, both spent before the first timestep. Past those, each timestep takes Bend about 27 ms and CUDA about 0.1 ms.
 
 ## Workload-specific knobs, limits and fits
 
@@ -77,7 +77,7 @@ The same correction applies to moving one Bend program from the CPU to the GPU. 
 | Hash tables | 0.4× | 0.5× |
 | Lexer | 0.3× | 0.4× |
 
-This assumes the 16-thread CPU time grows in proportion to the work; the CPU sweep has not been run. HotSpot is left out because its CPU time includes parsing the input, which the GPU fit counts as fixed cost.
+This assumes the 16-thread CPU time grows in proportion to the work; the CPU sweep has not been run. Mandelbrot's row compares the published program on both chips, from the GPU sweep of 24 September, before the GPU comparison moved to the CUDA program's algorithm. HotSpot is left out because its CPU time includes parsing the input, which the GPU fit counts as fixed cost.
 
 ## CPU startup is 2 to 5 ms
 
@@ -101,7 +101,7 @@ The runs use the scorecard's Bend revision, 2.0.3 ([b9d1352](https://github.com/
 - Hash tables: tables of 16,384 operations, 2^11 × k.
 - K-means: Lloyd rounds, 20 × k.
 - Lexer: lines, 2^23 × k; separately, expression groups per line, 3 × k.
-- Mandelbrot: escape iterations, 51 × k, on the fixed 4,096 × 4,096 image.
+- Mandelbrot: escape iterations, 51 × k, on the fixed 4,096 × 4,096 image. The Bend side is [ports/mandelbrot-escape.bend](src/bend_bench/assets/ports/mandelbrot-escape.bend), which runs the CUDA program's algorithm: each pixel stops at escape, and one pass collects the histogram and the weighted sums. Bend's published program runs every iteration of every pixel and renders twice, and against it the sweep of 24 September measured 88× per iteration, most of it from that difference. Both give the same result at every size.
 - Merkle: counter blocks encrypted per leaf, 30 × k, over 2^22 leaves; separately, tree depth.
 - Three-body: simulation steps, 300 × k, over 2^20 systems.
 - N-Queens: four-row prefixes searched at 17 queens, 11,730 × k up to all 83,521, then 18 and 19 queens.
@@ -229,21 +229,21 @@ The sweeps are produced by [startup_scaling.py](startup_scaling.py), the fits an
 
 | Multiplier | iterations | Bend GPU seconds | Conventional seconds | Conventional GPU seconds | Conventional host floor seconds | Bend ÷ conventional | Checked against serial C |
 |---:|---:|---:|---:|---:|---:|---:|---|
-| 1× | 51 | 0.154 | 0.2 | 0.000757 | 0.188 | 0.8× | yes |
-| 2× | 102 | 0.172 | 0.191 | 0.000986 | 0.185 | 0.9× | yes |
-| 4× | 204 | 0.206 | 0.186 | 0.00128 | 0.177 | 1.1× | yes |
-| 8× | 408 | 0.295 | 0.178 | 0.00218 | 0.175 | 1.7× | yes |
-| 16× | 816 | 0.433 | 0.179 | 0.00355 | 0.175 | 2.4× | yes |
-| 32× | 1,632 | 0.737 | 0.189 | 0.00671 | 0.176 | 3.9× | no |
-| 64× | 3,264 | 1.32 | 0.198 | 0.0135 | 0.175 | 6.7× | no |
-| 128× | 6,528 | 2.53 | 0.21 | 0.026 | 0.182 | 12× | no |
-| 256× | 13,056 | 4.87 | 0.239 | 0.0564 | 0.178 | 20× | no |
-| 512× | 26,112 | 9.61 | 0.3 | 0.108 | 0.186 | 32× | no |
-| 1,024× | 52,224 | 19.1 | 0.409 | 0.221 | 0.179 | 47× | no |
-| 2,048× | 104,448 | 38 | 0.641 | 0.452 | 0.187 | 59× | no |
-| 4,096× | 208,896 | 75.9 | 1.06 | 0.869 | 0.181 | 72× | no |
-| 8,192× | 417,792 | 153 | 1.93 | 1.75 | 0.185 | 79× | no |
-| 16,384× | 835,584 | 305 | 3.66 | 3.46 | 0.183 | 83× | no |
+| 1× | 51 | 0.15 | 0.19 | 0.000423 | 0.182 | 0.8× | yes |
+| 2× | 102 | 0.146 | 0.196 | 0.000577 | 0.186 | 0.8× | yes |
+| 4× | 204 | 0.161 | 0.192 | 0.00087 | 0.189 | 0.8× | yes |
+| 8× | 408 | 0.192 | 0.213 | 0.00145 | 0.195 | 0.9× | yes |
+| 16× | 816 | 0.24 | 0.185 | 0.00229 | 0.176 | 1.3× | yes |
+| 32× | 1,632 | 0.34 | 0.19 | 0.00437 | 0.176 | 1.8× | no |
+| 64× | 3,264 | 0.536 | 0.191 | 0.00847 | 0.181 | 2.8× | no |
+| 128× | 6,528 | 0.898 | 0.208 | 0.0168 | 0.178 | 4.3× | no |
+| 256× | 13,056 | 1.64 | 0.223 | 0.0334 | 0.185 | 7.3× | no |
+| 512× | 26,112 | 3.11 | 0.26 | 0.0691 | 0.188 | 12× | no |
+| 1,024× | 52,224 | 6.03 | 0.33 | 0.141 | 0.18 | 18× | no |
+| 2,048× | 104,448 | 12 | 0.473 | 0.286 | 0.185 | 25× | no |
+| 4,096× | 208,896 | 23.8 | 0.766 | 0.577 | 0.182 | 31× | no |
+| 8,192× | 417,792 | 47.5 | 1.36 | 1.17 | 0.181 | 35× | no |
+| 16,384× | 835,584 | 94.9 | 2.53 | 2.35 | 0.181 | 38× | no |
 
 ### Merkle tree
 
