@@ -50,6 +50,12 @@ def main(argv=None):
     checking.add_argument('--only', help='Only programs whose path matches this regular expression')
     checking.add_argument('--jobs', type=int, help='Parallel programs (default: half the CPUs)')
     checking.add_argument('--identical', action='store_true', help='Also fail when any emitted output differs, for refactors')
+    pairing = commands.add_parser('paired', help='Time base and candidate in ABBA/BAAB blocks, workloads whose compiled program changed')
+    pairing.add_argument('base', type=Path, help='Experiment TOML pinning the base Bend checkout')
+    pairing.add_argument('candidate', type=Path, help='Experiment TOML pinning the candidate Bend checkout')
+    pairing.add_argument('--workloads', help='Comma-separated workloads (default: every workload whose compiled program differs)')
+    pairing.add_argument('--blocks', type=int, default=8, help='ABBA/BAAB blocks per workload (default: 8)')
+    pairing.add_argument('--warmups', type=int, default=1, help='Untimed runs per side before the blocks (default: 1)')
     for name in ('regression-report', 'gpu-report', 'cpu-report'):
         regression_report = commands.add_parser(name, help='Readable results and optional regression comparison')
         regression_report.add_argument('run', type=Path)
@@ -69,6 +75,12 @@ def main(argv=None):
             text, failed = check_run(args.base, args.candidate, bun, args.output, args.only, args.jobs, args.identical)
             print(text, end='')
             return int(failed)
+        if args.command == 'paired':
+            from .paired import run as paired_run
+            workloads = args.workloads.split(',') if args.workloads else None
+            _, text = paired_run(load_config(args.base), load_config(args.candidate), workloads, args.blocks, args.warmups)
+            print(text)
+            return 0
         if args.command in ('gpu-report', 'cpu-report', 'regression-report'):
             from .regression import comparison, load_result, publish, render
             if args.run.is_dir():

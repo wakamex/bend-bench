@@ -66,6 +66,14 @@ uv run --locked bend-bench compiler-check ../bend-base ../bend-candidate --bun .
 
 It lists the programs whose output changed and the tests whose status changed, and exits 1 when a test passes with the base but not with the candidate. Add `--identical` for a refactor, which should change no output at all. `--only REGEX` limits it to matching program paths. A full check takes about five minutes on the benchmark host.
 
+To time the change, `paired` takes two fast-profile experiment files that pin the base and candidate checkouts, builds both, and times only the workloads whose compiled program differs. A workload with the same GPU program (past the key naming its source) and the same host machine code (addresses aside) on both sides cannot change speed, so it is reported as not timed; an edit that compiles to nothing, such as an unused `#define`, changes only the source copy the binary embeds:
+
+```sh
+uv run --locked bend-bench paired base.toml candidate.toml --workloads raytrace,editdist --blocks 10
+```
+
+After a correctness check and a warmup on each side, every workload runs in blocks of four processes, base (A) and candidate (B) as A B B A, then B A A B in the next block. Both versions sit at the same mean position in a block, so a background load that rises or falls steadily through it cancels exactly in the block's score, (A1 + A2) / (B1 + B2), where above 1x means the candidate is faster. The report gives the median block score and a 95% bootstrap interval of that median, both from the session's own blocks, so the interval reflects the load the comparison actually ran under. `--workloads` restricts the comparison to named workloads. Results go to `runs/paired-*/` (`samples.jsonl`, `summary.json`, `report.md`).
+
 [scorecard_paired_cpu.py](scorecard_paired_cpu.py) runs the scorecard's archived Bend binaries and a newer revision's binaries alternately under the same load, after the `scorecard-*.toml` runs have built them. The [Bend 2.0.26 comparison](BEND_2_0_26.md) uses it.
 
 ## Startup-scaling sweep
