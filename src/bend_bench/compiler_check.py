@@ -6,13 +6,20 @@ should change nothing; a real compiler change shows exactly which programs it
 touches. Identical output is not a correctness claim: that is the test lane's
 job. Test lane: every test with a `#|` expectation is built natively by both
 checkouts and run, and a test that passes with BASE but not with CANDIDATE is
-a regression.
+a regression. Compile time: after the parallel pass, one Bun process loads
+both compilers and times checking and C emission of every program inside it
+(assets/compile_time/time.ts), so Bun's startup and module loading drop out,
+in the order base, candidate, candidate, base, with nothing else compiling.
+The report totals the corpus; a program is listed when the candidate takes
+SLOW_RATIO times as long and at least SLOW_SECONDS longer (a small program
+varies by tens of milliseconds run to run).
 
 The corpus is the fast-profile ports, the compile-stress programs, and each
 checkout's demos and tests. Programs present in only one checkout are listed
 but not compared.
 """
 import concurrent.futures
+import json
 import hashlib
 import os
 from pathlib import Path
@@ -25,6 +32,8 @@ from .core import write_json
 
 PORTS = Path(__file__).parent / 'assets/fast_gpu'
 OUTPUTS = ('c', 'js', 'mjs')
+TIMER = Path(__file__).parent / 'assets/compile_time/time.ts'
+SLOW_RATIO, SLOW_SECONDS = 1.25, 0.05
 
 
 def corpus(base, candidate, shared):
@@ -99,16 +108,34 @@ def check(base, candidate, bun, only=None, jobs=None):
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=jobs or max(1, (os.cpu_count() or 2) // 2)) as pool:
             rows = dict(pool.map(one, programs.items()))
+        timed = compile_times(bun, base, candidate, programs, tmp)
     changed = {k: [kind for kind in OUTPUTS if r['outputs']['base'][kind] != r['outputs']['candidate'][kind]]
                for k, r in rows.items() if r}
     tests = {k: r['tests'] for k, r in rows.items() if r and r['tests']}
+    ok = {k: v for k, v in timed.items() if 'error' not in v}
+    total = {side: [sum(v[side][i] for v in ok.values()) for i in (0, 1)] for side in ('base', 'candidate')}
     return dict(base=str(base), candidate=str(candidate), programs=len(programs),
                 only_in_base=sorted(k for k, (_, c) in programs.items() if c is None),
                 only_in_candidate=sorted(k for k, (b, _) in programs.items() if b is None),
                 changed={k: v for k, v in changed.items() if v},
                 tests={status: sum(t['candidate'] == status for t in tests.values()) for status in sorted({t['candidate'] for t in tests.values()})},
                 test_status=tests, test_changes={k: t for k, t in tests.items() if t['base'] != t['candidate']},
-                regressions=sorted(k for k, t in tests.items() if t['base'] == 'pass' and t['candidate'] != 'pass'))
+                regressions=sorted(k for k, t in tests.items() if t['base'] == 'pass' and t['candidate'] != 'pass'),
+                compile=dict(programs=len(ok), total=total, seconds=ok,
+                             slower=sorted((k for k, v in ok.items() if sum(v['candidate']) >= SLOW_RATIO * sum(v['base'])
+                                            and sum(v['candidate']) - sum(v['base']) >= SLOW_SECONDS),
+                                           key=lambda k: sum(ok[k]['base']) - sum(ok[k]['candidate']))))
+
+
+def compile_times(bun, base, candidate, programs, tmp):
+    """Every program both checkouts have, timed in one process (see TIMER)."""
+    jobs = [[k, str(b), str(c)] for k, (b, c) in programs.items() if b is not None and c is not None]
+    try:
+        result = subprocess.run([bun, TIMER, base, candidate], input=json.dumps(jobs), capture_output=True,
+                                text=True, timeout=3600)
+        return json.loads(result.stdout)
+    except (subprocess.TimeoutExpired, json.JSONDecodeError):
+        return {}
 
 
 def render(result, limit=40):
@@ -133,6 +160,23 @@ def render(result, limit=40):
         lines.append('Every test has the same status with both checkouts.')
     if result['regressions']:
         lines += ['', f"{len(result['regressions'])} test(s) pass with the base but not with the candidate."]
+    timing = result['compile']
+    if timing['programs']:
+        (bc, be), (cc, ce) = timing['total']['base'], timing['total']['candidate']
+        lines += ['', '## Compile time', '',
+                  f"Over the {timing['programs']} programs both checkouts check and emit, timed inside one Bun process"
+                  " (base, candidate, candidate, base); above 1x the candidate is slower:", '',
+                  '| Total | Base | Candidate | Ratio |', '|---|---:|---:|---:|',
+                  f'| Checking | {bc:.2f} s | {cc:.2f} s | {cc / bc:.3f}x |',
+                  f'| Emitting C | {be:.2f} s | {ce:.2f} s | {ce / be:.3f}x |', '']
+        if timing['slower']:
+            lines += [f"Programs the candidate takes {SLOW_RATIO}x as long on, and at least {SLOW_SECONDS * 1000:.0f} ms longer:", '',
+                      '| Program | Base, check + emit | Candidate, check + emit | Ratio |', '|---|---:|---:|---:|']
+            for k in timing['slower'][:limit]:
+                b, c = sum(timing['seconds'][k]['base']), sum(timing['seconds'][k]['candidate'])
+                lines.append(f'| {k} | {b:.2f} s | {c:.2f} s | {c / b:.2f}x |')
+        else:
+            lines.append(f"No program is {SLOW_RATIO}x as slow and {SLOW_SECONDS * 1000:.0f} ms slower.")
     return '\n'.join(lines) + '\n'
 
 

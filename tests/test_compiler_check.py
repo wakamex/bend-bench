@@ -40,6 +40,20 @@ class CompilerCheck(unittest.TestCase):
         (root / 'tests/t/add.bend').write_text(TEST.format(answer))
         return root
 
+    def test_a_slower_compiler_is_listed_by_compile_time(self):
+        # A candidate whose C emitter spends 400 ms more per program, on a demo.
+        roots = [self.checkout('a'), self.checkout('b')]
+        comp = roots[1] / 'bend2/comp.ts'
+        head = 'export function compile_book(book: Bend.Book): string {\n'
+        self.assertEqual(comp.read_text().count(head), 1, 'compile_book moved in the pinned compiler')
+        comp.write_text(comp.read_text().replace(head, head + '  { const t0 = Date.now(); while (Date.now() - t0 < 400) {} }\n'))
+        for root in roots:
+            (root / 'demos/d').mkdir(parents=True)
+            (root / 'demos/d/main.bend').write_text(TEST.format('42'))
+        result = check(*roots, self.bun, only='^demos/')
+        self.assertEqual(result['compile']['slower'], ['demos/d/main.bend'], result['compile'])
+        self.assertIn('| demos/d/main.bend |', render(result))
+
     def test_same_compiler_emits_the_same_output(self):
         result = check(self.checkout('a'), self.checkout('b'), self.bun, only='^tests/')
         self.assertEqual(result['changed'], {})
