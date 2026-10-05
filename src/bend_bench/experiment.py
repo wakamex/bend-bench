@@ -96,7 +96,7 @@ def sample(config, run, identity, case, phase, rep):
     env = {**environment(), **case["env"]}
     load = os.getloadavg()
     command = [*case["command"], *(case.get("check_args", []) if phase == "check" else [])]
-    result = execute(command, cwd=run / "work", env=env, timeout=config["timeout"], measured=True,
+    result = execute(command, cwd=run / "work" / case.get("cwd", "."), env=env, timeout=config["timeout"], measured=True,
                      gpu_policy=config if config.get("require_idle_gpu") else None)
     output_correct = correct(case, {k: v for k, v in result.items() if k != "contention_error"})
     record = dict(fingerprint=identity, case=case["id"], phase=phase, rep=rep, env=env, load_average_before=load,

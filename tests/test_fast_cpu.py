@@ -21,8 +21,8 @@ class FastCPU(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
             builds, cases = plan(self.config, work)
-            self.assertEqual(len(builds), 50)  # 22 workloads and 3 build-only stress programs, each emitted and compiled
-            self.assertEqual(len(cases), 44)
+            self.assertEqual(len(builds), 52)  # 23 workloads (nanogpt the CPU profile's own) and 3 build-only stress programs, each emitted and compiled
+            self.assertEqual(len(cases), 46)
             self.assertEqual(sum('stress-' in b[-1] for b in builds), 6)
             self.assertTrue(all(c['implementation'] == 'bend' and c['threads'] in (1, 16) for c in cases))
             self.assertTrue(all(c['command'][-1] == 'off' for c in cases))

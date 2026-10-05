@@ -41,6 +41,9 @@ def stage(config, work, *, mnk_count=16):
     if set(config['suites']) & {'pricing', 'mnk', 'bfs'}:
         from .applications import stage as stage_applications
         stage_applications(config, work, mnk_count=mnk_count)
+    if "ml" in config["suites"]:
+        from .ml import stage as stage_ml
+        stage_ml(config, work)
     if "hotspot" in config["suites"]:
         from .hotspot import stage_rodinia
         (work / "ports").mkdir(exist_ok=True)
@@ -138,6 +141,10 @@ def plan(config, work):
     if set(config['suites']) & {'pricing', 'mnk', 'bfs'}:
         from .applications import plan as plan_applications
         plan_applications(config, work, build, case, cases, bend_build, gpu_reason)
+
+    if "ml" in config["suites"]:
+        from .ml import plan as plan_ml
+        plan_ml(config, work, build, case, cases, bend_build)
 
     if "nqueens" in config["suites"]:
         reference = work / "build/nqueens-bitmask"

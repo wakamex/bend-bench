@@ -55,6 +55,9 @@ def stage_fixtures(config, work):
                 raise ValueError(f'Fast fixture marker changed: {old}')
             source.write_text(text.replace(old, new))
     write_stress(work / 'ports')
+    if is_cpu(config):
+        from .ml import stage_fast
+        stage_fast(work)
 
 
 def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
@@ -87,6 +90,10 @@ def plan_fixtures(config, work, bend_build, case, cases, gpu_reason):
                     cases[-1]['regression_reference'] = str(work / 'ports' / (name + '.json'))
                 if cpu and name == 'pricing':
                     cases[-1]['regression_requests'] = 1
+    if cpu:
+        from .ml import plan_fast
+        plan_fast(work, bend_build, case, cases, dict(timing='complete process including startup and output',
+                                                      profile='fast-cpu-v1', fixture_hashes=hashes))
     # Build-only: prepare.jsonl times the compile-stress builds, which never run.
     for name in STRESS:
         bend_build(work / 'ports' / f'stress-{name}.bend', f'stress-{name}', not cpu)

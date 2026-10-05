@@ -1,6 +1,6 @@
 # Fast Bend CPU regression benchmark
 
-Run the same 22 workload families as the GPU profile at one and 16 CPU threads:
+Run the same 22 workload families as the GPU profile, plus [nanoGPT inference](ML.md), at one and 16 CPU threads:
 
 ```sh
 uv run --locked bend-bench cpu fast --plan
@@ -23,8 +23,9 @@ The default [fast-cpu.toml](fast-cpu.toml) pins the compiler checkout, revision 
 | Game search | One full 524,288-position batch | Same batch and corpus as the fast GPU profile |
 | HotSpot | 1,024 × 1,024 grid, 100 steps | Preserve the larger memory-access workload |
 | Shared-graph BFS | 262,144 vertices | Preserve the larger irregular shared-graph workload |
+| nanoGPT (CPU profile only) | 10 × 24 greedy tokens of a 10.7 M-parameter model | Small-transformer inference from bend-ml, checked against a stored PyTorch reference |
 
-Input sizes are fixed, not adapted to the candidate compiler. The historical measurements guide these choices; the native CPU checks verify the changed summation, pricing and UTS variants at both thread counts, alongside game search. Some original single-thread workloads take 7–14 seconds. Budget roughly 9–10 minutes for all 44 configurations with the default one measured repetition, or about 15 minutes with three. These estimates use the completed ten-repetition baseline, which took 34 minutes 45 seconds.
+Input sizes are fixed, not adapted to the candidate compiler. The historical measurements guide these choices; the native CPU checks verify the changed summation, pricing and UTS variants at both thread counts, alongside game search. Some original single-thread workloads take 7–14 seconds. Budget roughly 9–10 minutes for all 46 configurations with the default one measured repetition, or about 15 minutes with three. These estimates use the completed ten-repetition baseline, which took 34 minutes 45 seconds.
 
 ## Single-thread, multicore and scaling results
 

@@ -144,7 +144,8 @@ def load_config(path):
                "cuda", "gpu_heap", "gpu_arch", "uts_inputs", "uts_cutoffs", "uts_gpu", "blocked_services",
                "bend", "bots", "cccl", "rodinia", "gpu_depths", "hotspot_sizes", "hotspot_steps",
                "hotspot_pyramids", "tools", "vendor", "require_idle_gpu", "gpu_resident",
-               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu", "cudf", "implementations"}
+               "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu", "cudf", "implementations",
+               "bend_ml", "ml_data", "ml_workloads"}
     if unknown := config.keys() - allowed:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     if config.get("schema") != 1:
@@ -164,7 +165,7 @@ def load_config(path):
             raise ValueError("gpu_resident requires a pinned pid, start_ticks and boot_id")
         if not config.get("require_idle_gpu"):
             raise ValueError("gpu_resident requires require_idle_gpu")
-    if not config.get("suites") or set(config["suites"]) - {"vendor", "uts", "cub", "hotspot", "pricing", "mnk", "bfs", "nqueens", "gpu-regression", "cpu-regression"}:
+    if not config.get("suites") or set(config["suites"]) - {"vendor", "uts", "cub", "hotspot", "pricing", "mnk", "bfs", "nqueens", "ml", "gpu-regression", "cpu-regression"}:
         raise ValueError("Unknown or missing suite")
     config.setdefault("vendor_gpu", [])
     selected_gpu = config["vendor_gpu"]
@@ -201,7 +202,20 @@ def load_config(path):
     if (not config["cpus"] or len(set(config["cpus"])) != len(config["cpus"])
             or not set(config["cpus"]) <= os.sched_getaffinity(0)):
         raise ValueError("cpus must be unique CPUs available to this process")
-    for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu"):
+    if "ml" in config["suites"]:
+        from .ml import WORKLOADS
+        if "bend_ml" not in config or set(config.get("ml_data", {})) != {"path"}:
+            raise ValueError("The ml suite requires a pinned bend_ml source and ml_data.path")
+        config["ml_data"]["path"] = str((path.parent / config["ml_data"]["path"]).resolve())
+        config.setdefault("ml_workloads", list(WORKLOADS))
+        if (not config["ml_workloads"] or set(config["ml_workloads"]) - set(WORKLOADS)
+                or len(set(config["ml_workloads"])) != len(config["ml_workloads"])):
+            raise ValueError("ml_workloads must select unique workloads from " + ", ".join(WORKLOADS))
+        if config.get("cuda"):
+            raise ValueError("The ml suite currently runs on the CPU only")
+    for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu", "bend_ml"):
+        if key == "bend_ml" and key not in config:
+            continue
         if key in {"gap", "gunrock", "moderngpu"} and key not in config:
             if "bfs" in config["suites"]:
                 raise ValueError(f"BFS requires pinned {key} source")
@@ -229,8 +243,15 @@ def load_config(path):
             if not config[key] or set(config[key]) - allowed_values or len(set(config[key])) != len(config[key]):
                 raise ValueError(f"Invalid {key}")
     tools = config.setdefault("tools", {})
-    if tools.keys() - {"bun", "cc", "cxx", "cuda_cxx", "cuda_path"}:
+    if tools.keys() - {"bun", "cc", "cxx", "cuda_cxx", "cuda_path", "python_ml"}:
         raise ValueError("Unknown tool option")
+    if "ml" in config["suites"]:
+        if "python_ml" not in tools:
+            raise ValueError("The ml suite requires tools.python_ml, a Python with torch, numpy, safetensors, tiktoken and regex")
+        # Keep the virtual environment's own path: resolving its symlink loses the environment.
+        tools["python_ml"] = os.path.abspath(path.parent / tools["python_ml"])
+        if not Path(tools["python_ml"]).is_file():
+            raise ValueError(f"Missing python_ml: {tools['python_ml']}")
     for name, default in (("bun", "bun"), ("cc", "clang"), ("cxx", "g++"), ("cuda_cxx", "clang++")):
         value = tools.get(name, default)
         # Keep argv[0]: resolving clang++ to clang changes its linker defaults.
@@ -283,7 +304,11 @@ def provenance(config):
     if '_build_artifact' in config:
         from .builds import runtime_provenance
         return runtime_provenance(config)
-    sources = {key: repository(config[key]) for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu") if key in config}
+    sources = {key: repository(config[key]) for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu", "bend_ml") if key in config}
+    if "ml_data" in config:
+        from .ml import DATA
+        packages = output([config["tools"]["python_ml"], "-c", "import importlib.metadata as m; print(sorted(f'{d.name}=={d.version}' for d in m.distributions()))"])
+        sources["ml_data"] = dict(path=config["ml_data"]["path"], files=DATA, python_packages=packages, patch="")
     if "cudf" in config:
         spec = config["cudf"]
         root = Path(spec["path"])
@@ -389,6 +414,9 @@ def idle_gpu(config=None):
 def correct(case, result):
     if result["returncode"] or result["timeout"] or result.get("contention_error"):
         return False
+    if 'ml_kind' in case:
+        from .ml import correct as ml_correct
+        return ml_correct(case, result)
     if 'regression_kind' in case:
         from .fast import correct_special
         return correct_special(case, result)

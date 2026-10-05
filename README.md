@@ -12,6 +12,7 @@ Additional benchmarks are chosen to span a few interesting dimensions:
 - Pricing and game search contrast predictable independent work with uneven, decision-dependent work.
 - HotSpot and BFS contrast regular local communication with irregular shared-data access.
 - Sorting and summation from NVIDIA’s [CUB](https://github.com/NVIDIA/cccl/tree/main/cub) library compare to highly optimized primitives.
+- Machine learning from [bend-ml](ML.md) compares GPT-2 and nanoGPT inference, MNIST training and matrix products with [PyTorch](https://pytorch.org/).
 - Unbalanced Tree Search from [BOTS](https://github.com/bsc-pm/bots) tests Bend's [documented limitation](https://github.com/bendlang/bend/blob/b9d1352c9f45632447f40a2e927355c92f2be58c/README.md#limitations) that "Parallelism requires balanced calls. Flexible parallelism will be added later."
 
 ## Results

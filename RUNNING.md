@@ -56,6 +56,10 @@ uv run --locked bend-bench profile applications-bfs.toml --nsys /path/to/nsys
 uv run --locked bend-bench report runs/RUN_ID
 ```
 
+## Machine-learning suite
+
+`uv run --locked bend-bench run ml.toml` times bend-ml's GPT-2, nanoGPT, MNIST and matrix-product programs against PyTorch. It needs a pinned bend-ml checkout, its data and a Python with PyTorch; [ML.md](ML.md) covers the setup.
+
 ## Comparing Bend revisions
 
 Before benchmarking a compiler change, check it against the checkout it changes. `compiler-check` emits C, JS and MJS for every fast-profile port, the generated compile-stress programs, and both checkouts' demos and tests, then builds and runs every test with a `#|` expectation:
