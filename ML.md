@@ -2,6 +2,20 @@
 
 How fast is Bend at machine-learning work written the way a Bend programmer writes it today? The `ml` suite times [bend-ml](https://github.com/nuxyel/bend-ml), Renan Vinícius's machine learning in Bend 2 with tensor shapes checked by the type system, against [PyTorch](https://pytorch.org/) on the same CPU threads. bend-ml's own measurements put PyTorch about 35× ahead on MNIST and 2–5× on GPT-2, and attribute the gap to Bend's scalar code rather than its types. This suite tracks that gap on Bend's latest revision and on compiler changes.
 
+## First results
+
+On Bend d052d4f3 (5 October 2026), Bend takes 4–5× PyTorch's time on transformer inference and 13–82× on training and single products. Each cell is Bend's median compute time divided by PyTorch's, with both medians, ten correctness-checked runs each on the shared Ryzen 9 3950X host; above 1× means PyTorch is faster:
+
+| Workload | 1 thread | 16 threads |
+|---|---:|---:|
+| GPT-2 small, 24 tokens | 4.1× (3.95 s / 0.96 s) | 4.2× (4.16 s / 0.99 s) |
+| nanoGPT sizes, 10 × 24 tokens | 4.4× (6.23 s / 1.42 s) | 5.2× (6.59 s / 1.27 s) |
+| MNIST MLP, one training epoch | 82× (38.1 s / 0.46 s) | 46× (16.5 s / 0.36 s) |
+| `mm_array`, 128,000 dot products | 26× (87 ms / 3.3 ms) | 41× (75 ms / 1.8 ms) |
+| `mv`, 101 matrix-vector products | 13× (173 ms / 12.9 ms) | 16× (195 ms / 12.6 ms) |
+
+Bend's transformer times do not improve with threads, since bend-ml computes its products sequentially; MNIST's batched products run in parallel blocks and gain 2.3× from 16 threads. The raw report is `runs/d6e9954a0fb909dd5375/report.md`.
+
 ## Workloads
 
 | Workload | Bend program | What it exercises | PyTorch baseline | Correctness |
