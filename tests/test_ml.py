@@ -36,6 +36,14 @@ class Sources(unittest.TestCase):
         for text in ("TA.Mat<1152n, 384n>", "TA.Mat<65n, 384n>", "attn(6n", "load_layers(6n", '"demos/nanogpt/w/"', "bench_report"):
             self.assertIn(text, source)
 
+    def test_batch_program_forks_prebuilt_handles(self):
+        source = ml.nano_batch_source((ml.VENDORED / "demos/gpt2/fast.bend").read_text())
+        self.assertEqual(source.count("def bench_report("), 1)
+        self.assertEqual(source.count("def main() -> IO(Unit):"), 1)
+        self.assertIn("batch!(d, model", source)
+        self.assertIn("generations(handles(d, m), ids, n)", source)
+        self.assertNotRegex(source, r"@[A-Z]+@")
+
     def test_seeded_weights_are_the_pinned_ones(self):
         with tempfile.TemporaryDirectory() as tmp:
             ml.nano_weights(Path(tmp))

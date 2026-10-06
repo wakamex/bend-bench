@@ -86,6 +86,8 @@ def compute_marker(text, line, where):
     indent = re.match(r" *", line)[0]
     text = replace_once(text, line + "\n", f"{indent}t_begin : Nat <- IO.now()\n{line}\n{indent}t_end : Nat <- IO.now()\n"
                         f"{indent}bench_report(t_begin, t_end)\n", where)
+    if "def bench_report(" in text:
+        return text
     imports = list(re.finditer(r"^import .*\n", text, re.M))
     return text[:imports[-1].end()] + REPORT + text[imports[-1].end():]
 
@@ -125,6 +127,21 @@ def nano_source(fast):
     main = (ASSETS / "nanogpt-main.bend").read_text().replace("@KV@", f"{L}n").replace("@VOCAB@", json.dumps(NANO_VOCAB))
     text = body.rstrip("\n") + "\n" + main
     return compute_marker(text, "    reps(k, ids_of(String.to_list(prompt)), n, SM{St{Nil{}, 0n, 0n, Nil{}, 0n, Nil{}}, model})", "nanogpt")
+
+
+def nano_batch_source(fast):
+    """nano_source's program with its main replaced by a batch of 2^d generations
+    (assets/ml/nanogpt-batch.bend, bend-bench's own code), timed around the batch."""
+    text = nano_source(fast)
+    text = text[:text.index("def main() -> IO(Unit):")]
+    d = NANO["width"]
+    ext = (ASSETS / "nanogpt-batch.bend").read_text()
+    for mark, value in (("@QKV@", 3 * d), ("@MLP@", 4 * d), ("@V@", NANO["vocab"]), ("@CTX@", NANO["context"]),
+                        ("@D@", d), ("@KV@", NANO["layers"])):
+        ext = ext.replace(mark, f"{value}n")
+    text = text.rstrip("\n") + "\n\n" + ext
+    return compute_marker(text, "    gs : List<&1, Gen> <- IO.pure(List<&1, Gen>, batch!(d, model, ids_of(String.to_list(prompt)), n))",
+                          "nanogpt batch")
 
 
 def nano_tensors():
