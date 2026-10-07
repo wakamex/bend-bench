@@ -8,6 +8,13 @@
 type Gen is Type:
   Gen{ids: List<&2, Nat>, lgs: List<&2, F32>}
 
+# The batch's results as a tree, flattened on the host: appending lists at
+# each join recursed once per sequence on a GPU lane's stack, which overflowed
+# at 2,048 sequences.
+type GenTree is Type:
+  GenLeaf{g: Gen}
+  GenNode{l: GenTree, r: GenTree}
+
 @unsafe
 def mat_fork2(-r: Nat, -c: Nat, p: Array<F32> & Array<F32>) -> TA.Mat<r, c> & TA.Mat<r, c>:
   (a, b) = p
@@ -97,16 +104,16 @@ def handles(+d: Nat, m: Model) -> ModelTree:
       handles2(e, model_fork(m))
 
 @unsafe
-def generations(t: ModelTree, +ids: List<&2, Nat>, +n: Nat) -> List<&1, Gen>:
+def generations(t: ModelTree, +ids: List<&2, Nat>, +n: Nat) -> GenTree:
   match t:
     case ModelLeaf{m}:
-      gen1(m, ids, n) <> Nil{}
+      GenLeaf{gen1(m, ids, n)}
     case ModelNode{l, r}:
       x y = generations(l, ids, n) generations(r, ids, n)
-      List.append(&1, Gen, x, y)
+      GenNode{x, y}
 
 @unsafe
-def batch(+d: Nat, m: Model, +ids: List<&2, Nat>, +n: Nat) -> List<&1, Gen>:
+def batch(+d: Nat, m: Model, +ids: List<&2, Nat>, +n: Nat) -> GenTree:
   generations(handles(d, m), ids, n)
 
 def show_gen(ids: List<&2, Nat>, lgs: List<&2, F32>) -> String:
@@ -116,18 +123,18 @@ def show_gen(ids: List<&2, Nat>, lgs: List<&2, F32>) -> String:
     case _ _:
       ""
 
-def show_gens(gs: List<&1, Gen>) -> String:
+def show_gens(gs: GenTree) -> String:
   match gs:
-    case Nil{}:
-      ""
-    case Con{Gen{ids, lgs}, t}:
-      show_gen(List.reverse(&2, Nat, ids), List.reverse(&2, F32, lgs)) ++ show_gens(t)
+    case GenLeaf{Gen{ids, lgs}}:
+      show_gen(List.reverse(&2, Nat, ids), List.reverse(&2, F32, lgs))
+    case GenNode{l, r}:
+      show_gens(l) ++ show_gens(r)
 
 @unsafe
 def run_batch(prompt: String, +n: Nat, +d: Nat) -> IO(Unit):
   do IO<Unit>:
     model : Model <- load_model()
-    gs : List<&1, Gen> <- IO.pure(List<&1, Gen>, batch!(d, model, ids_of(String.to_list(prompt)), n))
+    gs : GenTree <- IO.pure(GenTree, batch!(d, model, ids_of(String.to_list(prompt)), n))
     IO.print(show_gens(gs))
 
 @unsafe

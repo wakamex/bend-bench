@@ -140,7 +140,7 @@ def nano_batch_source(fast):
                         ("@D@", d), ("@KV@", NANO["layers"])):
         ext = ext.replace(mark, f"{value}n")
     text = text.rstrip("\n") + "\n\n" + ext
-    return compute_marker(text, "    gs : List<&1, Gen> <- IO.pure(List<&1, Gen>, batch!(d, model, ids_of(String.to_list(prompt)), n))",
+    return compute_marker(text, "    gs : GenTree <- IO.pure(GenTree, batch!(d, model, ids_of(String.to_list(prompt)), n))",
                           "nanogpt batch")
 
 

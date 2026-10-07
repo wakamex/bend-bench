@@ -124,16 +124,17 @@ def main():
     parser.add_argument("--bun", type=Path, default=ROOT.parent / "bend2/tools/bun-linux-x64/bun")
     parser.add_argument("--torch-cpu", type=Path, required=True)
     parser.add_argument("--torch-cuda", type=Path, required=True)
+    parser.add_argument("--min", type=int, default=0, help="smallest log2 sequences (default 0: 1)")
     parser.add_argument("--max", type=int, default=10, help="largest log2 sequences (default 10: 1,024)")
     parser.add_argument("--gpu-max", type=int, default=8, help="largest log2 sequences for Bend's GPU (default 8)")
     parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument("--timeout", type=int, default=7200)
     parser.add_argument("--out", type=Path)
-    parser.add_argument("--analyse", type=Path, help="Only fit and report an earlier sweep's samples")
+    parser.add_argument("--analyse", type=Path, nargs="+", help="Only fit and report earlier sweeps' samples together")
     args = parser.parse_args()
     if args.analyse:
-        rows = [json.loads(line) for line in (args.analyse / "samples.jsonl").read_text().splitlines()]
-        print(report(args.analyse, *analyse(rows)))
+        rows = [json.loads(line) for folder in args.analyse for line in (folder / "samples.jsonl").read_text().splitlines()]
+        print(report(args.analyse[-1], *analyse(rows)))
         return
     out = (args.out or ROOT / "runs" / time.strftime("ml-scaling-%Y%m%d-%H%M%S")).resolve()
     out.mkdir(parents=True)
@@ -150,7 +151,7 @@ def main():
     impls = ["bend-cpu", "bend-gpu", "pytorch-cpu", "pytorch-cuda"]
     with (out / "samples.jsonl").open("a") as log:
         for rnd in range(args.rounds):
-            for d in range(args.max + 1):
+            for d in range(args.min, args.max + 1):
                 order = impls[rnd % 4:] + impls[:rnd % 4]
                 for impl in order:
                     if impl == "bend-gpu" and d > args.gpu_max:
