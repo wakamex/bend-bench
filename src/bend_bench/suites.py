@@ -144,7 +144,7 @@ def plan(config, work):
 
     if "ml" in config["suites"]:
         from .ml import plan as plan_ml
-        plan_ml(config, work, build, case, cases, bend_build)
+        plan_ml(config, work, case, cases, bend_build, gpu_reason)
 
     if "nqueens" in config["suites"]:
         reference = work / "build/nqueens-bitmask"

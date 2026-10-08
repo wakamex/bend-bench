@@ -44,6 +44,17 @@ class Sources(unittest.TestCase):
         self.assertIn("generations(handles(d, m), ids, n)", source)
         self.assertNotRegex(source, r"@[A-Z]+@")
 
+    def test_pytorch_mnist_gains_cuda_and_the_compute_marker(self):
+        checkout = Path("/code/bend-ml")
+        if not (checkout / ".git").exists():
+            self.skipTest("bend-ml checkout unavailable")
+        text = subprocess.run(["git", "-C", checkout, "show", f"{ml.BEND_ML_COMMIT}:reference/mnist_torch.py"], capture_output=True,
+                              check=True, text=True).stdout
+        source = ml.mnist_torch_source(text)
+        compile(source, "mnist_bench.py", "exec")
+        for line in ('ap.add_argument("--cuda"', 'device="cuda" if a.cuda else "cpu"', "EVAL_COMPUTE_SECONDS="):
+            self.assertIn(line, source)
+
     def test_seeded_weights_are_the_pinned_ones(self):
         with tempfile.TemporaryDirectory() as tmp:
             ml.nano_weights(Path(tmp))
@@ -103,9 +114,46 @@ class Configuration(unittest.TestCase):
             path.write_text(base + '[bend_ml]\npath = "."\ncommit = "' + "0" * 40 + '"\n[ml_data]\npath = "."\n')
             with self.assertRaisesRegex(ValueError, "python_ml"):
                 load_config(path)
+            path.write_text('cuda = true\n' + base + '[bend_ml]\npath = "."\ncommit = "' + "0" * 40 + '"\n[ml_data]\npath = "."\n'
+                            '[tools]\npython_ml = "/usr/bin/python3"\n')
+            with self.assertRaisesRegex(ValueError, "python_ml_cuda"):
+                load_config(path)
             path.write_text('ml_workloads = ["gpt3"]\n' + base + '[bend_ml]\npath = "."\ncommit = "' + "0" * 40 + '"\n[ml_data]\npath = "."\n')
             with self.assertRaisesRegex(ValueError, "ml_workloads"):
                 load_config(path)
+
+
+class Plan(unittest.TestCase):
+    def cases(self, cuda):
+        cases = []
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "bend-ml").mkdir()
+            (Path(tmp) / "bend-ml/gpt2.json").write_text(json.dumps(dict(prompt_ids=[1, 2])))
+            config = dict(threads=[1, 16], cuda=cuda, gpu_heap="8GB", bend_ml=dict(commit="0" * 40),
+                          ml_workloads=["nanogpt-batch", "mnist"], tools=dict(python_ml="/cpu/python", python_ml_cuda="/cuda/python"))
+
+            def case(suite, workload, implementation, threads, binary, args, expected, reason=None, contract=None):
+                cases.append(dict(id=f"{suite}/{workload}/{implementation}/{threads}", suite=suite, workload=workload,
+                                  command=[str(binary), *map(str, args)], unsupported=reason, contract=contract))
+            ml.plan(config, Path(tmp), case, cases, lambda source, name, gpu=False: f"/build/{name}", None)
+        return {c["id"]: c for c in cases}
+
+    def test_the_batch_runs_on_four_implementations_at_the_most_threads(self):
+        cases = self.cases(cuda=True)
+        self.assertEqual(sorted(cases), ["ml/mnist/bend/1", "ml/mnist/bend/16", "ml/mnist/pytorch-cuda/16", "ml/mnist/pytorch/1",
+                                         "ml/mnist/pytorch/16", "ml/nanogpt-batch/bend-cuda/16", "ml/nanogpt-batch/bend/16",
+                                         "ml/nanogpt-batch/pytorch-cuda/16", "ml/nanogpt-batch/pytorch/16"])
+        self.assertEqual(cases["ml/nanogpt-batch/bend-cuda/16"]["command"][0], "/build/ml-nanogpt-batch-cuda")
+        self.assertEqual(cases["ml/nanogpt-batch/bend-cuda/16"]["command"][-2:], ["--gpu", "8GB"])
+        self.assertEqual(cases["ml/nanogpt-batch/bend/16"]["command"][-2:], ["--gpu", "off"])
+        self.assertEqual(cases["ml/nanogpt-batch/pytorch-cuda/16"]["command"][0], "/cuda/python")
+        self.assertEqual(cases["ml/nanogpt-batch/pytorch-cuda/16"]["command"][-3:], ["--batch", "1024", "--cuda"])
+        batch = cases["ml/nanogpt-batch/bend/16"]
+        self.assertEqual((batch["ml_kind"], batch["contract"]["repetitions"]), ("nanogpt", 1024))
+        self.assertTrue(batch["ml_reference"].endswith("nanogpt.json"))
+
+    def test_without_cuda_only_cpu_cases(self):
+        self.assertFalse([name for name in self.cases(cuda=False) if "cuda" in name])
 
 
 class FastNanoGPT(unittest.TestCase):

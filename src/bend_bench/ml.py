@@ -12,7 +12,12 @@ inside a timed sample:
 - nanogpt: nanoGPT's shakespeare-char sizes (6 layers, 6 heads, 384 wide, 65 characters),
   generated from fast.bend with seeded weights from Python's standard library; reference and
   baseline as for gpt2 (the reference recomputes the full context per token).
-- mnist: one epoch of a 784-128-10 MLP, demos/mnist/fast.bend against reference/mnist_torch.py.
+- nanogpt-batch: the nanoGPT generation repeated over a batch of 2^NANO_BATCH sequences, Bend's
+  CPU and GPU against PyTorch's CPU and CUDA. bend-bench's own wrapper (assets/ml/nanogpt-batch.bend)
+  gives each sequence a whole generation, forked over shared weights; PyTorch runs one batched
+  forward pass per step.
+- mnist: one epoch of a 784-128-10 MLP, demos/mnist/fast.bend against reference/mnist_torch.py,
+  which also runs on CUDA. Bend's MNIST runs on the CPU only.
 - mm_array, mv: bend-ml's bench/ products: 128,000 dot products of 784 elements over Array<F32>,
   and 101 products of a 768 vector with a 2304 x 768 matrix.
 """
@@ -45,11 +50,12 @@ DATA = {
 }
 PACKAGES = {"bend-ml-tensor": "tensor", "bend-ml-tensor-array": "tensor-array",
             "bend-ml-nat-lemmas": "nat-lemmas", "bend-ml-bpe-tokenizer": "bpe"}
-WORKLOADS = ("gpt2", "nanogpt", "mnist", "mm_array", "mv")
+WORKLOADS = ("gpt2", "nanogpt", "nanogpt-batch", "mnist", "mm_array", "mv")
 GPT2_PROMPT, GPT2_TOKENS = "The capital of France is", 24
 NANO_PROMPT, NANO_TOKENS, NANO_REPS = "ROMEO:", 24, 10
 NANO_VOCAB = "\n !$&',-.3:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 NANO = dict(layers=6, heads=6, width=384, vocab=65, context=256)
+NANO_BATCH = 10  # 2^10 = 1,024 sequences, well below the 8,192 from which Bend's GPU faults
 MV = dict(KN=768, MN=2304, REPS=100, PAR=0)
 # The seeded weights, every tensor in nano_tensors() order: the vendored reference
 # (assets/ml/nanogpt-reference.json) holds only for these bytes.
@@ -266,6 +272,8 @@ def stage(config, work):
     reference = run([python, str(ASSETS / "gpt_torch.py"), "demos/nanogpt/w", str(NANO["layers"]), str(NANO["heads"]),
                      ids, str(NANO_TOKENS), "1", "1", "--recompute"], ml)
     write_reference(ml / "nanogpt.json", reference, prompt_ids=json.dumps([int(x) for x in ids.split()]))
+    batch = relink(nano_batch_source((checkout / "demos/gpt2/fast.bend").read_text()), "../../pkg")
+    (ml / "demos/nanogpt/nano_batch.bend").write_text(batch)
     # MNIST
     m = ml / "demos/mnist"
     (m / "data").mkdir(parents=True, exist_ok=True)
@@ -274,11 +282,7 @@ def stage(config, work):
     (m / "fast.bend").write_text(mnist)
     for name in ("train-images-idx3-ubyte", "train-labels-idx1-ubyte", "t10k-images-idx3-ubyte", "t10k-labels-idx1-ubyte"):
         link(data / "mnist" / name, m / "data" / name)
-    torch_mnist = (ml / "reference/mnist_torch.py").read_text()
-    torch_mnist = replace_once(torch_mnist, "        dt = time.time() - t0\n",
-                               "        dt = time.time() - t0\n        print(f\"EVAL_COMPUTE_SECONDS={dt:.6f}\", file=sys.stderr)\n", "mnist_torch")
-    torch_mnist = replace_once(torch_mnist, "import argparse, os, time\n", "import argparse, os, sys, time\n", "mnist_torch")
-    (ml / "reference/mnist_bench.py").write_text(torch_mnist)
+    (ml / "reference/mnist_bench.py").write_text(mnist_torch_source((ml / "reference/mnist_torch.py").read_text()))
     run([python, "reference/mnist_torch.py", "--make-init", "--epochs", "1", "--max-batches", "1"], ml)
     reference = run([python, "reference/mnist_torch.py", "--epochs", "1", "--threads", "1"], ml)
     loss, acc = re.search(r"^epoch 1 train_loss=([\d.]+) test_acc=([\d.]+)", reference, re.M).groups()
@@ -305,6 +309,22 @@ def stage(config, work):
     (ml / "products.json").write_text(json.dumps(dict(mm_array=98.0 * 128001, mv=best * (MV["REPS"] + 1))))
 
 
+def mnist_torch_source(text):
+    """reference/mnist_torch.py reporting its epoch's seconds on stderr, with --cuda to run on the GPU."""
+    text = replace_once(text, "        dt = time.time() - t0\n",
+                        "        dt = time.time() - t0\n        print(f\"EVAL_COMPUTE_SECONDS={dt:.6f}\", file=sys.stderr)\n", "mnist_torch")
+    text = replace_once(text, "import argparse, os, time\n", "import argparse, os, sys, time\n", "mnist_torch")
+    text = replace_once(text, '    ap.add_argument("--make-init", action="store_true")\n',
+                        '    ap.add_argument("--make-init", action="store_true")\n    ap.add_argument("--cuda", action="store_true")\n',
+                        "mnist_torch")
+    text = replace_once(text, "torch.tensor(v, requires_grad=True)",
+                        'torch.tensor(v, requires_grad=True, device="cuda" if a.cuda else "cpu")', "mnist_torch")
+    text = replace_once(text, "    nb = len(Xtr) // a.bs\n",
+                        '    Xtr, ytr, Xte, yte = (t.to(p["w1"].device) for t in (Xtr, ytr, Xte, yte))\n    nb = len(Xtr) // a.bs\n',
+                        "mnist_torch")
+    return text
+
+
 def link(source, target):
     if target.is_symlink() or target.exists():
         target.unlink()
@@ -328,12 +348,12 @@ def write_reference(path, text, prompt_ids):
 # cases and correctness
 
 
-def plan(config, work, build, case, cases, bend_build):
-    python = config["tools"]["python_ml"]
+def plan(config, work, case, cases, bend_build, gpu_reason):
+    python, python_cuda = config["tools"]["python_ml"], config["tools"].get("python_ml_cuda")
     ml = work / "bend-ml"
-    threads = config["threads"]
-    sources = {"gpt2": "demos/gpt2/fast.bend", "nanogpt": "demos/nanogpt/nano.bend", "mnist": "demos/mnist/fast.bend",
-               "mm_array": "bench/mm_array.bend", "mv": "bench/mv.bend"}
+    threads, most = config["threads"], max(config["threads"])
+    sources = {"gpt2": "demos/gpt2/fast.bend", "nanogpt": "demos/nanogpt/nano.bend", "nanogpt-batch": "demos/nanogpt/nano_batch.bend",
+               "mnist": "demos/mnist/fast.bend", "mm_array": "bench/mm_array.bend", "mv": "bench/mv.bend"}
     gpt2_ids = " ".join(map(str, json.loads((ml / "gpt2.json").read_text())["prompt_ids"]))
     nano_ids = " ".join(str(NANO_VOCAB.index(c)) for c in NANO_PROMPT)
     commands = {
@@ -342,6 +362,9 @@ def plan(config, work, build, case, cases, bend_build):
         "nanogpt": ([NANO_PROMPT, NANO_TOKENS, NANO_REPS],
                     lambda t: [python, ASSETS / "gpt_torch.py", "demos/nanogpt/w", NANO["layers"], NANO["heads"], nano_ids,
                                NANO_TOKENS, NANO_REPS, t]),
+        "nanogpt-batch": ([NANO_PROMPT, NANO_TOKENS, NANO_BATCH],
+                          lambda t: [python, ASSETS / "gpt_torch.py", "demos/nanogpt/w", NANO["layers"], NANO["heads"], nano_ids,
+                                     NANO_TOKENS, 1, t, "--batch", 2 ** NANO_BATCH]),
         "mnist": ([1, 0, 0.1], lambda t: [python, "reference/mnist_bench.py", "--epochs", 1, "--threads", t]),
         "mm_array": ([], lambda t: [python, ASSETS / "products_torch.py", "mm_array", t]),
         "mv": ([], lambda t: [python, ASSETS / "products_torch.py", "mv", t, MV["KN"], MV["MN"], MV["REPS"]]),
@@ -352,23 +375,36 @@ def plan(config, work, build, case, cases, bend_build):
         "nanogpt": dict(workload="nanogpt-shakespeare-char-greedy", prompt=NANO_PROMPT, tokens=NANO_TOKENS, repetitions=NANO_REPS,
                         sizes=NANO, weights="seeded uniform, nanoGPT standard deviations, seed 1337",
                         timed="generation after loading", reference="full recompute per token", logit_tolerance=1e-3),
+        "nanogpt-batch": dict(workload="nanogpt-shakespeare-char-greedy-batch", prompt=NANO_PROMPT, tokens=NANO_TOKENS,
+                              sequences=2 ** NANO_BATCH, repetitions=2 ** NANO_BATCH, sizes=NANO,
+                              weights="seeded uniform, nanoGPT standard deviations, seed 1337",
+                              timed="the batch's generation after loading", reference="full recompute per token",
+                              batching="bend-bench's assets/ml/nanogpt-batch.bend", logit_tolerance=1e-3),
         "mnist": dict(workload="mnist-mlp-784-128-10-one-epoch", batch=100, lr=0.1, timed="training epoch",
                       reference="bend-ml reference/mnist_torch.py, 1 thread", loss_tolerance=1e-4, correct_tolerance=2),
         "mm_array": dict(workload="dot-784-x128000", timed="products", expected=98.0 * 128001),
         "mv": dict(workload="matvec-768x2304-x101", timed="products", rel_tolerance=1e-4),
     }
     for name in config.get("ml_workloads", WORKLOADS):
-        binary = bend_build(ml / sources[name], f"ml-{name}")
+        batch = name == "nanogpt-batch"
+        binary = bend_build(ml / sources[name], f"ml-{name}", batch and config["cuda"])
         args, baseline = commands[name]
         contract = dict(contracts[name], bend_ml=config["bend_ml"]["commit"])
-        for t in threads:
-            case("ml", name, "bend", t, binary, ["--threads", t, *args], "", contract=contract)
+        # the batch takes minutes per run, so only at the most threads
+        for t in [most] if batch else threads:
+            case("ml", name, "bend", t, binary, ["--threads", t, *args] + (["--gpu", "off"] if batch else []), "", contract=contract)
             case("ml", name, "pytorch", t, python, baseline(t)[1:], "", contract=contract)
+        if config["cuda"] and batch:
+            case("ml", name, "bend-cuda", most, str(binary) + "-cuda", ["--threads", most, *args, "--gpu", config["gpu_heap"]],
+                 "", gpu_reason, contract)
+        if config["cuda"] and name in ("nanogpt-batch", "mnist"):
+            case("ml", name, "pytorch-cuda", most, python_cuda, baseline(most)[1:] + ["--cuda"], "", gpu_reason, contract)
         for item in cases:
             if item["suite"] == "ml" and item["workload"] == name:
                 item["cwd"] = "bend-ml"
-                item["ml_kind"] = name
-                item["ml_reference"] = str(ml / {"gpt2": "gpt2.json", "nanogpt": "nanogpt.json", "mnist": "mnist.json"}.get(name, "products.json"))
+                item["ml_kind"] = "nanogpt" if batch else name
+                item["ml_reference"] = str(ml / {"gpt2": "gpt2.json", "nanogpt": "nanogpt.json", "nanogpt-batch": "nanogpt.json",
+                                                 "mnist": "mnist.json"}.get(name, "products.json"))
 
 
 def generated(stdout):

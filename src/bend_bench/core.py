@@ -211,8 +211,6 @@ def load_config(path):
         if (not config["ml_workloads"] or set(config["ml_workloads"]) - set(WORKLOADS)
                 or len(set(config["ml_workloads"])) != len(config["ml_workloads"])):
             raise ValueError("ml_workloads must select unique workloads from " + ", ".join(WORKLOADS))
-        if config.get("cuda"):
-            raise ValueError("The ml suite currently runs on the CPU only")
     for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu", "bend_ml"):
         if key == "bend_ml" and key not in config:
             continue
@@ -243,15 +241,19 @@ def load_config(path):
             if not config[key] or set(config[key]) - allowed_values or len(set(config[key])) != len(config[key]):
                 raise ValueError(f"Invalid {key}")
     tools = config.setdefault("tools", {})
-    if tools.keys() - {"bun", "cc", "cxx", "cuda_cxx", "cuda_path", "python_ml"}:
+    if tools.keys() - {"bun", "cc", "cxx", "cuda_cxx", "cuda_path", "python_ml", "python_ml_cuda"}:
         raise ValueError("Unknown tool option")
     if "ml" in config["suites"]:
         if "python_ml" not in tools:
             raise ValueError("The ml suite requires tools.python_ml, a Python with torch, numpy, safetensors, tiktoken and regex")
-        # Keep the virtual environment's own path: resolving its symlink loses the environment.
-        tools["python_ml"] = os.path.abspath(path.parent / tools["python_ml"])
-        if not Path(tools["python_ml"]).is_file():
-            raise ValueError(f"Missing python_ml: {tools['python_ml']}")
+        if config.get("cuda") and "python_ml_cuda" not in tools:
+            raise ValueError("The ml suite on CUDA requires tools.python_ml_cuda, a Python with a CUDA build of torch and numpy")
+        for name in ("python_ml", "python_ml_cuda"):
+            if name in tools:
+                # Keep the virtual environment's own path: resolving its symlink loses the environment.
+                tools[name] = os.path.abspath(path.parent / tools[name])
+                if not Path(tools[name]).is_file():
+                    raise ValueError(f"Missing {name}: {tools[name]}")
     for name, default in (("bun", "bun"), ("cc", "clang"), ("cxx", "g++"), ("cuda_cxx", "clang++")):
         value = tools.get(name, default)
         # Keep argv[0]: resolving clang++ to clang changes its linker defaults.
@@ -307,7 +309,8 @@ def provenance(config):
     sources = {key: repository(config[key]) for key in ("bend", "bots", "cccl", "gap", "gunrock", "moderngpu", "bend_ml") if key in config}
     if "ml_data" in config:
         from .ml import DATA
-        packages = output([config["tools"]["python_ml"], "-c", "import importlib.metadata as m; print(sorted(f'{d.name}=={d.version}' for d in m.distributions()))"])
+        packages = {name: output([config["tools"][name], "-c", "import importlib.metadata as m; print(sorted(f'{d.name}=={d.version}' for d in m.distributions()))"])
+                    for name in ("python_ml", "python_ml_cuda") if name in config["tools"]}
         sources["ml_data"] = dict(path=config["ml_data"]["path"], files=DATA, python_packages=packages, patch="")
     if "cudf" in config:
         spec = config["cudf"]
