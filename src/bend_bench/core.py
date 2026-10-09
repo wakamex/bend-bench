@@ -145,7 +145,7 @@ def load_config(path):
                "bend", "bots", "cccl", "rodinia", "gpu_depths", "hotspot_sizes", "hotspot_steps",
                "hotspot_pyramids", "tools", "vendor", "require_idle_gpu", "gpu_resident",
                "pricing_depths", "pricing_steps", "bfs_depths", "mnk_games", "gap", "gunrock", "moderngpu", "queens_sizes", "vendor_gpu", "cudf", "implementations",
-               "bend_ml", "ml_data", "ml_workloads"}
+               "bend_ml", "ml_data", "ml_workloads", "cpu_idle"}
     if unknown := config.keys() - allowed:
         raise ValueError(f"Unknown configuration keys: {sorted(unknown)}")
     if config.get("schema") != 1:
@@ -194,6 +194,12 @@ def load_config(path):
         minimum = 10 if key == 'repetitions' and config['suites'] not in (['cpu-regression'], ['gpu-regression']) else 1
         if type(config[key]) is not int or config[key] < minimum:
             raise ValueError(f"Invalid {key}; require >= {minimum}")
+    if "cpu_idle" in config:
+        gate = config["cpu_idle"]
+        if (not isinstance(gate, dict) or set(gate) != {"max_busy", "max_wait"}
+                or not isinstance(gate["max_busy"], (int, float)) or gate["max_busy"] <= 0
+                or type(gate["max_wait"]) is not int or gate["max_wait"] < CPU_WINDOW):
+            raise ValueError(f"cpu_idle requires max_busy, a positive number of busy CPUs, and max_wait, whole seconds >= {CPU_WINDOW}")
     config.setdefault("threads", [1])
     config.setdefault("cpus", sorted(os.sched_getaffinity(0)))
     if (not config["threads"] or any(type(n) is not int or n < 1 or n > len(config["cpus"]) for n in config["threads"])
@@ -404,6 +410,44 @@ def service_state(service):
     if state not in {"active", "activating", "reloading", "deactivating", "inactive", "failed", "unknown"}:
         raise ValueError(f"Cannot inspect blocked service {service}: {result['stderr'].strip()}")
     return state
+
+
+CPU_WINDOW = 5  # seconds over which the CPU gate measures foreign load
+
+
+def busy_cpus(cpus, seconds=CPU_WINDOW):
+    """How many of `cpus` were busy over the next `seconds`, from /proc/stat: the sum over each CPU
+    of its non-idle share, so 2.5 means two and a half CPUs' worth of work."""
+    def snapshot():
+        out = {}
+        with open("/proc/stat") as f:
+            for line in f:
+                name, *fields = line.split()
+                if name.startswith("cpu") and name[3:].isdigit() and int(name[3:]) in cpus:
+                    user, nice, system, idle, iowait, irq, softirq, steal = map(int, fields[:8])
+                    out[name] = (user + nice + system + irq + softirq + steal, user + nice + system + idle + iowait + irq + softirq + steal)
+        return out
+    before = snapshot()
+    time.sleep(seconds)
+    after = snapshot()
+    return sum((after[k][0] - before[k][0]) / max(1, after[k][1] - before[k][1]) for k in before)
+
+
+def quiet_cpus(config):
+    """With cpu_idle configured, waits until the configured CPUs carry at most max_busy CPUs of
+    other work, so no sample starts on a busy host. Load that arrives during a sample is not seen."""
+    gate = config.get("cpu_idle")
+    if not gate:
+        return None
+    start = time.monotonic()
+    while True:
+        busy = busy_cpus(set(config["cpus"]))
+        waited = time.monotonic() - start
+        if busy <= gate["max_busy"]:
+            return dict(busy_cpus=round(busy, 2), waited_seconds=round(waited, 1))
+        if waited >= gate["max_wait"]:
+            raise ValueError(f"{busy:.1f} of {len(config['cpus'])} CPUs stayed busy for {gate['max_wait']} s, above cpu_idle.max_busy "
+                             f"{gate['max_busy']}; resume the run once the host is quiet")
 
 
 def idle_gpu(config=None):

@@ -47,6 +47,8 @@ uv run --locked bend-bench report runs/RUN_ID
 
 `plan` previews commands without executing the workloads. `prepare` builds into a fingerprinted run directory. `check` verifies every selected configuration's output. `run` requires those checks, excludes warmups and collects at least ten measurements. `report` summarizes saved evidence. The CLI is also available through `python -m bend_bench`.
 
+On a shared host, `cpu_idle = {max_busy = 3.0, max_wait = 21600}` holds each sample until the configured CPUs carry at most three CPUs of other work, measured over 5 seconds, and stops the run if that takes more than six hours; `run` then resumes where it stopped. Each sample records the busy count it started at and how long it waited. Load that arrives during a sample is not detected.
+
 For a smaller CPU experiment, select `suites = ["uts"]` and `uts_inputs = ["test"]` in the configuration. That BOTS input has 4,112,897 nodes; the upstream input named `tiny` is larger, at about 30 million nodes.
 
 GPU kernel profiling is a separate stage after unprofiled measurements pass:

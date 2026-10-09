@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import statistics
 
-from .core import append, correct, environment, exclusive, execute, fingerprint, hash_file, idle_gpu, provenance, rows, write_json
+from .core import append, correct, environment, exclusive, execute, fingerprint, hash_file, idle_gpu, provenance, quiet_cpus, rows, write_json
 from .suites import plan, stage
 
 
@@ -94,12 +94,14 @@ def locate(config):
 
 def sample(config, run, identity, case, phase, rep):
     env = {**environment(), **case["env"]}
+    cpu_gate = quiet_cpus(config)
     load = os.getloadavg()
     command = [*case["command"], *(case.get("check_args", []) if phase == "check" else [])]
     result = execute(command, cwd=run / "work" / case.get("cwd", "."), env=env, timeout=config["timeout"], measured=True,
                      gpu_policy=config if config.get("require_idle_gpu") else None)
     output_correct = correct(case, {k: v for k, v in result.items() if k != "contention_error"})
     record = dict(fingerprint=identity, case=case["id"], phase=phase, rep=rep, env=env, load_average_before=load,
+                  **({"cpu_gate": cpu_gate} if cpu_gate else {}),
                   output_correct=output_correct, measurement_valid=not bool(result.get("contention_error")),
                   correct=correct(case, result), **result)
     append(run / "samples.jsonl", record)
