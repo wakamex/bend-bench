@@ -12,8 +12,8 @@ require_idle_gpu = false
 blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-applications.service", "bend-bench-gpu.service", "bend-bench-vendor-cuda.service", "bend-bench-uts-compact.service", "bend-bench-fast-gpu.service"]
 
 [bend]
-path = "../bend"
-commit = "19fa5ae3643241c70bcfbf1bde67d8eb0d4cca30"
+path = "../bend-latest"
+commit = "d5fe65662e02cce0261ad58234c2466f39a0736d"
 
 [rodinia]
 path = "../bend2/rodinia/rodinia_3.1"
