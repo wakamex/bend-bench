@@ -2,19 +2,33 @@
 
 How fast is Bend at machine-learning work written the way a Bend programmer writes it today? The `ml` suite times [bend-ml](https://github.com/nuxyel/bend-ml), Renan Vinícius's machine learning in Bend 2 with tensor shapes checked by the type system, against [PyTorch](https://pytorch.org/) on the same CPU threads, and on the GPU where Bend can use one. bend-ml's own measurements put PyTorch about 35× ahead on MNIST and 2–5× on GPT-2, and attribute the gap to Bend's scalar code rather than its types. This suite tracks that gap on Bend's latest revision and on compiler changes.
 
-## First results
+## Results on Bend d5fe6566
 
-On Bend d052d4f3 (5 October 2026), Bend takes 4–5× PyTorch's time on transformer inference and 13–82× on training and single products. Each cell is Bend's median compute time divided by PyTorch's, with both medians, ten correctness-checked runs each on the shared Ryzen 9 3950X host; above 1× means PyTorch is faster:
+On Bend d5fe6566 (9 October 2026), Bend takes about 5× PyTorch's time on transformer inference for one sequence, 38× on a CPU batch, 193× on the GPU, and 14–74× on training and single products. Each cell is the median compute time over ten correctness-checked runs on the shared Ryzen 9 3950X and RTX 3090 host, with each run held until other work used at most three CPUs (`cpu_idle` in [RUNNING.md](RUNNING.md)). The ratio is Bend's time divided by PyTorch's; above 1× means PyTorch is faster:
 
-| Workload | 1 thread | 16 threads |
-|---|---:|---:|
-| GPT-2 small, 24 tokens | 4.1× (3.95 s / 0.96 s) | 4.2× (4.16 s / 0.99 s) |
-| nanoGPT sizes, 10 × 24 tokens | 4.4× (6.23 s / 1.42 s) | 5.2× (6.59 s / 1.27 s) |
-| MNIST MLP, one training epoch | 82× (38.1 s / 0.46 s) | 46× (16.5 s / 0.36 s) |
-| `mm_array`, 128,000 dot products | 26× (87 ms / 3.3 ms) | 41× (75 ms / 1.8 ms) |
-| `mv`, 101 matrix-vector products | 13× (173 ms / 12.9 ms) | 16× (195 ms / 12.6 ms) |
+| Workload | Bend | PyTorch | Bend / PyTorch |
+|---|---:|---:|---:|
+| GPT-2 small, 24 tokens, 1 thread | 3.91 s | 0.80 s | 4.9× |
+| GPT-2 small, 24 tokens, 16 threads | 3.89 s | 0.80 s | 4.9× |
+| nanoGPT sizes, 10 × 24 tokens, 1 thread | 5.49 s | 1.20 s | 4.6× |
+| nanoGPT sizes, 10 × 24 tokens, 16 threads | 5.92 s | 1.19 s | 5.0× |
+| nanoGPT batch, 1,024 sequences × 24 tokens, CPU at 16 threads | 99.8 s | 2.64 s | 38× |
+| nanoGPT batch, 1,024 sequences × 24 tokens, Bend's GPU against PyTorch on CUDA | 195 s | 1.01 s | 193× |
+| MNIST MLP, one training epoch, 1 thread | 31.4 s | 0.42 s | 74× |
+| MNIST MLP, one training epoch, 16 threads | 10.4 s | 0.25 s | 41× |
+| MNIST MLP, one training epoch, Bend at 16 threads against PyTorch on CUDA | 10.4 s | 0.45 s | 23× |
+| `mm_array`, 128,000 dot products, 1 thread | 73 ms | 2.8 ms | 26× |
+| `mm_array`, 128,000 dot products, 16 threads | 74 ms | 1.5 ms | 49× |
+| `mv`, 101 matrix-vector products, 1 thread | 168 ms | 12.3 ms | 14× |
+| `mv`, 101 matrix-vector products, 16 threads | 170 ms | 12.3 ms | 14× |
 
-Bend's transformer times do not improve with threads, since bend-ml computes its products sequentially; MNIST's batched products run in parallel blocks and gain 2.3× from 16 threads. The raw report is `runs/d6e9954a0fb909dd5375/report.md`.
+Bend's transformer times do not improve with threads, since bend-ml computes its products sequentially; MNIST's batched products run in parallel blocks and gain 3× from 16 threads. At 1,024 sequences Bend's GPU takes twice as long as its CPU, because each lane runs a whole generation alone and one generation on a lane takes about 195 s. PyTorch's MNIST is faster on the CPU than on CUDA: the 100-image batches are too small to cover kernel launches. The report is [runs/c0b65393ed82597976d8/report.md](runs/c0b65393ed82597976d8/report.md).
+
+## Batch size and Bend's GPU
+
+The batch size above comes from a sweep of the nanoGPT batch from 1 to 16,384 sequences, doubling each step, with every run checked against the reference ([ml_scaling.py](ml_scaling.py), on Bend d052d4f3, 6 October 2026). Bend's GPU has a fixed cost of about 200 s from 2 sequences up, the time of one generation on one lane, and grows slowly after that: 215 s at 1,024 sequences, 239 s at 4,096. Its CPU grows linearly, about 0.1 s per sequence, so the GPU overtakes the CPU between 2,048 and 4,096 sequences (230 s against 196 s, then 239 s against 394 s). PyTorch on CUDA takes 2.9 s at 4,096 sequences, 82× less than Bend's GPU, and its time per added sequence is below a millisecond. From 8,192 sequences Bend's GPU run ends in a memory fault at any heap size, so the sweep never reaches the size where its lanes are all busy. The medians are in [runs/ml-scaling-gpu-probes/report.md](runs/ml-scaling-gpu-probes/report.md).
+
+Two Bend limits shape these numbers. A GPU lane has a 1,024-word stack, so the batch returns its generations as a tree: a list built by recursive appends overflowed it from 2,048 sequences. And each lane computes its generation's products sequentially, so Bend's GPU only helps once the batch has thousands of independent sequences.
 
 ## Workloads
 
