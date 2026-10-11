@@ -29,7 +29,8 @@ for row in data['rows']:
             assert case['samples'] == 0 and not case['checked'], case_id
             continue
         assert case['status'] == 'passed' and case['checked'] and case['samples'] >= 10
-        assert ms == case['end_to_end_seconds'] * 1000, case_id
+        timed = 'compute_seconds' if row['group'] == 'Machine learning' else 'end_to_end_seconds'
+        assert ms == case[timed] * 1000, case_id
 
 def table(relative):
     return [[s.strip() for s in line.split('|')[1:-1]]
@@ -118,7 +119,10 @@ for dataset in ('test', 'tiny'):
     measured = [r for r in successful if r['phase'] == 'measure']
     assert sorted(r['rep'] for r in measured) == list(range(10))
     assert statistics.median(r['end_to_end_seconds'] for r in measured) == cases[uts_source][cuda_id]['end_to_end_seconds']
-assert len(data['rows']) == 21 + len(summation)
+ml = [row for row in data['rows'] if row['group'] == 'Machine learning']
+assert [row['cases'][1] for row in ml] == [f'ml/{name}/bend/16' for name in ('gpt2', 'nanogpt', 'nanogpt-batch', 'mnist')]
+assert all(row['metric'] == 'timed region after loading' for row in ml)
+assert len(data['rows']) == 21 + len(summation) + len(ml)
 assert not any(row['group'] == 'One-off option pricing' for row in data['rows'])
 published = [row for row in data['rows'] if row['group'] == 'Published workloads']
 assert len(published) == 16 and all(row['ms'][5] is not None for row in published)

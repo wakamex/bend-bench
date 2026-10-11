@@ -1,6 +1,6 @@
 {
   "title": "Bend benchmark scorecard",
-  "measurement_dates": "25 September 2026",
+  "measurement_dates": "9 October 2026",
   "hardware": "AMD Ryzen 9 3950X · NVIDIA RTX 3090",
   "bend_revision": "b9d1352c9f45632447f40a2e927355c92f2be58c",
   "columns": [
@@ -615,6 +615,106 @@
       "link": "../../MNK_HOST_ARRAY.md",
       "metric": "batch to CPU result array",
       "gpu_work": "1.8×"
+    },
+    {
+      "group": "Machine learning",
+      "name": "GPT-2 small inference",
+      "detail": "124 M parameters · 24 greedy tokens",
+      "baseline": "PyTorch with a key/value cache",
+      "ms": [
+        3910.5,
+        3894.5,
+        null,
+        802.494,
+        802.8265,
+        null
+      ],
+      "cases": [
+        "ml/gpt2/bend/1",
+        "ml/gpt2/bend/16",
+        null,
+        "ml/gpt2/pytorch/1",
+        "ml/gpt2/pytorch/16",
+        null
+      ],
+      "link": "../../ML.md",
+      "metric": "timed region after loading",
+      "source": "runs/c0b65393ed82597976d8/summary.json"
+    },
+    {
+      "group": "Machine learning",
+      "name": "nanoGPT inference",
+      "detail": "6 layers · 384 wide · 10 × 24 greedy tokens",
+      "baseline": "PyTorch with a key/value cache",
+      "ms": [
+        5486.5,
+        5924.5,
+        null,
+        1204.536,
+        1194.3905,
+        null
+      ],
+      "cases": [
+        "ml/nanogpt/bend/1",
+        "ml/nanogpt/bend/16",
+        null,
+        "ml/nanogpt/pytorch/1",
+        "ml/nanogpt/pytorch/16",
+        null
+      ],
+      "link": "../../ML.md",
+      "metric": "timed region after loading",
+      "source": "runs/c0b65393ed82597976d8/summary.json"
+    },
+    {
+      "group": "Machine learning",
+      "name": "nanoGPT batched inference",
+      "detail": "1,024 sequences × 24 greedy tokens",
+      "baseline": "PyTorch, one batched pass per step · CPU / CUDA",
+      "ms": [
+        null,
+        99757.0,
+        195327.0,
+        null,
+        2636.318,
+        1014.0525
+      ],
+      "cases": [
+        null,
+        "ml/nanogpt-batch/bend/16",
+        "ml/nanogpt-batch/bend-cuda/16",
+        null,
+        "ml/nanogpt-batch/pytorch/16",
+        "ml/nanogpt-batch/pytorch-cuda/16"
+      ],
+      "link": "../../ML.md",
+      "metric": "timed region after loading",
+      "source": "runs/c0b65393ed82597976d8/summary.json"
+    },
+    {
+      "group": "Machine learning",
+      "name": "MNIST training",
+      "detail": "784-128-10 MLP · one epoch of 600 batches",
+      "baseline": "PyTorch · CPU / CUDA",
+      "ms": [
+        31356.0,
+        10412.0,
+        null,
+        421.497,
+        253.50150000000005,
+        451.3145
+      ],
+      "cases": [
+        "ml/mnist/bend/1",
+        "ml/mnist/bend/16",
+        null,
+        "ml/mnist/pytorch/1",
+        "ml/mnist/pytorch/16",
+        "ml/mnist/pytorch-cuda/16"
+      ],
+      "link": "../../ML.md",
+      "metric": "timed region after loading",
+      "source": "runs/c0b65393ed82597976d8/summary.json"
     }
   ],
   "source_sha256": {
@@ -649,6 +749,7 @@
     "runs/pricing-single-cpu-20260922-111154/completed.json": "62a2ec7ea23aed9b55d5588aa911617482704992eeb912b0d6c9a87ea7f781a1",
     "runs/pricing-single-cpu-20260922-111154/schedule.json": "b82de775948622739101f8dbd7dd027378cfa3639c717082d2a2ceba3a5aab2c",
     "runs/pricing-single-cpu-20260922-111154/provenance.json": "4c656736fb29ce18b92f588f866dda98e27fd20c1d60146921d0cb7825b9c66d",
-    "runs/mnk-sustained-20260925-173106/report.md": "701eb6ce2f2317507e7638d4e576e7a28be62740499ba17de6cc9ea64bb7b9e3"
+    "runs/mnk-sustained-20260925-173106/report.md": "701eb6ce2f2317507e7638d4e576e7a28be62740499ba17de6cc9ea64bb7b9e3",
+    "runs/c0b65393ed82597976d8/summary.json": "d40c587fff76bab146c92afb521a0026487f1f47b78cf5dda690596c823da631"
   }
 }
