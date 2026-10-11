@@ -50,13 +50,21 @@ Gunrock finishes BFS sooner than Bend GPU on the two larger graphs, while Bend f
 
 On GPU, the unchanged Bend UTS port reaches the runtime's stack limit on both inputs. Our CUDA implementation completes the larger tree 6.5× faster than BOTS OpenMP on 16 CPU threads. [UTS GPU results](UTS_GPU.md).
 
+### Machine learning
+
+The machine-learning workloads come from [bend-ml](https://github.com/nuxyel/bend-ml), which writes neural networks in Bend with every tensor shape checked by the type system, and compare against PyTorch. They run a newer Bend, main at d5fe6566, and time the work after the weights and data are loaded.
+
+Generating text from one prompt, Bend takes about 5× as long as PyTorch on GPT-2 small and on a model at [nanoGPT](https://github.com/karpathy/nanoGPT)'s character-level sizes, on one thread and on 16. bend-ml computes its matrix products one after another, so more threads don't help. Training is further behind: one MNIST epoch takes 74× as long on one thread and 41× on 16, where bend-ml's batched products run in parallel blocks and gain 3× from the extra threads. Its two product kernels on their own take 14–49× as long.
+
+Inference in production runs on GPUs, in batches. Bend's GPU runs independent work in parallel, so we batched nanoGPT by giving each of 1,024 prompts its own generation over shared weights. On 16 CPU threads Bend takes 38× as long as PyTorch's batched pass. On the GPU it takes 193× as long as PyTorch on CUDA, 195 s against 1.0 s, and twice as long as Bend's own CPU: each GPU lane runs a whole generation alone, which takes about 195 s however many sequences run beside it. As the batch grows, Bend GPU overtakes Bend CPU between 2,048 and 4,096 sequences. At 4,096 it takes 83× as long as PyTorch on CUDA, and from 8,192 it stops with a stack fault, so it never fills the GPU. MNIST has no Bend GPU version, because each training step needs the previous step's weights and bend-ml's matrix products don't split across GPU lanes. [Machine-learning results](ML.md).
+
 ### Bend versions
 
-These results measure Bend 2.0.3. In paired runs, 2.0.26 takes about 3% longer than 2.0.3 on the CPU and about 3% less time on the GPU. The largest changes are HotSpot on the CPU at 34–38% longer, shared-graph BFS on the GPU at 40% less time and ray tracing on the GPU at 38% longer. [Bend 2.0.26 comparison](BEND_2_0_26.md).
+Apart from machine learning, these results measure Bend 2.0.3. In paired runs, 2.0.26 takes about 3% longer than 2.0.3 on the CPU and about 3% less time on the GPU. The largest changes are HotSpot on the CPU at 34–38% longer, shared-graph BFS on the GPU at 40% less time and ray tracing on the GPU at 38% longer. [Bend 2.0.26 comparison](BEND_2_0_26.md).
 
 ## Takeaways
 
-Bend scales well across CPU cores on most workloads, but gains no speedup on the irregular UTS trees. On GPU, a single timing at one size mostly measures startup, so compare per unit of work. Measured that way, Bend GPU takes a median 5.7× as long as conventional CUDA, and it compares better against Bend on 16 CPU threads, on every workload, than single timings show. Implementations matter more than language choice. Bend benefits greatly from balanced work: batching the same N-Queens search made it 4.9× faster on 16 CPU threads, with essentially no change in single-thread time ([N-Queens batching comparison](QUEENS_BATCHING.md)).
+Bend scales well across CPU cores on most workloads, but gains no speedup on the irregular UTS trees. On GPU, a single timing at one size mostly measures startup, so compare per unit of work. Measured that way, Bend GPU takes a median 5.7× as long as conventional CUDA, and it compares better against Bend on 16 CPU threads, on every workload, than single timings show. Against PyTorch, bend-ml takes about 5× as long on single-sequence inference and 41–74× as long on training, and its GPU batch stays behind its own CPU until thousands of sequences run at once. Implementations matter more than language choice. Bend benefits greatly from balanced work: batching the same N-Queens search made it 4.9× faster on 16 CPU threads, with essentially no change in single-thread time ([N-Queens batching comparison](QUEENS_BATCHING.md)).
 
 ## Run a benchmark
 
