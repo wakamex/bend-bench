@@ -67,7 +67,7 @@ def program(case):
 def time_once(config, run, case, out, side, block, slot, phase):
     env = {**environment(), **case['env']}
     command = [*case['command'], *(case.get('check_args', []) if phase == 'check' else [])]
-    result = execute(command, cwd=run / 'work', env=env, timeout=config['timeout'], measured=True,
+    result = execute(command, cwd=run / 'work' / case.get('cwd', '.'), env=env, timeout=config['timeout'], measured=True,
                      gpu_policy=config if config.get('require_idle_gpu') else None)
     ok = correct(case, result)
     append(out / 'samples.jsonl', dict(case=case['id'], side=side, block=block, slot=slot, phase=phase,
