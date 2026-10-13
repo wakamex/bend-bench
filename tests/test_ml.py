@@ -33,7 +33,7 @@ class Sources(unittest.TestCase):
         source = ml.nano_source((ml.VENDORED / "demos/gpt2/fast.bend").read_text())
         for size in ("768", "2304", "3072", "50257", "1024", "12n"):
             self.assertNotRegex(source, rf"\b{size}\b")
-        for text in ("TA.Mat<1152n, 384n>", "TA.Mat<65n, 384n>", "attn(6n", "load_layers(6n", '"demos/nanogpt/w/"', "bench_report"):
+        for text in ("TA.Bands<1152n, 384n>", "TA.Bands<65n, 384n>", "TA.Mat<256n, 384n>", "attn(6n", "load_layers(6n", '"demos/nanogpt/w/"', "bench_report"):
             self.assertIn(text, source)
 
     def test_batch_program_forks_prebuilt_handles(self):

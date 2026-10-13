@@ -61,7 +61,7 @@ MV = dict(KN=768, MN=2304, REPS=100, PAR=0)
 # (assets/ml/nanogpt-reference.json) holds only for these bytes.
 NANO_WEIGHTS_SHA256 = "07915cb787d3b56289bf01a5a4bb2a373be065aa8924e8cd2666e07afd3eef4a"
 VENDORED = ASSETS / "bend-ml"  # bend-ml at BEND_ML_COMMIT: what nanogpt needs, for the fast profile
-BEND_ML_COMMIT = "91fc6dd3f2bb147238480fc764057548acd6c40f"
+BEND_ML_COMMIT = "a3063bdfe424da342be2a3214af11e8ace580c48"
 
 
 def replace_once(text, old, new, where):
@@ -121,13 +121,12 @@ def nano_source(fast):
                       ("@LL", f"load_layers({L}n")]:
         body = body.replace(mark, new)
     body = (body.replace("one row of 768 numbers", f"one row of {d} numbers")
-            .replace("(768 -> 3072)", f"({d} -> {4 * d})").replace("q (768), k (768), v (768)", f"q ({d}), k ({d}), v ({d})"))
+            .replace("(768 -> 3072)", f"({d} -> {4 * d})").replace("q (768), k (768), v (768)", f"q ({d}), k ({d}), v ({d})")
+            .replace("the 50257-row embedding", f"the {NANO['vocab']}-row embedding"))
     if re.search(r"\b(768|2304|3072|50257|1024)\b", body):
         raise ValueError("fast.bend has a GPT-2 size the nanoGPT port does not translate")
     body = body.replace("import bend-ml-bpe-tokenizer@0.1.2.0/main.bend as BPE\n", "").replace("import ./tok.bend as K\n", "")
-    if body.count('"demos/gpt2/data/w/"') != 2:
-        raise ValueError("fast.bend changed: its two weight paths")
-    body = body.replace('"demos/gpt2/data/w/"', '"demos/nanogpt/w/"')
+    body = replace_once(body, '"demos/gpt2/data/w/"', '"demos/nanogpt/w/"', "fast.bend's weight path")
     body = re.sub(r"\A(#.*\n)+", "# nanoGPT shakespeare-char sizes over bend-ml's demos/gpt2/fast.bend (bend_bench/ml.py).\n"
                   "#   nano \"prompt\" n_tokens [repetitions]\n", body)
     main = (ASSETS / "nanogpt-main.bend").read_text().replace("@KV@", f"{L}n").replace("@VOCAB@", json.dumps(NANO_VOCAB))
@@ -140,6 +139,8 @@ def nano_batch_source(fast):
     (assets/ml/nanogpt-batch.bend, bend-bench's own code), timed around the batch."""
     text = nano_source(fast)
     text = text[:text.index("def main() -> IO(Unit):")]
+    # one band per matrix: the batch is parallel across sequences, and each generation runs alone
+    text = replace_once(text, "    +d : Nat = depth_for(threads)\n", "    +d : Nat = 0n\n", "nanogpt batch")
     d = NANO["width"]
     ext = (ASSETS / "nanogpt-batch.bend").read_text()
     for mark, value in (("@QKV@", 3 * d), ("@MLP@", 4 * d), ("@V@", NANO["vocab"]), ("@CTX@", NANO["context"]),

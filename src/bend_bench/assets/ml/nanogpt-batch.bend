@@ -27,7 +27,26 @@ def mat_fork(-r: Nat, -c: Nat, m: TA.Mat<r, c>) -> TA.Mat<r, c> & TA.Mat<r, c>:
       mat_fork2(r, c, Array.fork(F32, d))
 
 @unsafe
-def layer_fork2(+ln1g: List<&2, F32>, +ln1b: List<&2, F32>, +ab: List<&2, F32>, +pb: List<&2, F32>, +ln2g: List<&2, F32>, +ln2b: List<&2, F32>, +fb: List<&2, F32>, +mb: List<&2, F32>, a: TA.Mat<@QKV@, @D@> & TA.Mat<@QKV@, @D@>, p: TA.Mat<@D@, @D@> & TA.Mat<@D@, @D@>, f: TA.Mat<@MLP@, @D@> & TA.Mat<@MLP@, @D@>, m: TA.Mat<@D@, @MLP@> & TA.Mat<@D@, @MLP@>) -> Layer & Layer:
+def bands_leaf(-r: Nat, -c: Nat, p: TA.Mat<r, c> & TA.Mat<r, c>) -> TA.Bands<r, c> & TA.Bands<r, c>:
+  (a, b) = p
+  ({TA.BLeaf{a} : TA.Bands<r, c>}, {TA.BLeaf{b} : TA.Bands<r, c>})
+
+@unsafe
+def bands_node(-r: Nat, -c: Nat, p: TA.Bands<TA.half(r), c> & TA.Bands<TA.half(r), c>, q: TA.Bands<Nat.sub(r, TA.half(r)), c> & TA.Bands<Nat.sub(r, TA.half(r)), c>) -> TA.Bands<r, c> & TA.Bands<r, c>:
+  match p q:
+    case Tuple{x1, x2} Tuple{y1, y2}:
+      ({TA.BNode{x1, y1} : TA.Bands<r, c>}, {TA.BNode{x2, y2} : TA.Bands<r, c>})
+
+@unsafe
+def bands_fork(-r: Nat, -c: Nat, b: TA.Bands<r, c>) -> TA.Bands<r, c> & TA.Bands<r, c>:
+  match b:
+    case TA.BLeaf{m}:
+      bands_leaf(r, c, mat_fork(r, c, m))
+    case TA.BNode{x, y}:
+      bands_node(r, c, bands_fork(TA.half(r), c, x), bands_fork(Nat.sub(r, TA.half(r)), c, y))
+
+@unsafe
+def layer_fork2(+ln1g: List<&2, F32>, +ln1b: List<&2, F32>, +ab: List<&2, F32>, +pb: List<&2, F32>, +ln2g: List<&2, F32>, +ln2b: List<&2, F32>, +fb: List<&2, F32>, +mb: List<&2, F32>, a: TA.Bands<@QKV@, @D@> & TA.Bands<@QKV@, @D@>, p: TA.Bands<@D@, @D@> & TA.Bands<@D@, @D@>, f: TA.Bands<@MLP@, @D@> & TA.Bands<@MLP@, @D@>, m: TA.Bands<@D@, @MLP@> & TA.Bands<@D@, @MLP@>) -> Layer & Layer:
   match a p f m:
     case Tuple{a1, a2} Tuple{p1, p2} Tuple{f1, f2} Tuple{m1, m2}:
       (Layer{ln1g, ln1b, a1, ab, p1, pb, ln2g, ln2b, f1, fb, m1, mb}, Layer{ln1g, ln1b, a2, ab, p2, pb, ln2g, ln2b, f2, fb, m2, mb})
@@ -36,7 +55,7 @@ def layer_fork2(+ln1g: List<&2, F32>, +ln1b: List<&2, F32>, +ab: List<&2, F32>, 
 def layer_fork(l: Layer) -> Layer & Layer:
   match l:
     case Layer{+ln1g, +ln1b, aw, +ab, pw, +pb, +ln2g, +ln2b, fw, +fb, mw, +mb}:
-      layer_fork2(ln1g, ln1b, ab, pb, ln2g, ln2b, fb, mb, mat_fork(@QKV@, @D@, aw), mat_fork(@D@, @D@, pw), mat_fork(@MLP@, @D@, fw), mat_fork(@D@, @MLP@, mw))
+      layer_fork2(ln1g, ln1b, ab, pb, ln2g, ln2b, fb, mb, bands_fork(@QKV@, @D@, aw), bands_fork(@D@, @D@, pw), bands_fork(@MLP@, @D@, fw), bands_fork(@D@, @MLP@, mw))
 
 @unsafe
 def layers_fork2(p: Layer & Layer, q: List<&1, Layer> & List<&1, Layer>) -> List<&1, Layer> & List<&1, Layer>:
@@ -53,7 +72,7 @@ def layers_fork(ls: List<&1, Layer>) -> List<&1, Layer> & List<&1, Layer>:
       layers_fork2(layer_fork(l), layers_fork(t))
 
 @unsafe
-def model_fork2(+lnfg: List<&2, F32>, +lnfb: List<&2, F32>, e: TA.Mat<@V@, @D@> & TA.Mat<@V@, @D@>, p: TA.Mat<@CTX@, @D@> & TA.Mat<@CTX@, @D@>, l: List<&1, Layer> & List<&1, Layer>) -> Model & Model:
+def model_fork2(+lnfg: List<&2, F32>, +lnfb: List<&2, F32>, e: TA.Bands<@V@, @D@> & TA.Bands<@V@, @D@>, p: TA.Mat<@CTX@, @D@> & TA.Mat<@CTX@, @D@>, l: List<&1, Layer> & List<&1, Layer>) -> Model & Model:
   match e p l:
     case Tuple{e1, e2} Tuple{p1, p2} Tuple{l1, l2}:
       (Model{e1, p1, l1, lnfg, lnfb}, Model{e2, p2, l2, lnfg, lnfb})
@@ -62,7 +81,7 @@ def model_fork2(+lnfg: List<&2, F32>, +lnfb: List<&2, F32>, e: TA.Mat<@V@, @D@> 
 def model_fork(m: Model) -> Model & Model:
   match m:
     case Model{wte, wpe, layers, +lnfg, +lnfb}:
-      model_fork2(lnfg, lnfb, mat_fork(@V@, @D@, wte), mat_fork(@CTX@, @D@, wpe), layers_fork(layers))
+      model_fork2(lnfg, lnfb, bands_fork(@V@, @D@, wte), mat_fork(@CTX@, @D@, wpe), layers_fork(layers))
 
 # fuel: forward passes left; r: the output of the last one, at position pos - 1
 def gen(fuel: Nat, +pos: Nat, queue: List<&2, Nat>, ids: List<&2, Nat>, lgs: List<&2, F32>, r: Out) -> Gen:
