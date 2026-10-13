@@ -13,7 +13,7 @@ blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service",
 
 [bend]
 path = "../bend-latest"
-commit = "d5fe65662e02cce0261ad58234c2466f39a0736d"
+commit = "0e14aa8b3082e68f419320b2c785762de1d0577b"
 
 [rodinia]
 path = "../bend2/rodinia/rodinia_3.1"
