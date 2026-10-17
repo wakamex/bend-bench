@@ -21,8 +21,8 @@ import re
 import statistics
 import time
 
-from bend_bench.core import append, correct, environment, exclusive, execute, hash_file, load_config, write_json
-from bend_bench.hotspot import stage_rodinia
+from bend_bench.core import append, correct, environment, exclusive, execute, hash_file, load_config, quiet_cpus, write_json
+from bend_bench.hotspot import pack_input, stage_rodinia
 from scorecard_paired_cpu import gpu_clear
 
 ROOT = Path(__file__).resolve().parent
@@ -421,11 +421,13 @@ def hotspot_port(folder, driver, k):
         raise RuntimeError('hotspot: scalar reference output incomplete')
     (folder / 'expected.bits').write_text(bits)
     values = run_logged([reference, 1024, 'coeff'], log)['stdout'].split()
+    temp_bin = pack_input(HOTSPOT_INPUTS[0], folder / 'temp_1024.bin')
+    power_bin = pack_input(HOTSPOT_INPUTS[1], folder / 'power_1024.bin')
     literal = lambda value: value if any(c in value for c in '.eE') else value + '.0'
     return replace((ASSETS / 'gpu/hotspot.bend').read_text(),
                    [('Coeff{0.0, 0.0, 0.0, 0.0}', 'Coeff{' + ', '.join(map(literal, values)) + '}'),
                     ('solve!(10n,', f'solve!(Nat.mul(100n, {nat(k)}),'), ('load_grid(6n, 6n,', 'load_grid(10n, 10n,'),
-                    ('"temp.txt"', json.dumps(str(HOTSPOT_INPUTS[0]))), ('"power.txt"', json.dumps(str(HOTSPOT_INPUTS[1])))],
+                    ('"temp.bin"', json.dumps(str(temp_bin))), ('"power.bin"', json.dumps(str(power_bin)))],
                    'hotspot: Bend')
 
 
@@ -479,12 +481,13 @@ def build(work, bend, name, k, spec):
 
 
 def timed(command, config, log, env=None, **tags):
-    while not gpu_clear():
+    while config.get('require_idle_gpu') and not gpu_clear():
         print('WAITING unapproved GPU process', flush=True)
         time.sleep(60)
+    cpu_gate = quiet_cpus(config)
     result = execute(['taskset', '-c', ','.join(map(str, range(32))), *command], env={**environment(), **(env or {})},
-                     timeout=1800, measured=True, gpu_policy=config)
-    append(log, dict(tags, **logged(result)))
+                     timeout=1800, measured=True, gpu_policy=config if config.get('require_idle_gpu') else None)
+    append(log, dict(tags, **({'cpu_gate': cpu_gate} if cpu_gate else {}), **logged(result)))
     if result['returncode'] or result['timeout'] or result.get('contention_error'):
         raise RuntimeError(f'{tags}: failed: {result["stderr"][-500:]}')
     return result
@@ -632,13 +635,15 @@ def main():
     parser.add_argument('--start-multiplier', type=int, default=1, help='Continue a workload from this size')
     parser.add_argument('--verify-until', type=int, default=16, help='Largest multiplier checked against the serial C')
     parser.add_argument('--verify-budget', type=float, default=120.0, help='Seconds of predicted serial verification allowed per size')
+    parser.add_argument('--config', type=Path, default=ROOT / 'scorecard-vendor.toml')
     args = parser.parse_args()
-    config = load_config(ROOT / 'scorecard-vendor.toml')
+    config = load_config(args.config)
     bend = Path('/code/bend2/upstream')
     out = ROOT / 'runs' / time.strftime('startup-scaling-%Y%m%d-%H%M%S')
     out.mkdir()
     cccl = execute(['git', '-C', str(CCCL), 'rev-parse', 'HEAD'])['stdout'].strip()
-    write_json(out / 'provenance.json', dict(bend=str(bend), script_sha256=hash_file(Path(__file__)), arguments=vars(args),
+    write_json(out / 'provenance.json', dict(bend=str(bend), script_sha256=hash_file(Path(__file__)),
+               arguments={**vars(args), 'config': str(args.config)},
                sources={path: hash_file(ASSETS / path) for spec in WORKLOADS.values()
                         for path in (spec['cuda'], spec.get('bend_source')) if path},
                cccl_commit=cccl, cudf_lock_sha256=hash_file(ROOT / 'dependencies/cudf/uv.lock')))

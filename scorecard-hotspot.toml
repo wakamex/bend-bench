@@ -1,14 +1,14 @@
-# Bend cells of the scorecard's HotSpot row (1,024 x 1,024, 100 steps) at a new Bend revision.
+# Bend cells of the scorecard's HotSpot row (1,024 x 1,024, 100 steps) on Bend 2.0.3.
 schema = 1
 output = "runs"
 implementations = ["bend", "bend-cuda"]
 repetitions = 10
 warmups = 1
 timeout = 180
+cpu_idle = {max_busy = 3.0, max_wait = 21600}
 cuda = true
 gpu_heap = "4GB"
 gpu_arch = "sm_86"
-require_idle_gpu = true
 blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-applications.service", "bend-bench-gpu.service", "bend-bench-vendor-cuda.service", "bend-bench-uts-compact.service"]
 label = "scorecard-bend-hotspot"
 suites = ["hotspot"]
@@ -18,12 +18,9 @@ hotspot_pyramids = [1]
 threads = [1, 16]
 cpus = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
 
-[gpu_resident]
-cgroup = "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service"
-
 [bend]
-path = "../bend-upstream"
-commit = "6a77e1246c351055cb15031267a7c76c87036cbc"
+path = "../bend2/upstream"
+commit = "b9d1352c9f45632447f40a2e927355c92f2be58c"
 
 [rodinia]
 path = "../bend2/rodinia/rodinia_3.1"
