@@ -68,55 +68,65 @@ def solve(steps: Nat, +grid: Grid, +k: Coeff) -> Grid:
       next = grid_step(grid, grid_first(grid), grid_last(grid), k)
       solve(rest, next, k)
 
-def parse_value(v: Maybe<&2, F32>) -> F32:
-  match v:
-    case Some{v}: v
-    case None{}: F32.div(0.0, 0.0)
+def bitcast(u: U32) -> F32:
+  match u:
+    case U32{w}: F32{w}
 
-def row_done(a: Row, right: Row & (List<&2, String> & List<&2, String>)) -> Row & (List<&2, String> & List<&2, String>):
+def f32_le(+b0: U32, +b1: U32, +b2: U32, +b3: U32) -> F32:
+  bitcast((b0 + (b1 * 256 : U32) + (b2 * 65536 : U32) + (b3 * 16777216 : U32) : U32))
+
+def row_done(a: Row, right: Row & (List<&2, U32> & List<&2, U32>)) -> Row & (List<&2, U32> & List<&2, U32>):
   (b, tail) = right
   (row_join(a, b), tail)
 
-def row_then(left: Row & (List<&2, String> & List<&2, String>),
-             next: List<&2, String> -> List<&2, String> -> Row & (List<&2, String> & List<&2, String>)) -> Row & (List<&2, String> & List<&2, String>):
+def row_then(left: Row & (List<&2, U32> & List<&2, U32>),
+             next: List<&2, U32> -> List<&2, U32> -> Row & (List<&2, U32> & List<&2, U32>)) -> Row & (List<&2, U32> & List<&2, U32>):
   (a, (ta, pa)) = left
   row_done(a, next(ta, pa))
 
-def load_row(d: Nat, ts: List<&2, String>, ps: List<&2, String>) -> Row & (List<&2, String> & List<&2, String>):
+def load_row(d: Nat, ts: List<&2, U32>, ps: List<&2, U32>) -> Row & (List<&2, U32> & List<&2, U32>):
   match d:
     case 0n:
       match ts ps:
-        case Con{t, tr} Con{p, pr}:
-          (Cell{parse_value(F32.read(t)), parse_value(F32.read(p))}, (tr, pr))
+        case Con{t0, Con{t1, Con{t2, Con{t3, tr}}}} Con{p0, Con{p1, Con{p2, Con{p3, pr}}}}:
+          (Cell{f32_le(t0, t1, t2, t3), f32_le(p0, p1, p2, p3)}, (tr, pr))
         case _ _:
           (Cell{F32.div(0.0, 0.0), 0.0}, (Nil{}, Nil{}))
     case 1n+q:
       +depth = q
       row_then(load_row(depth, ts, ps), ta => pa => load_row(depth, ta, pa))
 
-def grid_leaf(value: Row & (List<&2, String> & List<&2, String>)) -> Grid & (List<&2, String> & List<&2, String>):
+def grid_leaf(value: Row & (List<&2, U32> & List<&2, U32>)) -> Grid & (List<&2, U32> & List<&2, U32>):
   (r, tail) = value
   (Single{r}, tail)
 
-def grid_done(a: Grid, right: Grid & (List<&2, String> & List<&2, String>)) -> Grid & (List<&2, String> & List<&2, String>):
+def grid_done(a: Grid, right: Grid & (List<&2, U32> & List<&2, U32>)) -> Grid & (List<&2, U32> & List<&2, U32>):
   (b, tail) = right
   (grid_join(a, b), tail)
 
-def grid_then(left: Grid & (List<&2, String> & List<&2, String>),
-              next: List<&2, String> -> List<&2, String> -> Grid & (List<&2, String> & List<&2, String>)) -> Grid & (List<&2, String> & List<&2, String>):
+def grid_then(left: Grid & (List<&2, U32> & List<&2, U32>),
+              next: List<&2, U32> -> List<&2, U32> -> Grid & (List<&2, U32> & List<&2, U32>)) -> Grid & (List<&2, U32> & List<&2, U32>):
   (a, (ta, pa)) = left
   grid_done(a, next(ta, pa))
 
-def load_grid(d: Nat, +width: Nat, ts: List<&2, String>, ps: List<&2, String>) -> Grid & (List<&2, String> & List<&2, String>):
+def load_grid(d: Nat, +width: Nat, ts: List<&2, U32>, ps: List<&2, U32>) -> Grid & (List<&2, U32> & List<&2, U32>):
   match d:
     case 0n: grid_leaf(load_row(width, ts, ps))
     case 1n+q:
       +depth = q
       grid_then(load_grid(depth, width, ts, ps), ta => pa => load_grid(depth, width, ta, pa))
 
+def show_u32_if(u: U32, z: Bool, tail: String) -> String:
+  match z:
+    case True{}: SCon{'0', SCon{'\n', tail}}
+    case False{}: U32.show.go(10n, u, SCon{'\n', tail})
+
+def show_u32(+u: U32, tail: String) -> String:
+  show_u32_if(u, U32.is_zero(u), tail)
+
 def row_output(r: Row, tail: String) -> String:
   match r:
-    case Cell{t, _}: U32.show(F32.bits(t)) ++ "\n" ++ tail
+    case Cell{t, _}: show_u32(F32.bits(t), tail)
     case Columns{_, _, a, b}: row_output(a, row_output(b, tail))
 
 def grid_output(g: Grid, tail: String) -> String:
@@ -124,25 +134,25 @@ def grid_output(g: Grid, tail: String) -> String:
     case Single{r}: row_output(r, tail)
     case Rows{_, _, a, b}: grid_output(a, grid_output(b, tail))
 
-def read_done(pair: File & Result<&1, &1, U32 & String, String>) -> IO(String):
+def read_done(pair: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(List<&2, U32>):
   (file, result) = pair
-  do IO<String>:
+  do IO<List<&2, U32>>:
     Unit <- File.close(file)
-    IO.pass(String, result)
+    IO.pass(List<&2, U32>, result)
 
-def read_file(path: String) -> IO(String):
-  do IO<String>:
+def read_file(path: String) -> IO(List<&2, U32>):
+  do IO<List<&2, U32>>:
     f : File <- IO.try(File, File.open(path, "r"))
-    pair : File & Result<&1, &1, U32 & String, String> <- File.read(f, 33554432)
+    pair : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, 33554432)
     read_done(pair)
 
-def run_grid(value: Grid & (List<&2, String> & List<&2, String>)) -> IO(Unit):
+def run_grid(value: Grid & (List<&2, U32> & List<&2, U32>)) -> IO(Unit):
   (g, _) = value
   result = solve!(100n, g, Coeff{1.3653332, 0.100000001, 0.100000001, 4.88281257e-05})
   IO.print(grid_output(result, ""))
 
 def main() -> IO(Unit):
   do IO<Unit>:
-    ts : String <- read_file("@RODINIA@/data/hotspot/temp_1024")
-    ps : String <- read_file("@RODINIA@/data/hotspot/power_1024")
-    run_grid(load_grid(10n, 10n, String.lines(ts), String.lines(ps)))
+    ts : List<&2, U32> <- read_file("@RODINIA@/data/hotspot/temp_1024.bin")
+    ps : List<&2, U32> <- read_file("@RODINIA@/data/hotspot/power_1024.bin")
+    run_grid(load_grid(10n, 10n, ts, ps))

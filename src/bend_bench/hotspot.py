@@ -1,10 +1,25 @@
 """Explicit Rodinia boundary fix and generated input/output contracts."""
+import array
 import difflib
 import json
+import math
 from pathlib import Path
 import sys
 
 from .core import execute, hash_file, write_json
+
+
+def pack_input(source, target):
+    values = array.array("f", map(float, Path(source).read_bytes().split()))
+    if not values or not all(math.isfinite(x) for x in values):
+        raise ValueError(f"Invalid HotSpot input: {source}")
+    if sys.byteorder != "little":
+        values.byteswap()
+    target = Path(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("wb") as stream:
+        values.tofile(stream)
+    return target
 
 
 def stage_rodinia(source, work):
@@ -40,13 +55,15 @@ def generate(work, n, steps, source):
     values = coefficients["stdout"].split()
     if len(values) != 4:
         raise ValueError("Expected four HotSpot coefficients")
+    temp_bin = pack_input(data / f"temp_{n}", work / "ports" / f"temp_{n}.bin")
+    power_bin = pack_input(data / f"power_{n}", work / "ports" / f"power_{n}.bin")
     literal = lambda value: value if any(c in value for c in ".eE") else value + ".0"
     port = (work / "gpu/hotspot.bend").read_text()
     for old, new in (("Coeff{0.0, 0.0, 0.0, 0.0}", "Coeff{"+", ".join(map(literal, values))+"}"),
                      ("solve!(10n,", f"solve!({steps}n,"),
                      ("load_grid(6n, 6n,", f"load_grid({n.bit_length()-1}n, {n.bit_length()-1}n,"),
-                     ('"temp.txt"', json.dumps(str(data / f"temp_{n}"))),
-                     ('"power.txt"', json.dumps(str(data / f"power_{n}")))):
+                     ('"temp.bin"', json.dumps(str(temp_bin))),
+                     ('"power.bin"', json.dumps(str(power_bin)))):
         if port.count(old) != 1:
             raise ValueError(f"HotSpot port template changed: {old}")
         port = port.replace(old, new)

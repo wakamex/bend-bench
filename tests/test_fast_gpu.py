@@ -133,6 +133,8 @@ class FastGPU(unittest.TestCase):
             self.assertIn('def its() -> Nat:\n  Nat.mul(51n, 32n)', (work/'ports/mandelbrot.bend').read_text())
             self.assertEqual(next(c for c in cases if c['workload'] == 'mandelbrot')['expected_regex'], '3068159588')
             self.assertNotIn('@RODINIA@', (work/'ports/hotspot.bend').read_text())
+            self.assertEqual((work/'inputs/rodinia/data/hotspot/temp_1024.bin').stat().st_size, 4 * 1024**2)
+            self.assertEqual((work/'inputs/rodinia/data/hotspot/power_1024.bin').stat().st_size, 4 * 1024**2)
             self.assertEqual(len((work/'ports/hotspot.expected').read_text().split()), 1024**2)
             self.assertEqual(len(json.loads((work/'ports/bfs-shared.expected').read_text())), 262144)
 

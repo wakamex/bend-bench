@@ -30,15 +30,14 @@ def fixtures(config):
 
 
 def stage_fixtures(config, work):
-    rodinia = config['rodinia']['path']
-    if config.get('_portable_build'):
-        target = work / 'inputs/rodinia/data/hotspot'
-        target.mkdir(parents=True, exist_ok=True)
-        for name in ('temp_1024', 'power_1024'):
-            shutil.copy2(Path(rodinia) / 'data/hotspot' / name, target / name)
-        rodinia = 'inputs/rodinia'
+    from .hotspot import pack_input
+    rodinia = Path(config['rodinia']['path'])
+    target = work / 'inputs/rodinia/data/hotspot'
+    for name in ('temp_1024', 'power_1024'):
+        pack_input(rodinia / 'data/hotspot' / name, target / f'{name}.bin')
+    rodinia_dir = 'inputs/rodinia' if config.get('_portable_build') else str(work / 'inputs/rodinia')
     for source in ASSETS.glob('*.bend'):
-        text = source.read_text().replace('@RODINIA@', rodinia)
+        text = source.read_text().replace('@RODINIA@', rodinia_dir)
         (work / 'ports' / source.name).write_text(text)
     if config.get('_portable_build'):
         for source in ASSETS.glob('*.json'):

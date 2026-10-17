@@ -9,6 +9,7 @@ import struct
 import sys
 
 from bend_bench.core import append, execute, hash_file, write_json
+from bend_bench.hotspot import pack_input
 
 ROOT = Path(__file__).resolve().parent
 SOURCE = Path("/code/bend2/rodinia/rodinia_3.1")
@@ -73,8 +74,10 @@ def main():
             continue
         coefficients = run([WORK / "reference", n, "coeff"])["stdout"].split()
         literal = lambda value: value if any(c in value for c in ".eE") else value+".0"
+        temp_bin = pack_input(data / f"temp_{n}", WORK / f"temp_{n}.bin")
+        power_bin = pack_input(data / f"power_{n}", WORK / f"power_{n}.bin")
         source = (ASSETS / "hotspot.bend").read_text().replace("Coeff{0.0, 0.0, 0.0, 0.0}", "Coeff{"+", ".join(map(literal,coefficients))+"}")
-        source = source.replace('"temp.txt"', json.dumps(str(data / f"temp_{n}"))).replace('"power.txt"', json.dumps(str(data / f"power_{n}")))
+        source = source.replace('"temp.bin"', json.dumps(str(temp_bin))).replace('"power.bin"', json.dumps(str(power_bin)))
         (WORK / "hotspot.bend").write_text(source)
         run(["/code/bend2/tools/bun-linux-x64/bun", "/code/bend2/upstream/bend2/main.ts", WORK / "hotspot.bend", "-o", WORK / "hotspot.c"])
         run(["/usr/bin/clang", "-O3", "-march=native", "-ffp-contract=off", WORK / "hotspot.c", "-lpthread", "-lm", "-o", WORK / "bend"])
