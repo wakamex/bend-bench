@@ -1,6 +1,6 @@
 {
   "title": "Bend benchmark scorecard",
-  "measurement_dates": "9 October 2026",
+  "measurement_dates": "17 October 2026",
   "hardware": "AMD Ryzen 9 3950X · NVIDIA RTX 3090",
   "bend_revision": "b9d1352c9f45632447f40a2e927355c92f2be58c",
   "columns": [
@@ -536,9 +536,9 @@
       "detail": "1,024 × 1,024 grid · 100 steps",
       "baseline": "Corrected Rodinia OpenMP / CUDA pyramid 1",
       "ms": [
-        13490.75792892836,
-        3927.61747748591,
-        7246.9144786009565,
+        9450.782279483974,
+        2305.363366031088,
+        4781.119031482376,
         789.7499979007989,
         433.6622914997861,
         609.3377445358783
@@ -554,6 +554,11 @@
       "link": "../../GPU_COMPARISON.md",
       "metric": "complete program",
       "source": "runs/c058f6b3293bda1d65dd/summary.json",
+      "case_sources": {
+        "hotspot/hotspot-1024-100/bend/1": "runs/d18c6fef6535968e7df8/summary.json",
+        "hotspot/hotspot-1024-100/bend/16": "runs/d18c6fef6535968e7df8/summary.json",
+        "hotspot/hotspot-1024-100/bend-cuda/16": "runs/d18c6fef6535968e7df8/summary.json"
+      },
       "gpu_work": "290×"
     },
     {
@@ -750,6 +755,7 @@
     "runs/pricing-single-cpu-20260922-111154/schedule.json": "b82de775948622739101f8dbd7dd027378cfa3639c717082d2a2ceba3a5aab2c",
     "runs/pricing-single-cpu-20260922-111154/provenance.json": "4c656736fb29ce18b92f588f866dda98e27fd20c1d60146921d0cb7825b9c66d",
     "runs/mnk-sustained-20260925-173106/report.md": "701eb6ce2f2317507e7638d4e576e7a28be62740499ba17de6cc9ea64bb7b9e3",
-    "runs/c0b65393ed82597976d8/summary.json": "d40c587fff76bab146c92afb521a0026487f1f47b78cf5dda690596c823da631"
+    "runs/c0b65393ed82597976d8/summary.json": "d40c587fff76bab146c92afb521a0026487f1f47b78cf5dda690596c823da631",
+    "runs/d18c6fef6535968e7df8/summary.json": "9abe0c4ca69db623241e9eda088bddb2c565fd34a1955467627371a196e5aee0"
   }
 }
