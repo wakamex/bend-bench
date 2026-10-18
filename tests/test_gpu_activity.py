@@ -39,6 +39,53 @@ class ActivityTests(unittest.TestCase):
         with patch("bend_bench.gpu_activity.process_identity", return_value=dict(pid=20, start_ticks=30)), patch("bend_bench.gpu_activity.process_cgroup", return_value=group + "-impostor"):
             self.assertTrue(any(e.startswith("Unapproved GPU process 20 (") for e in activity.snapshot(dict(cgroup=group), 0)["errors"]))
 
+    def test_multiple_resident_cgroups_and_gpu_clear(self):
+        from scorecard_paired_cpu import gpu_clear
+
+        groups = [
+            "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service",
+            "/user.slice/user-1000.slice/user@1000.service/app.slice/lme-search-server.service",
+            "/user.slice/user-1000.slice/user@1000.service/app.slice/onetake-app.service",
+        ]
+        activity = object.__new__(Activity)
+        activity.uuid = "fixture"
+        activity.processes = lambda: [dict(pid=10, memory_bytes=1), dict(pid=20, memory_bytes=1), dict(pid=30, memory_bytes=1)]
+        activity.samples = lambda since: []
+        pid_groups = {10: groups[0], 20: groups[1], 30: groups[2], 40: "/user.slice/user-1000.slice/user@1000.service/app.slice/encode-score-run.service"}
+        with patch("bend_bench.gpu_activity.process_identity", side_effect=lambda p: dict(pid=p, start_ticks=p, boot_id="test")), patch("bend_bench.gpu_activity.process_cgroup", side_effect=pid_groups.__getitem__):
+            record = activity.snapshot(dict(cgroup=groups), 0)
+            self.assertEqual(record["errors"], [])
+            self.assertEqual([p["pid"] for p in record["resident_processes"]], [10, 20, 30])
+            activity.processes = lambda: [dict(pid=10, memory_bytes=1), dict(pid=40, memory_bytes=1)]
+            self.assertTrue(any(e.startswith("Unapproved GPU process 40 (") for e in activity.snapshot(dict(cgroup=groups), 0)["errors"]))
+
+        config = {"gpu_resident": {"cgroup": groups[:2]}}
+        with patch("scorecard_paired_cpu.execute") as exec_mock, patch("scorecard_paired_cpu.process_cgroup", side_effect=pid_groups.__getitem__):
+            exec_mock.return_value = {"stdout": "10\n20\n"}
+            self.assertTrue(gpu_clear(config))
+            exec_mock.return_value = {"stdout": "10\n30\n"}
+            self.assertFalse(gpu_clear(config))
+            self.assertTrue(gpu_clear())
+            exec_mock.return_value = {"stdout": "10\n40\n"}
+            self.assertFalse(gpu_clear())
+
+    def test_load_config_resident_cgroups(self):
+        root = Path(__file__).resolve().parents[1]
+        config = load_config(root / "scorecard-hotspot.toml")
+        self.assertTrue(config["require_idle_gpu"])
+        self.assertEqual(len(config["gpu_resident"]["cgroup"]), 3)
+        base = (root / "scorecard-hotspot.toml").read_text()
+        for bad in ('cgroup = []', 'cgroup = ["a", "a"]', 'cgroup = ["/system.slice/foo.service"]'):
+            with tempfile.NamedTemporaryFile("w", suffix=".toml", dir=root, delete=False) as handle:
+                path = Path(handle.name)
+                handle.write(base.split("[gpu_resident]")[0] + "[gpu_resident]\n" + bad + "\n")
+            try:
+                with self.assertRaises(ValueError):
+                    load_config(path)
+            finally:
+                path.unlink(missing_ok=True)
+
+
     def test_process_stats(self):
         with patch('bend_bench.gpu_activity.Path.read_text', return_value='python\n'):
             text = process_stats(42, [dict(pid=42, memory_bytes=1536*2**20)],

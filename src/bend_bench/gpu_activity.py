@@ -32,6 +32,19 @@ def process_cgroup(pid):
     raise ValueError("Unified process cgroup unavailable")
 
 
+def resident_cgroups(resident):
+    group = (resident or {}).get("cgroup")
+    if isinstance(group, str):
+        return (group,)
+    if isinstance(group, list):
+        return tuple(group)
+    return ()
+
+
+def matches_cgroup(group, allowed):
+    return any(group == g or group.startswith(g + "/") for g in allowed)
+
+
 def process_stats(pid, processes, samples):
     """Describe observed residency and utilization, not lifetime GPU compute."""
     try:
@@ -136,7 +149,8 @@ class Activity:
                     approved.add(pid)
         self.known_benchmarks = benchmark_identities
         identities = []
-        if "cgroup" in resident:
+        groups = resident_cgroups(resident)
+        if groups:
             # Retain attribution for delayed NVML samples after an observed
             # process exits. A live PID must always be checked again.
             known = getattr(self, "known_residents", {})
@@ -144,7 +158,7 @@ class Activity:
                 try:
                     identity = process_identity(pid)
                     group = process_cgroup(pid)
-                    if group == resident["cgroup"] or group.startswith(resident["cgroup"] + "/"):
+                    if matches_cgroup(group, groups):
                         known[pid] = {**identity, "cgroup": group}
                         approved.add(pid)
                         identities.append(known[pid])

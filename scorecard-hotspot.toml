@@ -6,6 +6,7 @@ repetitions = 10
 warmups = 1
 timeout = 180
 cpu_idle = {max_busy = 3.0, max_wait = 21600}
+require_idle_gpu = true
 cuda = true
 gpu_heap = "4GB"
 gpu_arch = "sm_86"
@@ -17,6 +18,13 @@ hotspot_steps = [100]
 hotspot_pyramids = [1]
 threads = [1, 16]
 cpus = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+
+[gpu_resident]
+cgroup = [
+  "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service",
+  "/user.slice/user-1000.slice/user@1000.service/app.slice/lme-search-server.service",
+  "/user.slice/user-1000.slice/user@1000.service/app.slice/onetake-app.service",
+]
 
 [bend]
 path = "../bend2/upstream"

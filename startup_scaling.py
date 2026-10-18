@@ -481,7 +481,7 @@ def build(work, bend, name, k, spec):
 
 
 def timed(command, config, log, env=None, **tags):
-    while config.get('require_idle_gpu') and not gpu_clear():
+    while config.get('require_idle_gpu') and not gpu_clear(config):
         print('WAITING unapproved GPU process', flush=True)
         time.sleep(60)
     cpu_gate = quiet_cpus(config)

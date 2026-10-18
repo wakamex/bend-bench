@@ -153,10 +153,12 @@ def load_config(path):
     if "gpu_resident" in config:
         resident = config["gpu_resident"]
         if set(resident) == {"cgroup"}:
-            group = resident["cgroup"]
+            raw = resident["cgroup"]
+            groups = [raw] if isinstance(raw, str) else raw
             prefix = f"/user.slice/user-{os.getuid()}.slice/user@{os.getuid()}.service/"
-            if (not isinstance(group, str) or not group.startswith(prefix)
-                    or not group.endswith(".service") or ".." in group.split("/")):
+            if (not isinstance(groups, list) or not groups or len(set(groups)) != len(groups)
+                    or any(not isinstance(g, str) or not g.startswith(prefix)
+                           or not g.endswith(".service") or ".." in g.split("/") for g in groups)):
                 raise ValueError("gpu_resident.cgroup must name a user service cgroup")
         elif (set(resident) != {"pid", "start_ticks", "boot_id"} or
                 type(resident["pid"]) is not int or resident["pid"] <= 0 or

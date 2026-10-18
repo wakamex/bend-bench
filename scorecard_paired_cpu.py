@@ -14,6 +14,7 @@ import statistics
 import time
 
 from bend_bench.core import append, correct, environment, exclusive, execute, hash_file, load_config, write_json
+from bend_bench.gpu_activity import matches_cgroup, process_cgroup, resident_cgroups
 
 ROOT = Path(__file__).resolve().parent
 
@@ -46,21 +47,29 @@ def pairs(new_runs):
     return out
 
 
-def gpu_clear():
-    """True when the only GPU compute process is the approved transcription worker."""
+DEFAULT_RESIDENTS = (
+    '/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service',
+    '/user.slice/user-1000.slice/user@1000.service/app.slice/lme-search-server.service',
+    '/user.slice/user-1000.slice/user@1000.service/app.slice/onetake-app.service',
+)
+
+
+def gpu_clear(config=None):
+    """True when every GPU compute process belongs to an approved resident service."""
+    groups = resident_cgroups((config or {}).get('gpu_resident')) if config and 'gpu_resident' in config else DEFAULT_RESIDENTS
     pids = execute(['nvidia-smi', '--query-compute-apps=pid', '--format=csv,noheader'])['stdout'].split()
     for pid in pids:
         try:
-            if 'transcribe-worker.service' not in Path(f'/proc/{pid}/cgroup').read_text():
+            if not matches_cgroup(process_cgroup(int(pid)), groups):
                 return False
-        except OSError:
+        except (OSError, ValueError):
             pass
     return True
 
 
 def run(case, config):
     gpu = case['implementation'].endswith('cuda')
-    while gpu and not gpu_clear():
+    while gpu and not gpu_clear(config):
         print('WAITING unapproved GPU process', flush=True)
         time.sleep(60)
     try:
