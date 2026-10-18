@@ -55,11 +55,13 @@ def times(value):
 
 def points():
     """Latest point per workload and multiplier, with its fastest measured conventional host time where
-    the sweep predates recording it."""
+    the sweep predates recording it. A sweep that starts at 1x replaces any earlier sweep of that workload."""
     found = {}
     for path in sorted(glob.glob(str(ROOT / 'runs/startup-scaling-*/summary.json'))):
         for name, value in json.loads(Path(path).read_text()).items():
-            if isinstance(value, list):
+            if isinstance(value, list) and value:
+                if value[0]['multiplier'] == 1:
+                    found[name] = {}
                 for p in value:
                     if 'cuda_host_floor' not in p:
                         samples = Path(path).parent / name / str(p['multiplier']) / 'samples.jsonl'

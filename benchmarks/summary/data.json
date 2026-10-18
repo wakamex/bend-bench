@@ -559,7 +559,7 @@
         "hotspot/hotspot-1024-100/bend/16": "runs/d18c6fef6535968e7df8/summary.json",
         "hotspot/hotspot-1024-100/bend-cuda/16": "runs/d18c6fef6535968e7df8/summary.json"
       },
-      "gpu_work": "290×"
+      "gpu_work": "300×"
     },
     {
       "group": "Shared-graph traversal",

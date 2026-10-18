@@ -35,7 +35,7 @@ To separate them, we grew one work knob per workload, like iterations, steps or 
 
 Bend usually has the smaller fixed cost, 0.12–0.16 s against about 0.18 s. On Mandelbrot, Merkle trees, three-body simulation and Game of Life, the GPU work at the scorecard size is small enough that this decides the result: Bend finishes them sooner than our CUDA programs, and those wins end at 8× to 32× the work.
 
-Per unit of work, Bend GPU takes a median 5.7× as long as the conventional GPU program. It's closest on Game of Life at 1.3×, N-Queens at 1.5×, game search at 1.8× and three-body at 3.6×, with pricing, edit distance, Merkle, hash tables and k-means at 4.0–6.2×. It's furthest on HotSpot at 290×, lexer at 200×, symbolic regression at 180×, ray tracing at 120× and Mandelbrot at 40×. The scorecard-size ratios understate most of these gaps, often by more than 20 times: lexer goes from 6.2× to 200× and Mandelbrot from 0.8× to 40×.
+Per unit of work, Bend GPU takes a median 5.7× as long as the conventional GPU program. It's closest on Game of Life at 1.3×, N-Queens at 1.5×, game search at 1.8× and three-body at 3.6×, with pricing, edit distance, Merkle, hash tables and k-means at 4.0–6.2×. It's furthest on HotSpot at 300×, lexer at 200×, symbolic regression at 180×, ray tracing at 120× and Mandelbrot at 40×. The scorecard-size ratios understate most of these gaps, often by more than 20 times: lexer goes from 6.2× to 200× and Mandelbrot from 0.8× to 40×.
 
 ![Bend GPU time over conventional GPU time as the work grows, per workload, with the fitted work-only ratio dotted](benchmarks/startup-scaling/ratio.png)
  [GPU results](VENDOR_CUDA_COMPLETION.md), [full scorecard](benchmarks/summary/index.html).

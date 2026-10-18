@@ -2,13 +2,13 @@
 
 At the scorecard sizes, most conventional GPU programs spend under 10% of their run on the GPU, inside about 0.2 s of process startup, so the scorecard's GPU columns mostly compare startup. How much slower is Bend per unit of work once the work dominates?
 
-Grown until the conventional GPU work dominates, Bend GPU takes a median 5.7× as long as the conventional program for each added unit of work, from 1.3× to 290×. Bend is closest on Game of Life (1.3×), N-Queens (1.5×), game search (1.8×), three-body (3.6×), option pricing (4.0×), edit distance (4.3×), Merkle trees (4.5×) and hash tables (5.1×), and furthest on HotSpot (290×), lexing (200×), symbolic regression (180×), ray tracing (120×) and Mandelbrot (40×). Bend's four wins at the scorecard sizes, Mandelbrot, Merkle, three-body and Game of Life, come from its faster startup and end at 8× to 32× the scorecard's work. For every other workload except N-Queens, the scorecard ratio understates the gap 2 to 50 times over: lexing goes from 5.7× at the scorecard size to 200× per unit of work.
+Grown until the conventional GPU work dominates, Bend GPU takes a median 5.7× as long as the conventional program for each added unit of work, from 1.3× to 300×. Bend is closest on Game of Life (1.3×), N-Queens (1.5×), game search (1.8×), three-body (3.6×), option pricing (4.0×), edit distance (4.3×), Merkle trees (4.5×) and hash tables (5.1×), and furthest on HotSpot (300×), lexing (200×), symbolic regression (180×), ray tracing (120×) and Mandelbrot (40×). Bend's four wins at the scorecard sizes, Mandelbrot, Merkle, three-body and Game of Life, come from its faster startup and end at 8× to 32× the scorecard's work. For every other workload except N-Queens, the scorecard ratio understates the gap 2 to 50 times over: lexing goes from 5.7× at the scorecard size to 200× per unit of work.
 
 Each Bend program and its conventional counterpart ran at doubling sizes along one work knob, in five alternating rounds per size, with outputs checked at every size. Each program's time was fitted as a fixed cost plus a work curve, and the comparison is Bend's added time for more work over the conventional program's, at the largest size measured.
 
 ## Results
 
-The work-only ratio counts only what grows with the work. The fixed cost is the time a run takes with no work, mostly process startup: 0.12 to 0.20 s for Bend and 0.18 to 0.19 s for the conventional programs. Bend's is larger on hash tables, symbolic regression and N-Queens (0.4 to 0.7 s) and HotSpot (5.1 s); cuDF's is 0.27 s, N-Queens CUDA's 0.37 s and Rodinia HotSpot's 0.6 s. A change under 3% without the largest size means the ratio has settled. The ratios at the scorecard size come from this sweep's own 1× runs, under the same host load as its other sizes, and differ from the scorecard's by up to 10% (lexer 5.7× here, 6.2× in the scorecard).
+The work-only ratio counts only what grows with the work. The fixed cost is the time a run takes with no work, mostly process startup: 0.12 to 0.20 s for Bend and 0.18 to 0.19 s for the conventional programs. Bend's is larger on hash tables, symbolic regression and N-Queens (0.4 to 0.7 s) and HotSpot (2.7 s); cuDF's is 0.27 s, N-Queens CUDA's 0.37 s and Rodinia HotSpot's 0.66 s. A change under 3% without the largest size means the ratio has settled. The ratios at the scorecard size come from this sweep's own 1× runs, under the same host load as its other sizes, and differ from the scorecard's by up to 10% (lexer 5.7× here, 6.2× in the scorecard).
 
 | Workload | Work grown | Sizes | Bend ÷ conventional at the scorecard size | Bend ÷ conventional at the largest size | Conventional GPU share at the largest size | Work-only ratio | Change without the largest size | Fixed cost, Bend | Fixed cost, conventional |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -24,7 +24,7 @@ The work-only ratio counts only what grows with the work. The fixed cost is the 
 | Ray tracing | image side (pixels = k^2 x 6000 x 4096) | 1× to 32× | 5.4× | 120× | 97% | 120× | -1.1% | 0.2 s | 0.18 s |
 | Symbolic regression | candidates (2^size) | 1× to 2,048× | 3.8× | 170× | 88% | 190× | -1.6% | 0.42 s | 0.18 s |
 | Terrain | relaxation sweeps per tile | 1× to 512× | 1.5× | 14× | 95% | 15× | -0.0% | 0.19 s | 0.19 s |
-| Rodinia HotSpot | timesteps on the 1,024 x 1,024 grid | 1× to 128× | 12× | 180× | 62% | 290× | -0.9% | 5.1 s | 0.6 s |
+| Rodinia HotSpot | timesteps on the 1,024 x 1,024 grid | 1× to 64× | 7.9× | 140× | 53% | 300× | -0.8% | 2.7 s | 0.66 s |
 | Option pricing | paths per request (2^depth) | 1× to 1,024× | 0.6× | 3.2× | 68% | 4.0× | -1.9% | 0.12 s | 0.18 s |
 | Game search | positions per batch (2^depth) | 1× to 32× | 1.4× | 1.9× | 85% | 1.8× | -0.9% | 0.022 s | 0.18 s |
 | N-Queens | prefixes searched at 17 queens, then board size | 1× to board 19 | 2.0× | 1.4× | 99% | 1.5× |  | 0.67 s | 0.37 s |
@@ -47,7 +47,7 @@ Bend finishes Mandelbrot, Merkle, three-body and Game of Life sooner at the scor
 
 ## The scorecard sizes hide the largest gaps
 
-Lexing, symbolic regression, ray tracing and Mandelbrot all run their conventional GPU work in 0.8 to 6 ms at the scorecard size. Their ratios of 0.8 to 5.7 at that size grow to 40× to 200× per unit of work. HotSpot's 12× at the scorecard size hides two fixed costs, 0.6 s for Rodinia's CUDA program and 5.1 s for Bend, both spent before the first timestep. Past those, each timestep takes Bend about 27 ms and CUDA about 0.1 ms.
+Lexing, symbolic regression, ray tracing and Mandelbrot all run their conventional GPU work in 0.8 to 6 ms at the scorecard size. Their ratios of 0.8 to 5.7 at that size grow to 40× to 200× per unit of work. HotSpot's 7.9× at the scorecard size hides two fixed costs, 0.66 s for Rodinia's CUDA program and 2.7 s for Bend, both spent outside the timestep loop. Past those, each timestep takes Bend about 30 ms and CUDA about 0.1 ms.
 
 ## Workload-specific knobs, limits and fits
 
@@ -77,7 +77,7 @@ The same correction applies to moving one Bend program from the CPU to the GPU. 
 | Hash tables | 0.4× | 0.5× |
 | Lexer | 0.3× | 0.4× |
 
-This assumes the 16-thread CPU time grows in proportion to the work; the CPU sweep has not been run. Mandelbrot's row uses Bend's published program on both chips, not the GPU comparison's version (see Method). HotSpot is left out because its CPU time includes parsing the input, which the GPU fit counts as fixed cost.
+This assumes the 16-thread CPU time grows in proportion to the work; the CPU sweep has not been run. Mandelbrot's row uses Bend's published program on both chips, not the GPU comparison's version (see Method). HotSpot is left out because its CPU time includes loading the input and formatting the 1,048,576-cell output, which the GPU fit counts as fixed cost.
 
 ## CPU startup is 2 to 5 ms
 
@@ -140,6 +140,7 @@ The sweeps are produced by [startup_scaling.py](startup_scaling.py), the fits an
 - The lexer by line length stopped at 16× with Bend's GPU stack overflow.
 - HotSpot at 260× stopped when an unapproved GPU process started during a measured Bend run. Its check and warmup had passed.
 - The first game-search sweep, `20260925-165430`, used the CUDA control with the local-memory recursion; `20260925-172353` replaces it with the fixed control.
+- The first HotSpot sweep, `20260924-224440`, parsed ASCII inputs; `20261017-183139` overlapped external GPU compute at `4×` to `16×`, and `20261017-203834` replaces both with the staged binary IEEE-754 float32 inputs and accumulator output.
 - Three runs ended without their completion record when their service was stopped: `20260924-104254`, `20260924-134639` and `20260924-144502`. Every size they finished is used.
 
 ## All sizes
@@ -325,14 +326,13 @@ The sweeps are produced by [startup_scaling.py](startup_scaling.py), the fits an
 
 | Multiplier | timesteps on the 1,024 x 1,024 grid | Bend GPU seconds | Conventional seconds | Conventional GPU seconds | Conventional host floor seconds | Bend ÷ conventional | Checked against serial C |
 |---:|---:|---:|---:|---:|---:|---:|---|
-| 1× | 100 | 7.88 | 0.644 | 0.0112 | 0.611 | 12× | yes |
-| 2× | 200 | 10.4 | 0.644 | 0.0223 | 0.604 | 16× | yes |
-| 4× | 400 | 15.5 | 0.646 | 0.0445 | 0.591 | 24× | yes |
-| 8× | 800 | 27.3 | 0.737 | 0.0889 | 0.594 | 37× | yes |
-| 16× | 1,600 | 49.2 | 0.826 | 0.173 | 0.627 | 60× | yes |
-| 32× | 3,200 | 94.2 | 1.06 | 0.333 | 0.598 | 89× | yes |
-| 64× | 6,400 | 184 | 1.44 | 0.643 | 0.639 | 130× | yes |
-| 128× | 12,800 | 359 | 2.02 | 1.26 | 0.626 | 180× | yes |
+| 1× | 100 | 5.57 | 0.709 | 0.0123 | 0.672 | 7.9× | yes |
+| 2× | 200 | 8.17 | 0.688 | 0.0241 | 0.657 | 12× | yes |
+| 4× | 400 | 14 | 0.711 | 0.0492 | 0.65 | 20× | yes |
+| 8× | 800 | 25.8 | 0.757 | 0.0977 | 0.647 | 34× | yes |
+| 16× | 1,600 | 49.1 | 0.845 | 0.193 | 0.639 | 58× | yes |
+| 32× | 3,200 | 96.7 | 1.05 | 0.365 | 0.649 | 92× | yes |
+| 64× | 6,400 | 190 | 1.34 | 0.71 | 0.63 | 140× | yes |
 
 ### Option pricing
 
