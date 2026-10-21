@@ -157,3 +157,18 @@ class FastGPU(unittest.TestCase):
         self.assertTrue(correct(case, result))
         result['stdout'] = result['stdout'].replace('\n', '\n9\n', 1)
         self.assertFalse(correct(case, result))
+
+    def test_bend_rts_wraps_runtime_flags_only_when_supported(self):
+        from bend_bench.suites import bend_rts
+        with tempfile.TemporaryDirectory() as tmp:
+            checkout = Path(tmp)
+            (checkout / 'bend2').mkdir()
+            (checkout / 'bend2/comp.ts').write_text('// legacy runtime flags\n')
+            self.assertEqual(bend_rts(checkout, ['--threads', 16, '--gpu', '4GB']), ['--threads', '16', '--gpu', '4GB'])
+            (checkout / 'bend2/comp.ts').write_text('usage: %s [+RTS options -RTS]\n')
+            self.assertEqual(bend_rts(checkout, ['--gpu-build']), ['+RTS', '--gpu-build'])
+            self.assertEqual(bend_rts(checkout, ['prompt', 24, 10, '--threads', 1, '--gpu', 'off']),
+                             ['prompt', '24', '10', '+RTS', '--threads', '1', '--gpu', 'off'])
+            self.assertEqual(bend_rts(checkout, ['--threads', 16, 'prompt', 24, '--gpu', '8GB']),
+                             ['prompt', '24', '+RTS', '--threads', '16', '--gpu', '8GB'])
+

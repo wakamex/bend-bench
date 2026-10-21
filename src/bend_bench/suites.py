@@ -92,6 +92,25 @@ def stage(config, work, *, mnk_count=16):
             (work / "ports" / f"uts-{dataset}.bend").write_text(source)
 
 
+def bend_rts(bend, args):
+    comp = Path(bend) / "bend2/comp.ts"
+    items = list(map(str, args))
+    if not comp.is_file() or "+RTS" not in comp.read_text():
+        return items
+    rts, rest, i = [], [], 0
+    while i < len(items):
+        if items[i] in ("--threads", "--gpu") and i + 1 < len(items):
+            rts += items[i:i + 2]
+            i += 2
+        elif items[i] in ("--gpu-build", "--help"):
+            rts.append(items[i])
+            i += 1
+        else:
+            rest.append(items[i])
+            i += 1
+    return [*rest, "+RTS", *rts] if rts else items
+
+
 def plan(config, work):
     work = Path(work)
     bend = Path(config["bend"]["path"])
@@ -109,6 +128,8 @@ def plan(config, work):
 
     def case(suite, workload, implementation, threads, binary, args, expected, reason=None, contract=None):
         cpus = config["cpus"][:threads]
+        if implementation in ("bend", "bend-cuda"):
+            args = bend_rts(bend, args)
         env = {"OMP_NUM_THREADS": str(threads), "OMP_PROC_BIND": "true", "OMP_PLACES": "threads", "OMP_STACKSIZE": "64M"}
         cases.append(dict(id=f"{suite}/{workload}/{implementation}/{threads}", suite=suite,
                           workload=workload, implementation=implementation, threads=threads,
@@ -131,7 +152,7 @@ def plan(config, work):
             # that indirect lookup; DT_RUNPATH only resolves direct deps.
             build([cc, "-std=c11", *flags, "-DBEND_CUDA=1", f"-I{cuda}/include", f"-L{cuda}/lib64", cfile,
                    "-lpthread", "-lm", "-lcuda", "-lnvrtc", f"-Wl,--disable-new-dtags,-rpath,{cuda}/lib64", "-o", str(binary) + "-cuda"])
-            build([str(binary) + "-cuda", "--gpu-build"])
+            build([str(binary) + "-cuda", *bend_rts(bend, ["--gpu-build"])])
         return binary
 
     if set(config['suites']) & {'gpu-regression', 'cpu-regression'}:
