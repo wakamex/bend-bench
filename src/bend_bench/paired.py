@@ -9,7 +9,8 @@ processes, A B B A then B A A B in turn: both versions sit at the same mean posi
 block, so background drift that is linear over the block cancels exactly in the block's score,
 (A1+A2) / (B1+B2) (above 1: the candidate is faster), and each version runs once before and
 once after the other; a workload reports the median over blocks and a bootstrap interval of
-that median, taken from this session's own blocks.
+that median, taken from this session's own blocks. A workload whose run fails its correctness
+check is reported as not compared, and the others still run.
 """
 import hashlib
 import json
@@ -64,6 +65,12 @@ def program(case):
     return hashlib.sha256(host.encode()).hexdigest(), gpu
 
 
+class Failure(ValueError):
+    def __init__(self, side, reason):
+        super().__init__(reason)
+        self.side = side
+
+
 def time_once(config, run, case, out, side, block, slot, phase):
     env = {**environment(), **case['env']}
     command = [*case['command'], *(case.get('check_args', []) if phase == 'check' else [])]
@@ -73,11 +80,13 @@ def time_once(config, run, case, out, side, block, slot, phase):
     append(out / 'samples.jsonl', dict(case=case['id'], side=side, block=block, slot=slot, phase=phase,
                                        correct=ok, **result))
     if not ok:
-        raise ValueError(f'{side} {case["id"]} gave a wrong or contended result in {phase}; see {out / "samples.jsonl"}')
+        raise Failure(side, f'{"base" if side == "A" else "candidate"} gave a wrong result or exited with an error in {phase}')
     return result['end_to_end_seconds']
 
 
-def run(base, candidate, workloads=None, blocks=8, warmups=1):
+def run(base, candidate, workloads=None, blocks=8, warmups=1, threshold=0):
+    """Returns the output directory, the report, and whether to flag it: a workload the candidate
+    fails and the base passes, or one the candidate runs slower with a median over threshold percent."""
     if blocks < 2:
         raise ValueError('At least two blocks are needed for an interval')
     for key in ('suites', 'threads', 'cpus', 'gpu_heap', 'timeout'):
@@ -102,26 +111,47 @@ def run(base, candidate, workloads=None, blocks=8, warmups=1):
     write_json(out / 'request.json', dict(base=str(runs['A']), candidate=str(runs['B']), blocks=blocks,
                                           warmups=warmups, same_program=same, timed=timed, orders=ORDERS))
     print('PAIRED', out, flush=True)
-    results = []
+    results, failed = [], []
     with exclusive(base):
         for case_id in timed:
+            ratios, broken = [], []
             for side in ('A', 'B'):
-                time_once(configs[side], runs[side], cases[side][case_id], out, side, -1, -1, 'check')
-                for rep in range(warmups):
-                    time_once(configs[side], runs[side], cases[side][case_id], out, side, -1, rep, 'warmup')
-            ratios = []
-            for block in range(blocks):
-                order, times = ORDERS[block % 2], {'A': [], 'B': []}
-                for slot, side in enumerate(order):
-                    times[side].append(time_once(configs[side], runs[side], cases[side][case_id], out, side, block, slot, 'measure'))
-                ratios.append(block_ratio(times))
-                print(f'{case_id} block {block} {order}: {ratios[-1]:.3f}', flush=True)
+                try:
+                    time_once(configs[side], runs[side], cases[side][case_id], out, side, -1, -1, 'check')
+                except Failure as error:
+                    broken.append(error)
+            if broken:
+                reason = '; '.join(map(str, broken))
+                print(f'{case_id}: {reason}', flush=True)
+                failed.append(dict(case=case_id, reason=reason, sides=[e.side for e in broken], blocks=0))
+                continue
+            try:
+                for side in ('A', 'B'):
+                    for rep in range(warmups):
+                        time_once(configs[side], runs[side], cases[side][case_id], out, side, -1, rep, 'warmup')
+                for block in range(blocks):
+                    order, times = ORDERS[block % 2], {'A': [], 'B': []}
+                    for slot, side in enumerate(order):
+                        times[side].append(time_once(configs[side], runs[side], cases[side][case_id], out, side, block, slot, 'measure'))
+                    ratios.append(block_ratio(times))
+                    print(f'{case_id} block {block} {order}: {ratios[-1]:.3f}', flush=True)
+            except Failure as error:
+                # A wrong or failed run ends this workload only; its samples stay in samples.jsonl.
+                print(f'{case_id}: {error}', flush=True)
+                failed.append(dict(case=case_id, reason=str(error), sides=[error.side], blocks=len(ratios)))
+                continue
             results.append(dict(case=case_id, ratios=ratios, **score(ratios)))
-    summary = dict(same_program=same, results=results)
+    summary = dict(same_program=same, results=results, failed=failed, samples=str(out / 'samples.jsonl'))
     write_json(out / 'summary.json', summary)
     text = render(summary, runs)
     (out / 'report.md').write_text(text)
-    return out, text
+    return out, text, flagged(summary, threshold)
+
+
+def flagged(summary, threshold):
+    regressed = any(f['sides'] == ['B'] for f in summary['failed'])
+    slower = any(r['verdict'] == 'slower' and 1 / r['median'] - 1 > threshold / 100 for r in summary['results'])
+    return regressed or slower
 
 
 def render(summary, runs):
@@ -133,6 +163,10 @@ def render(summary, runs):
         for r in summary['results']:
             lines.append(f'| {r["case"]} | {r["blocks"]} | {r["median"]:.3f}x | {r["low"]:.3f}x to {r["high"]:.3f}x | {r["verdict"]} |')
         lines.append('')
+    if summary.get('failed'):
+        lines += ['Not compared, a run failed its correctness check or exited with an error:', '']
+        lines += [f'- {f["case"]}: {f["reason"]}' for f in summary['failed']] + ['']
+        lines += [f'Samples, including failed runs: `{summary["samples"]}`.', ''] if summary.get('samples') else []
     if summary['same_program']:
         lines += [f'Not timed, the same compiled program on both sides ({len(summary["same_program"])}): '
                   + ', '.join(summary['same_program']) + '.', '']

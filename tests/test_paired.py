@@ -4,7 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from bend_bench.paired import block_ratio, program, render, score
+import argparse
+import json
+
+from bend_bench.cli import paired_base
+from bend_bench.paired import block_ratio, flagged, program, render, score
 
 SOURCE = """%s
 static const char SRC[] = "%s";
@@ -46,6 +50,47 @@ class PairedScoring(unittest.TestCase):
         text = render(summary, {'A': 'base', 'B': 'cand'})
         self.assertIn('| gpu-regression/raytrace/bend-cuda/16 | 8 | 1.840x | 1.810x to 1.860x | faster |', text)
         self.assertIn('Not timed, the same compiled program on both sides (1): gpu-regression/bfs/bend-cuda/32.', text)
+
+    def test_report_lists_failed_workloads(self):
+        summary = dict(same_program=[], results=[], failed=[dict(case='gpu-regression/uts-compact/bend-cuda/16',
+                                                                  reason='base gave a wrong result in check', sides=['A'], blocks=0)])
+        self.assertIn('- gpu-regression/uts-compact/bend-cuda/16: base gave a wrong result in check', render(summary, {'A': 'a', 'B': 'b'}))
+
+    def test_flags_need_a_candidate_only_failure_or_a_slowdown_past_the_threshold(self):
+        result = lambda median, verdict: dict(case='c', median=median, verdict=verdict)
+        fails = lambda *sides: dict(same_program=[], results=[], failed=[dict(case='c', reason='r', sides=list(sides), blocks=0)])
+        self.assertTrue(flagged(fails('B'), 10))
+        self.assertFalse(flagged(fails('A'), 10))
+        self.assertFalse(flagged(fails('A', 'B'), 10))
+        slow = lambda median, verdict: dict(same_program=[], failed=[], results=[result(median, verdict)])
+        self.assertFalse(flagged(slow(0.996, 'slower'), 10))
+        self.assertTrue(flagged(slow(0.85, 'slower'), 10))
+        self.assertFalse(flagged(slow(0.85, 'no detected change'), 10))
+        self.assertTrue(flagged(slow(0.996, 'slower'), 0))
+
+
+class FastBaseline(unittest.TestCase):
+    def args(self, baseline, blocks=3, build=None, resume=None):
+        return argparse.Namespace(baseline=baseline, blocks=blocks, build=build, resume=resume)
+
+    def test_a_baseline_run_directory_is_timed_alongside_the_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = Path(tmp)
+            (run / 'provenance.json').write_text(json.dumps(dict(config=dict(
+                _run_id='x', bend=dict(path='/base', commit='0' * 40), output='/old', suites=['cpu-regression']))))
+            base = paired_base(self.args(run), dict(output='/new'))
+            self.assertEqual(base, dict(bend=dict(path='/base', commit='0' * 40), output='/new', suites=['cpu-regression']))
+            for args in (self.args(run, blocks=0), self.args(run, build=run), self.args(run, resume=run)):
+                self.assertIsNone(paired_base(args, dict(output='/new')))
+            with self.assertRaises(ValueError):
+                paired_base(self.args(run, blocks=1), dict(output='/new'))
+
+    def test_saved_results_and_missing_baselines_compare_against_saved_times(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            saved = Path(tmp) / 'regression.json'
+            saved.write_text('{}')
+            self.assertIsNone(paired_base(self.args(saved), dict(output='/new')))
+            self.assertIsNone(paired_base(self.args(None), dict(output='/new')))
 
 
 @unittest.skipUnless(shutil.which('cc') and shutil.which('objdump'), 'needs cc and objdump')

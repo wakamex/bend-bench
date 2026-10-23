@@ -8,6 +8,7 @@ uv run --locked bend-bench cpu fast
 uv run --locked bend-bench cpu fast --repetitions 3
 uv run --locked bend-bench cpu fast --repetitions 10
 uv run --locked bend-bench cpu fast candidate.toml --baseline runs/BASELINE_ID
+uv run --locked bend-bench cpu fast candidate.toml --baseline runs/BASELINE_ID --blocks 0
 ```
 
 The default [fast-cpu.toml](fast-cpu.toml) pins the compiler checkout, revision and host CPU affinity. Copy it and change `[bend].path` and `[bend].commit` for another compiler version. Workload sources and correctness references remain fixed. The profile builds each CPU executable once and runs it at both thread counts, with no GPU kernels, GPU idle wait, conventional controls or CPU/GPU overlap. The shared benchmark lock and blocked-service checks still apply.
@@ -31,9 +32,11 @@ Input sizes are fixed, not adapted to the candidate compiler. The historical mea
 
 Each invocation collects fresh measurements in a new `runs/<id>/` directory, even with unchanged code and settings. Use `--resume runs/<id>` explicitly to continue an interrupted run with matching configuration, source and harness identity. Completed samples are retained; failed samples are not erased or retried. Comparing a run against itself is rejected. `--baseline` selects saved comparison data and does not resume it.
 
+A baseline run directory is timed again alongside the candidate in three paired blocks per workload, as for the [GPU profile](FAST_GPU.md#readable-regression-comparisons); `--blocks 0` compares against its saved times instead. One pass over the CPU profile takes about four minutes of process time, so three blocks of four processes take about 50 minutes, less when some workloads compile to the same program on both sides.
+
 The command prints total elapsed time when it finishes or exits with an error, including compilation and testing. Individual workload timings remain separate.
 
-The readable comparison reports separate geometric-mean speed ratios and ranges for CPU1 and CPU16. Each per-case row shows baseline time, candidate time and percentage change. A thread-scaling table shows CPU1/CPU16 speedup before and after the compiler change. Scaling changes are descriptive: faster single-thread code can reduce the speedup ratio even when multicore time is unchanged. Slowdown flags are based on measured execution time, not the scaling ratio alone.
+Compared against saved times, the readable comparison reports separate geometric-mean speed ratios and ranges for CPU1 and CPU16. Each per-case row shows baseline time, candidate time and percentage change. A thread-scaling table shows CPU1/CPU16 speedup before and after the compiler change. Scaling changes are descriptive: faster single-thread code can reduce the speedup ratio even when multicore time is unchanged. Slowdown flags are based on measured execution time, not the scaling ratio alone.
 
 ```sh
 uv run --locked bend-bench cpu-report runs/CANDIDATE_ID --baseline baseline-regression.json

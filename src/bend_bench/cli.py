@@ -21,9 +21,22 @@ def fast_arguments(parser, target):
     parser.add_argument('--baseline', type=Path, help='Previous run directory or saved result/comparison JSON')
     parser.add_argument('--resume', type=Path, help='Resume this run directory instead of collecting a fresh run')
     parser.add_argument('--threshold', type=float, default=10, help='Flag slowdowns above this percentage (default: 10)')
+    parser.add_argument('--blocks', type=int, default=3, help='With a --baseline run directory, time base and candidate alternately in this many ABBA/BAAB blocks (default: 3; 0 compares against the saved times instead)')
     if target == 'gpu':
         parser.add_argument('--exclusive-gpu', action='store_true', help='Reject other GPU processes and overlapping GPU activity')
         parser.add_argument('--wait-idle', action='store_true', help='Wait for 120 seconds of GPU inactivity before preparing the run')
+
+
+def paired_base(args, config):
+    """The baseline run's own configuration, when fast should time it against the candidate in
+    ABBA/BAAB blocks: the baseline is a run directory and neither a saved build nor a resume is in play."""
+    saved = args.baseline / 'provenance.json' if args.baseline else None
+    if args.blocks == 0 or args.build or args.resume or saved is None or not saved.is_file():
+        return None
+    if args.blocks < 2:
+        raise ValueError('--blocks must be 0, or at least 2 for an interval')
+    base = {k: v for k, v in json.loads(saved.read_text())['config'].items() if not k.startswith('_')}
+    return {**base, 'output': config['output']}
 
 
 def main(argv=None):
@@ -56,6 +69,7 @@ def main(argv=None):
     pairing.add_argument('--workloads', help='Comma-separated workloads (default: every workload whose compiled program differs)')
     pairing.add_argument('--blocks', type=int, default=8, help='ABBA/BAAB blocks per workload (default: 8)')
     pairing.add_argument('--warmups', type=int, default=1, help='Untimed runs per side before the blocks (default: 1)')
+    pairing.add_argument('--threshold', type=float, default=10, help='Exit 1 when a workload is slower by more than this median percentage (default: 10)')
     for name in ('regression-report', 'gpu-report', 'cpu-report'):
         regression_report = commands.add_parser(name, help='Readable results and optional regression comparison')
         regression_report.add_argument('run', type=Path)
@@ -78,9 +92,9 @@ def main(argv=None):
         if args.command == 'paired':
             from .paired import run as paired_run
             workloads = args.workloads.split(',') if args.workloads else None
-            _, text = paired_run(load_config(args.base), load_config(args.candidate), workloads, args.blocks, args.warmups)
+            _, text, concerns = paired_run(load_config(args.base), load_config(args.candidate), workloads, args.blocks, args.warmups, args.threshold)
             print(text)
-            return 0
+            return int(concerns)
         if args.command in ('gpu-report', 'cpu-report', 'regression-report'):
             from .regression import comparison, load_result, publish, render
             if args.run.is_dir():
@@ -134,6 +148,10 @@ def main(argv=None):
                     if args.build_only:
                         from .builds import create
                         folder, failed = create(config, args.output), False
+                    elif base := paired_base(args, config):
+                        from .paired import run as paired_run
+                        folder, text, failed = paired_run(base, config, blocks=args.blocks, threshold=args.threshold)
+                        print(text)
                     else:
                         folder, failed = fast_run(config, args.baseline, args.threshold, wait_for_idle=getattr(args, 'wait_idle', False), resume=args.resume)
                 finally:

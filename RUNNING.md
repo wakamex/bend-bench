@@ -13,7 +13,7 @@ uv run --locked bend-bench cpu fast
 
 GPU sharing is allowed by default. Add `--exclusive-gpu` to reject other GPU activity, or `--wait-idle` to wait for an idle GPU and then run exclusively. Use `--repetitions N` for more measurements.
 
-Fast commands collect fresh measurements and save a new run directory each time. `--baseline runs/<id>` compares the new measurements with a saved run; `--resume runs/<id>` explicitly continues an existing run instead.
+Fast commands collect fresh measurements and save a new run directory each time. `--baseline runs/<id>` times that run's compiler against the new one in alternating ABBA/BAAB blocks (`--blocks 0` compares with its saved measurements instead); `--resume runs/<id>` explicitly continues an existing run instead.
 
 To compile once and reuse binaries, use `--build-only --output builds/my-build`, then `--build builds/my-build`. See [reusable builds](BUILDS.md) for CPU/GPU examples and integrity checks.
 
@@ -78,7 +78,7 @@ To time the change, `paired` takes two fast-profile experiment files that pin th
 uv run --locked bend-bench paired base.toml candidate.toml --workloads raytrace,editdist --blocks 10
 ```
 
-After a correctness check and a warmup on each side, every workload runs in blocks of four processes, base (A) and candidate (B) as A B B A, then B A A B in the next block. Both versions sit at the same mean position in a block, so a background load that rises or falls steadily through it cancels exactly in the block's score, (A1 + A2) / (B1 + B2), where above 1x means the candidate is faster. The report gives the median block score and a 95% bootstrap interval of that median, both from the session's own blocks, so the interval reflects the load the comparison actually ran under. `--workloads` restricts the comparison to named workloads. Results go to `runs/paired-*/` (`samples.jsonl`, `summary.json`, `report.md`).
+After a correctness check and a warmup on each side, every workload runs in blocks of four processes, base (A) and candidate (B) as A B B A, then B A A B in the next block. Both versions sit at the same mean position in a block, so a background load that rises or falls steadily through it cancels exactly in the block's score, (A1 + A2) / (B1 + B2), where above 1x means the candidate is faster. The report gives the median block score and a 95% bootstrap interval of that median, both from the session's own blocks, so the interval reflects the load the comparison actually ran under. `--workloads` restricts the comparison to named workloads. A workload that fails its correctness check on either side is listed as not compared and the rest still run. The command exits 1 when a workload is slower with a median past `--threshold` (10% by default) or fails only with the candidate. Results go to `runs/paired-*/` (`samples.jsonl`, `summary.json`, `report.md`).
 
 [scorecard_paired_cpu.py](scorecard_paired_cpu.py) runs the scorecard's archived Bend binaries and a newer revision's binaries alternately under the same load, after the `scorecard-*.toml` runs have built them. The [Bend 2.0.26 comparison](BEND_2_0_26.md) uses it.
 
