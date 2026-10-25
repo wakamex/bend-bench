@@ -16,7 +16,20 @@ The m,n,k CUDA-control results predating the executable-identity fix in commit `
 
 GAP commit `2972aeb2703165bafd921222f4ed7196f542d3a8`, Gunrock v2.0.0 commit `a2e9f04aa7a14aa4d2922ffc6a5fcbba9d451df6`, and ModernGPU commit `267cc8d02c03f00f1656f1205c61c946a1e530b0` are pinned locally. Gunrock v2.0.0 was selected for its CUDA-native API, avoiding the current main branch's additional HIP platform dependencies. Wrappers preserve the upstream BFS algorithms. CUB/Thrust use the already documented Clang compatibility patch.
 
-The application suite uses CUDA 13.1. Gunrock v2.0.0 reads `clockRate` and `memoryClockRate` from `cudaDeviceProp`, fields CUDA 13 removed; `gunrock/cuda/device_properties.hxx` reads both through `cudaDeviceGetAttribute` instead, which only affects Gunrock's clock-rate helper and device printout. Its `SM_TARGET=86` setting follows the upstream build contract. Clang requires an explicit `__device__` annotation on Gunrock's managed benchmark counter. These changes and a final newline are preserved in the source diff. Metrics collection is disabled, matching the upstream default. CCCL's optional NVTX annotations are disabled because this Clang/toolkit combination rejects their host-only destructor inside device Thrust calls; Nsight CUDA kernel tracing remains enabled. Source-check diagnostics are retained in `runs/application-source-checks.jsonl`.
+The application suite uses CUDA 13.1. Gunrock v2.0.0 reads `clockRate` and `memoryClockRate` from `cudaDeviceProp`, fields CUDA 13 removed; `gunrock/cuda/device_properties.hxx` reads both through `cudaDeviceGetAttribute` instead, which only affects Gunrock's clock-rate helper and device printout. Its `SM_TARGET=86` setting follows the upstream build contract. Clang requires an explicit `__device__` annotation on Gunrock's managed benchmark counter. These changes and a final newline are preserved in the source diff.
+
+The scorecard's BFS, option-pricing and game-search GPU cells were measured with CUDA 12.4 and are kept. Built with each toolkit and timed alternately in one session, CUDA 13.1 moves these cells by at most 4%, and the larger moves have overlapping ranges:
+
+| Cell | CUDA 12.4 | CUDA 13.1 | 13.1 / 12.4 | Method |
+|---|---:|---:|---:|---|
+| Option pricing, Bend GPU, per request | 3.96 ms | 4.03 ms | 1.018 | 6 runs each, A B B A |
+| Option pricing, CUDA + CUB, per request | 0.541 ms | 0.525 ms | 0.970 | 6 runs each, A B B A |
+| Game search, Bend GPU, per batch | 372 ms | 386 ms | 1.038 | 6 runs each, A B B A |
+| Game search, CUDA, per batch | 88.8 ms | 88.9 ms | 1.001 | 6 runs each, A B B A |
+| BFS on 262,144 vertices, Bend GPU | | | 1.013 (95% interval 1.004 to 1.025) | 8 paired blocks |
+| BFS on 262,144 vertices, Gunrock | | | 0.993 (0.983 to 1.020) | 8 paired blocks |
+
+The paired BFS blocks give only the ratio. The host was under heavy load from other work during the comparison, which is why its absolute times sit above the scorecard's quieter September measurements. Metrics collection is disabled, matching the upstream default. CCCL's optional NVTX annotations are disabled because this Clang/toolkit combination rejects their host-only destructor inside device Thrust calls; Nsight CUDA kernel tracing remains enabled. Source-check diagnostics are retained in `runs/application-source-checks.jsonl`.
 
 Pricing uses local OpenMP/CUDA arithmetic controls. It must not be described as a tuned finance-library comparison. NVIDIA's [Asian-option sample](https://github.com/NVIDIA/cuda-samples/tree/master/cpp/2_Concepts_and_Techniques/MC_SingleAsianOptionP) is a follow-up external baseline requiring an explicit random-stream and output contract. Exact-search comparisons are likewise local controls. No global optimality claim is made.
 
