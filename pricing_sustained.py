@@ -180,8 +180,9 @@ def run_case(config, case, folder, n, batches, expected=None, vectors=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--depths', type=int, nargs='+', choices=(16, 18, 20), default=[16, 18])
+    parser.add_argument('--config', default=str(ROOT / 'applications.toml'), help='Harness configuration pinning the Bend checkout and tools')
     args = parser.parse_args()
-    config = load_config(ROOT / 'applications.toml')
+    config = load_config(args.config)
     config.update(suites=['pricing'], threads=[16], pricing_steps=[256], pricing_depths=args.depths)
     config['blocked_services'] += ['bend-bench-applications.service']
     out = ROOT / 'runs' / time.strftime('pricing-sustained-%Y%m%d-%H%M%S')
