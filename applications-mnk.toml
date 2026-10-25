@@ -15,7 +15,7 @@ require_idle_gpu = true
 blocked_services = ["bend2-evaluation.service", "bend-bench-validation.service", "bend-bench-gpu.service"]
 
 [gpu_resident]
-cgroup = "/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service"
+cgroup = ["/user.slice/user-1000.slice/user@1000.service/app.slice/transcribe-worker.service", "/user.slice/user-1000.slice/user@1000.service/app.slice/onetake-app.service"]
 
 [bend]
 path = "../bend2/upstream"
