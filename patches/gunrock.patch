@@ -1,3 +1,48 @@
+diff --git a/include/gunrock/cuda/device_properties.hxx b/include/gunrock/cuda/device_properties.hxx
+index 61aa0e9..b47e998 100644
+--- a/include/gunrock/cuda/device_properties.hxx
++++ b/include/gunrock/cuda/device_properties.hxx
+@@ -212,8 +212,17 @@ inline constexpr unsigned shared_memory_bank_stride() {
+                                                               : 1 << 2;
+ }
+ 
+-inline constexpr unsigned clock_rate(device_properties_t& prop) {
+-  return prop.clockRate;
++// CUDA 13 removed clockRate and memoryClockRate from cudaDeviceProp; both are
++// device attributes in every CUDA version.
++inline int device_attribute(cudaDeviceAttr attribute) {
++  int value = 0, ordinal = 0;
++  cudaGetDevice(&ordinal);
++  cudaDeviceGetAttribute(&value, attribute, ordinal);
++  return value;
++}
++
++inline unsigned clock_rate(device_properties_t& prop) {
++  return device_attribute(cudaDevAttrClockRate);
+ }
+ 
+ inline constexpr unsigned compute_version(device_properties_t& prop) {
+@@ -279,9 +288,9 @@ void print(device_properties_t& prop) {
+   error::throw_if_exception(status);
+ 
+   double memBandwidth =
+-      (prop.memoryClockRate * 1000.0) * (prop.memoryBusWidth / 8 * 2) / 1.0e9;
++      (device_attribute(cudaDevAttrMemoryClockRate) * 1000.0) * (prop.memoryBusWidth / 8 * 2) / 1.0e9;
+ 
+-  std::cout << prop.name << " : " << prop.clockRate / 1000.0 << " Mhz "
++  std::cout << prop.name << " : " << device_attribute(cudaDevAttrClockRate) / 1000.0 << " Mhz "
+             << "(Ordinal " << ordinal << ")" << std::endl;
+   std::cout << "FreeMem: " << (int)(freeMem / (1 << 20)) << " MB "
+             << "TotalMem: " << (int)(totalMem / (1 << 20)) << " MB "
+@@ -289,7 +298,7 @@ void print(device_properties_t& prop) {
+   std::cout << prop.multiProcessorCount
+             << " SMs enabled, Compute Capability sm_" << prop.major
+             << prop.minor << std::endl;
+-  std::cout << "Mem Clock: " << prop.memoryClockRate / 1000.0 << " Mhz x "
++  std::cout << "Mem Clock: " << device_attribute(cudaDevAttrMemoryClockRate) / 1000.0 << " Mhz x "
+             << prop.memoryBusWidth << " bits (" << memBandwidth << " GB/s)"
+             << std::endl;
+   std::cout << "ECC " << (prop.ECCEnabled ? "Enabled" : "Disabled")
 diff --git a/include/gunrock/framework/benchmark.hxx b/include/gunrock/framework/benchmark.hxx
 index 22966a5..d6dcc16 100644
 --- a/include/gunrock/framework/benchmark.hxx
