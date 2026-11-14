@@ -8,6 +8,7 @@ import unittest
 
 from bend_bench import ml
 from bend_bench.core import load_config
+from bend_bench.suites import bend_rts
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -170,7 +171,8 @@ class FastNanoGPT(unittest.TestCase):
             source = folder / "demos/nanogpt/nano.bend"
             subprocess.run([bun, bend / "bend2/main.ts", source, "-o", work / "nano.c"], check=True, capture_output=True)
             subprocess.run(["clang", "-std=c11", "-O3", work / "nano.c", "-lpthread", "-lm", "-o", work / "nano"], check=True, capture_output=True)
-            result = subprocess.run([work / "nano", "--threads", "1", ml.NANO_PROMPT, str(ml.NANO_TOKENS), "1"], cwd=folder,
+            args = bend_rts(bend, ["--threads", "1", ml.NANO_PROMPT, ml.NANO_TOKENS, 1])
+            result = subprocess.run([work / "nano", *args], cwd=folder,
                                     capture_output=True, text=True, timeout=120)
             self.assertIn("EVAL_COMPUTE_SECONDS=", result.stderr)
             case = dict(ml_kind="nanogpt", ml_reference=str(ml.ASSETS / "nanogpt-reference.json"),
