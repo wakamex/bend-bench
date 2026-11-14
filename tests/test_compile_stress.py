@@ -28,7 +28,7 @@ class CompileStress(unittest.TestCase):
                 out = Path(tmp) / (path.stem + '.c')
                 result = subprocess.run([bun, main, path, '-o', out], cwd=tmp, capture_output=True, text=True, timeout=300)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertEqual(len(re.findall(r'^\w+ Term spin_\d+\(Env e', out.read_text(), re.M)), natives, path.name)
+                self.assertEqual(len(re.findall(r'^\w+ Term spin_\w+\(Env e.*\{$', out.read_text(), re.M)), natives, path.name)
 
 
 if __name__ == '__main__':
