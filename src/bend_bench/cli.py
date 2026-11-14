@@ -70,6 +70,8 @@ def main(argv=None):
     pairing.add_argument('--blocks', type=int, default=8, help='ABBA/BAAB blocks per workload (default: 8)')
     pairing.add_argument('--warmups', type=int, default=1, help='Untimed runs per side before the blocks (default: 1)')
     pairing.add_argument('--threshold', type=float, default=10, help='Exit 1 when a workload is slower by more than this median percentage (default: 10)')
+    metal = commands.add_parser('metal-report', help='Summarize a metal/compare.sh log as Markdown')
+    metal.add_argument('log', type=Path)
     for name in ('regression-report', 'gpu-report', 'cpu-report'):
         regression_report = commands.add_parser(name, help='Readable results and optional regression comparison')
         regression_report.add_argument('run', type=Path)
@@ -89,6 +91,10 @@ def main(argv=None):
             text, failed = check_run(args.base, args.candidate, bun, args.output, args.only, args.jobs, args.identical)
             print(text, end='')
             return int(failed)
+        if args.command == 'metal-report':
+            from .metal import parse, render
+            print(render(parse(args.log.read_text())))
+            return 0
         if args.command == 'paired':
             from .paired import run as paired_run
             workloads = args.workloads.split(',') if args.workloads else None

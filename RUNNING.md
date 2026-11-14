@@ -82,6 +82,17 @@ After a correctness check and a warmup on each side, every workload runs in bloc
 
 [scorecard_paired_cpu.py](scorecard_paired_cpu.py) runs the scorecard's archived Bend binaries and a newer revision's binaries alternately under the same load, after the `scorecard-*.toml` runs have built them. The [Bend 2.0.26 comparison](BEND_2_0_26.md) uses it.
 
+### Metal on Apple silicon
+
+[`metal/compare.sh`](metal/compare.sh) compares two Bend checkouts on an Apple-silicon Mac with the Metal backend, where the experiment harness does not run. It needs [Bun](https://bun.sh), `perl` and `bc` on `PATH` and runs with the system `/bin/bash`:
+
+```sh
+metal/compare.sh ~/bend-base ~/bend-candidate > metal.log
+uv run --locked bend-bench metal-report metal.log
+```
+
+Each side runs every test that contains a bang call (`f!(...)`) with `+RTS --gpu on` against its `#|` expectation, and each program in [`metal/probes`](metal/probes), recording wall time and the last output line. The probes are non-tail recursions and list builds under `!` that run a device lane near or past its fixed stack, ending with a runaway recursion of 10^9 frames that should stop with a memory fault. For every program in the candidate's `bench/runtime`, it then times `bend -o` and a further `+RTS --gpu-build` over seven runs a side in alternating order, checks that both sides print the same output, and times the runs in four blocks of A B B A then B A A B. Compiled programs stay in a temporary directory, so the checkouts are unchanged. `metal-report` turns the log into Markdown: test status changes, the probe table, median build times, and each runtime program's median block score (A1 + A2) / (B1 + B2) with a bootstrap interval, scored as in `paired`. With four blocks the interval spans every block score, so a faster or slower verdict means all four blocks agree.
+
 ## Startup-scaling sweep
 
 [startup_scaling.py](startup_scaling.py) grows one work knob per GPU workload until the conventional program's startup stops dominating, and [scaling_fit.py](scaling_fit.py) and [scaling_charts.py](scaling_charts.py) turn the runs into the fits and charts in [Startup scaling](STARTUP_SCALING.md):
